@@ -4,9 +4,11 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToMany,
 } from 'typeorm';
 import { Role } from '../../../common/enums';
 import { UserStatus } from '../../../common/enums';
+import { SocialPlatform } from './social-platform.entity';
 
 @Entity('users')
 export class User {
@@ -37,11 +39,8 @@ export class User {
   @Column({ nullable: true })
   category: string;
 
-  @Column({ type: 'jsonb', nullable: true })
-  instagramData: Record<string, any>;
-
-  @Column({ type: 'jsonb', nullable: true })
-  facebookData: Record<string, any>;
+  @OneToMany(() => SocialPlatform, (sp) => sp.user, { eager: false })
+  socialPlatforms: SocialPlatform[];
 
   @CreateDateColumn()
   createdAt: Date;
@@ -49,3 +48,4 @@ export class User {
   @UpdateDateColumn()
   updatedAt: Date;
 }
+
