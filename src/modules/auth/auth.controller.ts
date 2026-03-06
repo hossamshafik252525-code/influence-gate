@@ -9,7 +9,6 @@ import {
   ResetPasswordDto,
   RefreshTokenDto,
   SelectCategoryDto,
-  ConnectSocialDto,
 } from './dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { JwtRefreshGuard } from '../../common/guards/jwt-refresh.guard';
@@ -64,8 +63,8 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Post('connect-social')
-  connectSocial(@AuthUser() user: User, @Body() dto: ConnectSocialDto) {
-    return this.authService.connectSocial(user.id, dto.platform, dto.accessToken);
+  connectSocial() {
+    return this.authService.connectSocial();
   }
 
   @UseGuards(JwtAuthGuard)
@@ -74,3 +73,4 @@ export class AuthController {
     return this.authService.sendForReview(user.id);
   }
 }
+

@@ -22,4 +22,10 @@ export default () => ({
     senderEmail: process.env.BREVO_SENDER_EMAIL || '',
     senderName: process.env.BREVO_SENDER_NAME || 'InfluenceGate',
   },
+  meta: {
+    appId: process.env.META_APP_ID || '',
+    appSecret: process.env.META_APP_SECRET || '',
+    callbackUrl: process.env.META_CALLBACK_URL || 'http://localhost:3005/users/social/meta/callback',
+    graphApiVersion: process.env.META_GRAPH_API_VERSION || 'v22.0',
+  },
 });

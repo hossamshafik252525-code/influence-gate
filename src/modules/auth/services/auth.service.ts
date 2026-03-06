@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '../../users/users.service';
+import { SocialLinkingService } from '../../users/social-linking.service';
 import { RedisService } from '../../redis/redis.service';
 import { MailService } from '../../mail/mail.service';
 import { TokenService } from './token.service';
@@ -20,6 +21,7 @@ export class AuthService {
 
   constructor(
     private readonly usersService: UsersService,
+    private readonly socialLinkingService: SocialLinkingService,
     private readonly redisService: RedisService,
     private readonly mailService: MailService,
     private readonly tokenService: TokenService,
@@ -187,24 +189,14 @@ export class AuthService {
     return { user: this.sanitizeUser(user) };
   }
 
-  async connectSocial(userId: string, platform: string, accessToken: string) {
-    const updateData: Partial<User> = {};
-
-    if (platform === 'instagram') {
-      updateData.instagramData = { accessToken, connectedAt: new Date() };
-    } else if (platform === 'facebook') {
-      updateData.facebookData = { accessToken, connectedAt: new Date() };
-    }
-
-    const user = await this.usersService.update(userId, updateData);
-
-    return { user: this.sanitizeUser(user) };
+  async connectSocial() {
+    return this.socialLinkingService.getMetaAuthUrl();
   }
 
   async sendForReview(userId: string) {
-    const user = await this.usersService.findById(userId);
+    const hasLinked = await this.socialLinkingService.hasLinkedPlatforms(userId);
 
-    if (!user.instagramData && !user.facebookData) {
+    if (!hasLinked) {
       throw new BadRequestException('يجب ربط حساب واحد على الأقل (انستغرام أو فيسبوك)');
     }
 
