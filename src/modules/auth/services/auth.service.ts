@@ -200,7 +200,7 @@ export class AuthService {
     const hasLinked = await this.socialLinkingService.hasLinkedPlatforms(userId);
 
     if (!hasLinked) {
-      throw new BadRequestException('يجب ربط حساب واحد على الأقل (انستغرام أو فيسبوك)');
+      throw new BadRequestException('يجب ربط حساب واحد على الأقل');
     }
 
     const updatedUser = await this.usersService.update(userId, {
