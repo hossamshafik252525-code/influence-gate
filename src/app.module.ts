@@ -6,6 +6,8 @@ import { RedisModule } from './modules/redis/redis.module';
 import { MailModule } from './modules/mail/mail.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
+import { SocialLinkingModule } from './modules/social-linking/social-linking.module';
+import { CategoriesModule } from './modules/categories/categories.module';
 
 @Module({
   imports: [
@@ -37,6 +39,8 @@ import { UsersModule } from './modules/users/users.module';
     MailModule,
     AuthModule,
     UsersModule,
+    SocialLinkingModule,
+    CategoriesModule,
   ],
 })
 export class AppModule {}

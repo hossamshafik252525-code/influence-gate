@@ -4,13 +4,21 @@ import {
   UnauthorizedException,
   ConflictException,
 } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '../../users/users.service';
-import { SocialLinkingService } from '../../users/social-linking.service';
+import { SocialLinkingService } from '../../social-linking/social-linking.service';
 import { RedisService } from '../../redis/redis.service';
 import { MailService } from '../../mail/mail.service';
 import { TokenService } from './token.service';
-import { SignupDto, LoginDto, VerifyOtpDto, ResetPasswordDto } from '../dto';
+import {
+  SignupDto,
+  LoginDto,
+  VerifyOtpDto,
+  ResetPasswordDto,
+  ConfirmGoogleDto,
+} from '../dto';
 import { UserStatus } from '../../../common/enums';
 import { User } from '../../users/entities/user.entity';
 
@@ -25,6 +33,7 @@ export class AuthService {
     private readonly redisService: RedisService,
     private readonly mailService: MailService,
     private readonly tokenService: TokenService,
+    private readonly httpService: HttpService,
   ) {}
 
   async signup(dto: SignupDto) {
@@ -183,12 +192,6 @@ export class AuthService {
     return { message: 'تم إعادة تعيين كلمة المرور بنجاح' };
   }
 
-  async selectCategory(userId: string, category: string) {
-    const user = await this.usersService.update(userId, { category });
-
-    return { user: this.sanitizeUser(user) };
-  }
-
   async connectSocial() {
     return this.socialLinkingService.getMetaAuthUrl();
   }
@@ -208,6 +211,94 @@ export class AuthService {
       message: 'تم إرسال طلب المراجعة بنجاح',
       user: this.sanitizeUser(updatedUser),
     };
+  }
+
+  async googleRegister(accessToken: string) {
+    const googleProfile = await this.fetchGoogleProfile(accessToken);
+    const existingUser = await this.usersService.findByGoogleId(googleProfile.id);
+
+    if (existingUser && existingUser.status !== UserStatus.NOT_CONFIRMED) {
+      const tokens = this.tokenService.generateTokens(existingUser.id);
+      return {
+        ...tokens,
+        user: this.sanitizeUser(existingUser),
+      };
+    }
+
+    if (existingUser) {
+      return {
+        confirmed: false,
+        message: 'يرجى إكمال التسجيل',
+        user: this.sanitizeUser(existingUser),
+      };
+    }
+
+    const emailTaken = await this.usersService.findByEmail(googleProfile.email);
+    if (emailTaken) {
+      throw new ConflictException('البريد الإلكتروني مسجل مسبقاً بطريقة أخرى');
+    }
+
+    const user = await this.usersService.create({
+      fullName: googleProfile.name,
+      email: googleProfile.email,
+      googleId: googleProfile.id,
+      status: UserStatus.NOT_CONFIRMED,
+    });
+
+    return {
+      confirmed: false,
+      message: 'يرجى إكمال التسجيل',
+      user: this.sanitizeUser(user),
+    };
+  }
+
+  async confirmGoogleRegistration(dto: ConfirmGoogleDto) {
+    const user = await this.usersService.findByEmail(dto.email);
+
+    if (!user) {
+      throw new BadRequestException('المستخدم غير موجود');
+    }
+
+    if (!user.googleId) {
+      throw new BadRequestException('هذا الحساب غير مسجل عبر جوجل');
+    }
+
+    if (user.status !== UserStatus.NOT_CONFIRMED) {
+      throw new BadRequestException('تم تأكيد هذا الحساب مسبقاً');
+    }
+
+    const hashedPassword = await bcrypt.hash(dto.password, this.SALT_ROUNDS);
+
+    const updatedUser = await this.usersService.update(user.id, {
+      fullName: dto.fullName || user.fullName,
+      phone: dto.phone,
+      country: dto.country,
+      password: hashedPassword,
+      status: UserStatus.CONFIRMED,
+    });
+
+    const tokens = this.tokenService.generateTokens(updatedUser.id);
+
+    return {
+      message: 'تم تأكيد التسجيل بنجاح',
+      ...tokens,
+      user: this.sanitizeUser(updatedUser),
+    };
+  }
+
+  private async fetchGoogleProfile(
+    accessToken: string,
+  ): Promise<{ id: string; email: string; name: string; picture?: string }> {
+    try {
+      const { data } = await firstValueFrom(
+        this.httpService.get('https://www.googleapis.com/oauth2/v2/userinfo', {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }),
+      );
+      return data;
+    } catch {
+      throw new BadRequestException('رمز الوصول من جوجل غير صالح');
+    }
   }
 
   private generateOtp(): string {

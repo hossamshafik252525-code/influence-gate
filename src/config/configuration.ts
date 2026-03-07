@@ -25,7 +25,12 @@ export default () => ({
   meta: {
     appId: process.env.META_APP_ID || '',
     appSecret: process.env.META_APP_SECRET || '',
-    callbackUrl: process.env.META_CALLBACK_URL || 'http://localhost:3005/users/social/meta/callback',
+    callbackUrl: process.env.META_CALLBACK_URL || 'http://localhost:3005/social/meta/callback',
     graphApiVersion: process.env.META_GRAPH_API_VERSION || 'v22.0',
+  },
+  cloudinary: {
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME || '',
+    apiKey: process.env.CLOUDINARY_API_KEY || '',
+    apiSecret: process.env.CLOUDINARY_API_SECRET || '',
   },
 });

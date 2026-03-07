@@ -5,10 +5,12 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToMany,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
-import { Role } from '../../../common/enums';
-import { UserStatus } from '../../../common/enums';
-import { SocialPlatform } from './social-platform.entity';
+import { Role, UserStatus } from '../../../common/enums';
+import { SocialPlatform } from '../../social-linking/entities/social-platform.entity';
+import { UserCategory } from '../../categories/entities/user-category.entity';
 
 @Entity('users')
 export class User {
@@ -21,14 +23,17 @@ export class User {
   @Column({ unique: true })
   email: string;
 
-  @Column()
+  @Column({ nullable: true })
   phone: string;
 
-  @Column()
+  @Column({ nullable: true })
   country: string;
 
-  @Column({ select: false })
+  @Column({ select: false, nullable: true })
   password: string;
+
+  @Column({ unique: true, nullable: true })
+  googleId: string;
 
   @Column({ type: 'enum', enum: Role, default: Role.INFLUENCER })
   role: Role;
@@ -36,11 +41,11 @@ export class User {
   @Column({ type: 'enum', enum: UserStatus, default: UserStatus.CONFIRMED })
   status: UserStatus;
 
-  @Column({ nullable: true })
-  category: string;
-
   @OneToMany(() => SocialPlatform, (sp) => sp.user, { eager: false })
   socialPlatforms: SocialPlatform[];
+
+  @OneToMany(() => UserCategory, (userCategory) => userCategory.user)
+  userCategories: UserCategory[];
 
   @CreateDateColumn()
   createdAt: Date;

@@ -7,7 +7,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { User } from './user.entity';
+import { User } from '../../users/entities/user.entity';
 import { Platform } from '../../../common/enums';
 
 @Entity('social_platforms')
@@ -42,6 +42,9 @@ export class SocialPlatform {
 
   @Column({ type: 'jsonb', nullable: true })
   profileData: Record<string, any>;
+
+  @Column({ type: 'jsonb', nullable: true })
+  statistics: Record<string, any>;
 
   @CreateDateColumn()
   connectedAt: Date;

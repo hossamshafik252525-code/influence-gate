@@ -8,7 +8,8 @@ import {
   ForgotPasswordDto,
   ResetPasswordDto,
   RefreshTokenDto,
-  SelectCategoryDto,
+  GoogleRegisterDto,
+  ConfirmGoogleDto,
 } from './dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { JwtRefreshGuard } from '../../common/guards/jwt-refresh.guard';
@@ -56,12 +57,6 @@ export class AuthController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Patch('select-category')
-  selectCategory(@AuthUser() user: User, @Body() dto: SelectCategoryDto) {
-    return this.authService.selectCategory(user.id, dto.category);
-  }
-
-  @UseGuards(JwtAuthGuard)
   @Post('connect-social')
   connectSocial() {
     return this.authService.connectSocial();
@@ -72,5 +67,14 @@ export class AuthController {
   sendForReview(@AuthUser() user: User) {
     return this.authService.sendForReview(user.id);
   }
-}
 
+  @Post('google')
+  googleRegister(@Body() dto: GoogleRegisterDto) {
+    return this.authService.googleRegister(dto.accessToken);
+  }
+
+  @Post('confirm-google')
+  confirmGoogle(@Body() dto: ConfirmGoogleDto) {
+    return this.authService.confirmGoogleRegistration(dto);
+  }
+}
