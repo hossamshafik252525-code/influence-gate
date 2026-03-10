@@ -7,7 +7,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { SocialPlatform } from './entities/social-platform.entity';
-import { MetaStrategy } from './strategies';
+import { MetaStrategy, SnapchatStrategy } from './strategies';
 import { Platform } from '../../common/enums';
 
 @Injectable()
@@ -18,6 +18,7 @@ export class SocialLinkingService {
     @InjectRepository(SocialPlatform)
     private readonly socialPlatformRepo: Repository<SocialPlatform>,
     private readonly metaStrategy: MetaStrategy,
+    private readonly snapchatStrategy: SnapchatStrategy,
   ) {}
 
   getMetaAuthUrl(): { url: string } {
@@ -125,12 +126,13 @@ export class SocialLinkingService {
     return record;
   }
 
-  private resolveStrategy(platform: Platform): MetaStrategy {
-    if (
-      platform === Platform.FACEBOOK ||
-      platform === Platform.INSTAGRAM
-    ) {
+  private resolveStrategy(platform: Platform): MetaStrategy | SnapchatStrategy {
+    if (platform === Platform.FACEBOOK || platform === Platform.INSTAGRAM) {
       return this.metaStrategy;
+    }
+
+    if (platform === Platform.SNAPCHAT) {
+      return this.snapchatStrategy;
     }
 
     throw new NotFoundException('هذه المنصة غير مدعومة حالياً');
