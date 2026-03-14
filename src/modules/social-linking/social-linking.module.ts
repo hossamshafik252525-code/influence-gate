@@ -5,7 +5,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { SocialLinkingController } from './social-linking.controller';
 import { SocialLinkingService } from './social-linking.service';
 import { SocialPlatform } from './entities/social-platform.entity';
-import { MetaStrategy, MetaController, SnapchatStrategy, SnapchatController } from './strategies';
+import { MetaStrategy, MetaController, TikTokStrategy, TikTokController } from './strategies';
 
 @Module({
   imports: [
@@ -13,8 +13,8 @@ import { MetaStrategy, MetaController, SnapchatStrategy, SnapchatController } fr
     HttpModule,
     ScheduleModule.forRoot(),
   ],
-  controllers: [SocialLinkingController, MetaController, SnapchatController],
-  providers: [SocialLinkingService, MetaStrategy, SnapchatStrategy],
+  controllers: [SocialLinkingController, MetaController, TikTokController],
+  providers: [SocialLinkingService, MetaStrategy, TikTokStrategy],
   exports: [SocialLinkingService],
 })
 export class SocialLinkingModule {}

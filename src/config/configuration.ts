@@ -28,10 +28,10 @@ export default () => ({
     callbackUrl: process.env.META_CALLBACK_URL || 'http://localhost:3005/social/meta/callback',
     graphApiVersion: process.env.META_GRAPH_API_VERSION || 'v22.0',
   },
-  snapchat: {
-    clientId: process.env.SNAPCHAT_CLIENT_ID || '',
-    clientSecret: process.env.SNAPCHAT_CLIENT_SECRET || '',
-    callbackUrl: process.env.SNAPCHAT_CALLBACK_URL || 'http://localhost:3005/social/snapchat/callback',
+  tiktok: {
+    clientKey: process.env.TIKTOK_CLIENT_KEY || '',
+    clientSecret: process.env.TIKTOK_CLIENT_SECRET || '',
+    callbackUrl: process.env.TIKTOK_CALLBACK_URL || 'http://localhost:3005/social/tiktok/callback',
   },
   cloudinary: {
     cloudName: process.env.CLOUDINARY_CLOUD_NAME || '',

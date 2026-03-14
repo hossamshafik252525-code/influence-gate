@@ -1,0 +1,255 @@
+import { Injectable, BadRequestException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { HttpService } from '@nestjs/axios';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { firstValueFrom } from 'rxjs';
+import { randomBytes } from 'crypto';
+import { SocialProviderStrategy } from '../../interfaces/social-provider.interface';
+import { SocialPlatform } from '../../entities/social-platform.entity';
+import { Platform } from '../../../../common/enums';
+import {
+  TikTokTokenResponse,
+  TikTokUserInfoResponse,
+  TikTokPlatformStatistics,
+} from './tiktok.types';
+
+@Injectable()
+export class TikTokStrategy implements SocialProviderStrategy {
+  private readonly authUrl: string = 'https://www.tiktok.com/v2/auth/authorize/';
+  private readonly tokenUrl: string = 'https://open.tiktokapis.com/v2/oauth/token/';
+  private readonly userInfoUrl: string = 'https://open.tiktokapis.com/v2/user/info/';
+  private readonly clientKey: string;
+  private readonly clientSecret: string;
+  private readonly callbackUrl: string;
+
+  private readonly basicFields: string = 'open_id,union_id,avatar_url,avatar_large_url,display_name';
+  private readonly profileFields: string = 'bio_description,profile_deep_link,is_verified,username';
+  private readonly statsFields: string = 'follower_count,following_count,likes_count,video_count';
+
+  constructor(
+    @InjectRepository(SocialPlatform)
+    private readonly socialPlatformRepo: Repository<SocialPlatform>,
+    private readonly httpService: HttpService,
+    private readonly configService: ConfigService,
+  ) {
+    this.clientKey = this.configService.get<string>('tiktok.clientKey');
+    this.clientSecret = this.configService.get<string>('tiktok.clientSecret');
+    this.callbackUrl = this.configService.get<string>('tiktok.callbackUrl');
+  }
+
+  getAuthUrl(): { url: string } {
+    const scopes = 'user.info.basic,user.info.profile,user.info.stats';
+    const state = randomBytes(32).toString('base64url');
+
+    const url =
+      `${this.authUrl}` +
+      `?client_key=${this.clientKey}` +
+      `&scope=${scopes}` +
+      `&response_type=code` +
+      `&redirect_uri=${encodeURIComponent(this.callbackUrl)}` +
+      `&state=${state}`;
+
+    return { url };
+  }
+
+  async handleCallback(code: string, userId: string): Promise<SocialPlatform[]> {
+    const tokenData = await this.exchangeCodeForTokens(code);
+    const tokenExpiresAt = this.calculateTokenExpiry(tokenData.expires_in);
+    const refreshTokenExpiresAt = this.calculateTokenExpiry(tokenData.refresh_expires_in);
+
+    const userInfo = await this.fetchUserInfo(tokenData.access_token);
+    const userData = userInfo.data.user;
+    const statistics = this.extractStatistics(userData);
+
+    await this.upsertPlatform(
+      userId,
+      tokenData.open_id,
+      userData.username ?? userData.display_name,
+      tokenData.access_token,
+      tokenData.refresh_token,
+      tokenExpiresAt,
+      refreshTokenExpiresAt,
+      userData,
+      statistics,
+    );
+
+    return this.findUserPlatforms(userId);
+  }
+
+  async refreshStats(record: SocialPlatform): Promise<Record<string, any>> {
+    const userInfo = await this.fetchUserInfo(record.accessToken);
+    return this.extractStatistics(userInfo.data.user);
+  }
+
+  async refreshToken(record: SocialPlatform): Promise<string> {
+    if (!this.isTokenNearExpiry(record.tokenExpiresAt)) {
+      return record.accessToken;
+    }
+
+    const refreshToken = record.pageAccessToken;
+    if (!refreshToken) {
+      return record.accessToken;
+    }
+
+    const newTokenData = await this.performTokenRefresh(refreshToken);
+
+    await this.socialPlatformRepo.update(record.id, {
+      accessToken: newTokenData.access_token,
+      pageAccessToken: newTokenData.refresh_token,
+      tokenExpiresAt: this.calculateTokenExpiry(newTokenData.expires_in),
+    });
+
+    return newTokenData.access_token;
+  }
+
+  private async exchangeCodeForTokens(code: string): Promise<TikTokTokenResponse> {
+    try {
+      const { data } = await firstValueFrom(
+        this.httpService.post<TikTokTokenResponse>(
+          this.tokenUrl,
+          new URLSearchParams({
+            client_key: this.clientKey,
+            client_secret: this.clientSecret,
+            code: decodeURIComponent(code),
+            grant_type: 'authorization_code',
+            redirect_uri: this.callbackUrl,
+          }).toString(),
+          {
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          },
+        ),
+      );
+      return data;
+    } catch {
+      throw new BadRequestException('فشل في تبادل رمز التفويض مع TikTok');
+    }
+  }
+
+  private async performTokenRefresh(refreshToken: string): Promise<TikTokTokenResponse> {
+    try {
+      const { data } = await firstValueFrom(
+        this.httpService.post<TikTokTokenResponse>(
+          this.tokenUrl,
+          new URLSearchParams({
+            client_key: this.clientKey,
+            client_secret: this.clientSecret,
+            grant_type: 'refresh_token',
+            refresh_token: refreshToken,
+          }).toString(),
+          {
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          },
+        ),
+      );
+      return data;
+    } catch {
+      throw new BadRequestException('فشل في تجديد رمز الوصول لـ TikTok');
+    }
+  }
+
+  private async fetchUserInfo(accessToken: string): Promise<TikTokUserInfoResponse> {
+    const allFields = [this.basicFields, this.profileFields, this.statsFields].join(',');
+
+    try {
+      const { data } = await firstValueFrom(
+        this.httpService.get<TikTokUserInfoResponse>(
+          this.userInfoUrl,
+          {
+            params: { fields: allFields },
+            headers: { Authorization: `Bearer ${accessToken}` },
+          },
+        ),
+      );
+
+      if (data.error?.code !== 'ok') {
+        throw new BadRequestException(data.error?.message ?? 'فشل في جلب بيانات TikTok');
+      }
+
+      return data;
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException('فشل في جلب بيانات حساب TikTok');
+    }
+  }
+
+  private extractStatistics(userData: TikTokUserInfoResponse['data']['user']): TikTokPlatformStatistics {
+    return {
+      followerCount: userData.follower_count ?? 0,
+      followingCount: userData.following_count ?? 0,
+      likesCount: userData.likes_count ?? 0,
+      videoCount: userData.video_count ?? 0,
+      isVerified: userData.is_verified ?? false,
+      lastFetchedAt: new Date().toISOString(),
+    };
+  }
+
+  private async upsertPlatform(
+    userId: string,
+    platformUserId: string,
+    platformUsername: string,
+    accessToken: string,
+    refreshToken: string,
+    tokenExpiresAt: Date,
+    refreshTokenExpiresAt: Date,
+    profileData: Record<string, any>,
+    statistics: Record<string, any>,
+  ): Promise<SocialPlatform> {
+    const existing = await this.socialPlatformRepo.findOne({
+      where: { userId, platform: Platform.TIKTOK },
+    });
+
+    const platformData = {
+      platformUserId,
+      platformUsername,
+      accessToken,
+      pageAccessToken: refreshToken,
+      tokenExpiresAt,
+      profileData: Object.assign({}, profileData, { refreshTokenExpiresAt: refreshTokenExpiresAt.toISOString() }),
+      statistics,
+      lastSyncedAt: new Date(),
+    };
+
+    if (existing) {
+      await this.socialPlatformRepo.update(existing.id, platformData);
+      return this.socialPlatformRepo.findOne({ where: { id: existing.id } });
+    }
+
+    const record = this.socialPlatformRepo.create({
+      userId,
+      platform: Platform.TIKTOK,
+      ...platformData,
+    });
+
+    return this.socialPlatformRepo.save(record);
+  }
+
+  private async findUserPlatforms(userId: string): Promise<SocialPlatform[]> {
+    return this.socialPlatformRepo.find({
+      where: { userId },
+      select: [
+        'id',
+        'platform',
+        'platformUserId',
+        'platformUsername',
+        'profileData',
+        'statistics',
+        'connectedAt',
+        'lastSyncedAt',
+      ],
+    });
+  }
+
+  private calculateTokenExpiry(expiresIn: number): Date {
+    return new Date(Date.now() + expiresIn * 1000);
+  }
+
+  private isTokenNearExpiry(tokenExpiresAt: Date | null): boolean {
+    if (!tokenExpiresAt) return false;
+    const hoursUntilExpiry =
+      (tokenExpiresAt.getTime() - Date.now()) / (1000 * 60 * 60);
+    return hoursUntilExpiry <= 2;
+  }
+}

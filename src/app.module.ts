@@ -4,10 +4,11 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import configuration from './config/configuration';
 import { RedisModule } from './modules/redis/redis.module';
 import { MailModule } from './modules/mail/mail.module';
-import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { SocialLinkingModule } from './modules/social-linking/social-linking.module';
 import { CategoriesModule } from './modules/categories/categories.module';
+import { InfluencerModule } from './modules/influencer/influencer.module';
+import { AdvertiserModule } from './modules/advertiser/advertiser.module';
 
 @Module({
   imports: [
@@ -37,10 +38,11 @@ import { CategoriesModule } from './modules/categories/categories.module';
     }),
     RedisModule,
     MailModule,
-    AuthModule,
     UsersModule,
     SocialLinkingModule,
     CategoriesModule,
+    InfluencerModule,
+    AdvertiserModule,
   ],
 })
 export class AppModule {}

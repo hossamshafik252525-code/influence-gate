@@ -5,12 +5,12 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToMany,
-  ManyToOne,
-  JoinColumn,
+  OneToOne,
 } from 'typeorm';
 import { Role, UserStatus } from '../../../common/enums';
 import { SocialPlatform } from '../../social-linking/entities/social-platform.entity';
 import { UserCategory } from '../../categories/entities/user-category.entity';
+import { AdvertiserProfile } from '../../advertiser/entities/advertiser-profile.entity';
 
 @Entity('users')
 export class User {
@@ -46,6 +46,9 @@ export class User {
 
   @OneToMany(() => UserCategory, (userCategory) => userCategory.user)
   userCategories: UserCategory[];
+
+  @OneToOne(() => AdvertiserProfile, (ap) => ap.user)
+  advertiserProfile: AdvertiserProfile;
 
   @CreateDateColumn()
   createdAt: Date;

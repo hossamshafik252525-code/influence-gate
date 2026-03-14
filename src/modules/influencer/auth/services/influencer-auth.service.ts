@@ -7,11 +7,11 @@ import {
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import * as bcrypt from 'bcrypt';
-import { UsersService } from '../../users/users.service';
-import { SocialLinkingService } from '../../social-linking/social-linking.service';
-import { RedisService } from '../../redis/redis.service';
-import { MailService } from '../../mail/mail.service';
-import { TokenService } from './token.service';
+import { UsersService } from '../../../users/users.service';
+import { SocialLinkingService } from '../../../social-linking/social-linking.service';
+import { RedisService } from '../../../redis/redis.service';
+import { MailService } from '../../../mail/mail.service';
+import { TokenService } from '../../../../common/auth';
 import {
   SignupDto,
   LoginDto,
@@ -19,11 +19,11 @@ import {
   ResetPasswordDto,
   ConfirmGoogleDto,
 } from '../dto';
-import { UserStatus } from '../../../common/enums';
-import { User } from '../../users/entities/user.entity';
+import { UserStatus } from '../../../../common/enums';
+import { User } from '../../../users/entities/user.entity';
 
 @Injectable()
-export class AuthService {
+export class InfluencerAuthService {
   private readonly OTP_TTL = 600;
   private readonly SALT_ROUNDS = 10;
 
@@ -36,7 +36,7 @@ export class AuthService {
     private readonly httpService: HttpService,
   ) {}
 
-  async signup(dto: SignupDto) {
+  async signup(dto: SignupDto): Promise<{ message: string }> {
     const existingUser = await this.usersService.findByEmail(dto.email);
     if (existingUser) {
       throw new ConflictException('البريد الإلكتروني مسجل مسبقاً');
@@ -107,7 +107,14 @@ export class AuthService {
   }
 
   async resendOtp(email: string) {
-    const data = await this.redisService.get<any>(`signup:${email}`);
+    const data = await this.redisService.get<{
+      fullName: string;
+      email: string;
+      phone: string;
+      country: string;
+      password: string;
+      otp: string;
+    }>(`signup:${email}`);
 
     if (!data) {
       throw new BadRequestException('لا يوجد طلب تسجيل لهذا البريد الإلكتروني');

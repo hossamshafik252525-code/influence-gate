@@ -1,5 +1,5 @@
 import { IsEmail, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
-import { Match } from './match.decorator';
+import { Match } from '../../../../common/auth';
 
 export class ConfirmGoogleDto {
   @IsNotEmpty({ message: 'البريد الإلكتروني مطلوب' })
