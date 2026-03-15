@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, IsUUID, MinLength } from 'class-validator';
 import { Match } from '../../../../common/auth';
 
 export class SignupDto {
@@ -15,8 +15,8 @@ export class SignupDto {
   phone: string;
 
   @IsNotEmpty()
-  @IsString()
-  country: string;
+  @IsUUID()
+  countryId: string;
 
   @IsNotEmpty()
   @IsString()

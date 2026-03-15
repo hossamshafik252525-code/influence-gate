@@ -3,6 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UsersService } from '../../../users/users.service';
 import { CloudinaryService } from '../../../cloudinary/cloudinary.service';
+import { CategoriesService } from '../../../categories/categories.service';
+import { CountriesService } from '../../../countries/countries.service';
 import { AdvertiserProfile } from '../../entities/advertiser-profile.entity';
 import { ConfirmAdvertiserProfileDto } from '../dto';
 import { UserStatus } from '../../../../common/enums';
@@ -14,6 +16,8 @@ export class AdvertiserProfileService {
     private readonly advertiserProfileRepository: Repository<AdvertiserProfile>,
     private readonly usersService: UsersService,
     private readonly cloudinaryService: CloudinaryService,
+    private readonly categoriesService: CategoriesService,
+    private readonly countriesService: CountriesService,
   ) {}
 
   async confirmProfile(
@@ -29,6 +33,9 @@ export class AdvertiserProfileService {
       throw new BadRequestException('الملف الشخصي غير موجود');
     }
 
+    await this.categoriesService.findOne(dto.categoryId);
+    await this.countriesService.findOne(dto.countryId);
+
     let logoUrl: string | undefined;
     let logoPublicId: string | undefined;
 
@@ -40,8 +47,7 @@ export class AdvertiserProfileService {
 
     const updateData: Partial<AdvertiserProfile> = {
       companyName: dto.companyName,
-      typeOfActivity: dto.typeOfActivity,
-      city: dto.city,
+      categoryId: dto.categoryId,
       companyWebsite: dto.companyWebsite,
       contentTypes: dto.contentTypes,
       targetPlatforms: dto.targetPlatforms,
@@ -54,7 +60,7 @@ export class AdvertiserProfileService {
     }
 
     await this.advertiserProfileRepository.update(profile.id, updateData);
-    await this.usersService.update(userId, { status: UserStatus.CONFIRMED });
+    await this.usersService.update(userId, { status: UserStatus.CONFIRMED, countryId: dto.countryId });
 
     return this.advertiserProfileRepository.findOne({ where: { userId } });
   }

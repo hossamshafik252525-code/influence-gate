@@ -11,6 +11,8 @@ import { TokenService, JwtStrategy, JwtRefreshStrategy } from '../../common/auth
 import { UsersModule } from '../users/users.module';
 import { MailModule } from '../mail/mail.module';
 import { CloudinaryModule } from '../cloudinary/cloudinary.module';
+import { CategoriesModule } from '../categories/categories.module';
+import { CountriesModule } from '../countries/countries.module';
 
 @Module({
   imports: [
@@ -20,6 +22,8 @@ import { CloudinaryModule } from '../cloudinary/cloudinary.module';
     UsersModule,
     MailModule,
     CloudinaryModule,
+    CategoriesModule,
+    CountriesModule,
   ],
   controllers: [AdvertiserAuthController, AdvertiserProfileController],
   providers: [

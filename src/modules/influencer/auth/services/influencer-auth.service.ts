@@ -12,6 +12,8 @@ import { SocialLinkingService } from '../../../social-linking/social-linking.ser
 import { RedisService } from '../../../redis/redis.service';
 import { MailService } from '../../../mail/mail.service';
 import { TokenService } from '../../../../common/auth';
+import { CountriesService } from '../../../countries/countries.service';
+import { NotificationsService } from '../../../notifications/services/notifications.service';
 import {
   SignupDto,
   LoginDto,
@@ -19,7 +21,8 @@ import {
   ResetPasswordDto,
   ConfirmGoogleDto,
 } from '../dto';
-import { UserStatus } from '../../../../common/enums';
+import { Role, UserStatus } from '../../../../common/enums';
+import { NotificationType } from '../../../notifications/enums';
 import { User } from '../../../users/entities/user.entity';
 
 @Injectable()
@@ -34,6 +37,8 @@ export class InfluencerAuthService {
     private readonly mailService: MailService,
     private readonly tokenService: TokenService,
     private readonly httpService: HttpService,
+    private readonly countriesService: CountriesService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async signup(dto: SignupDto): Promise<{ message: string }> {
@@ -42,10 +47,17 @@ export class InfluencerAuthService {
       throw new ConflictException('البريد الإلكتروني مسجل مسبقاً');
     }
 
+    const existingPhone = await this.usersService.findByPhone(dto.phone);
+    if (existingPhone) {
+      throw new ConflictException('رقم الهاتف مسجل مسبقاً');
+    }
+
     const pendingUser = await this.redisService.get(`signup:${dto.email}`);
     if (pendingUser) {
       throw new ConflictException('تم إرسال رمز التحقق مسبقاً، يرجى التحقق من بريدك الإلكتروني');
     }
+
+    await this.countriesService.findOne(dto.countryId);
 
     const hashedPassword = await bcrypt.hash(dto.password, this.SALT_ROUNDS);
     const otp = this.generateOtp();
@@ -56,7 +68,7 @@ export class InfluencerAuthService {
         fullName: dto.fullName,
         email: dto.email,
         phone: dto.phone,
-        country: dto.country,
+        countryId: dto.countryId,
         password: hashedPassword,
         otp,
       },
@@ -73,7 +85,7 @@ export class InfluencerAuthService {
       fullName: string;
       email: string;
       phone: string;
-      country: string;
+      countryId: string;
       password: string;
       otp: string;
     }>(`signup:${dto.email}`);
@@ -90,7 +102,7 @@ export class InfluencerAuthService {
       fullName: data.fullName,
       email: data.email,
       phone: data.phone,
-      country: data.country,
+      countryId: data.countryId,
       password: data.password,
       status: UserStatus.CONFIRMED,
     });
@@ -111,7 +123,7 @@ export class InfluencerAuthService {
       fullName: string;
       email: string;
       phone: string;
-      country: string;
+      countryId: string;
       password: string;
       otp: string;
     }>(`signup:${email}`);
@@ -204,15 +216,23 @@ export class InfluencerAuthService {
   }
 
   async sendForReview(userId: string) {
-    const hasLinked = await this.socialLinkingService.hasLinkedPlatforms(userId);
+    const user = await this.usersService.findById(userId);
 
-    if (!hasLinked) {
-      throw new BadRequestException('يجب ربط حساب واحد على الأقل');
+    if (user.status !== UserStatus.CONFIRMED) {
+      throw new BadRequestException('يجب تأكيد الحساب أولاً');
     }
 
     const updatedUser = await this.usersService.update(userId, {
       status: UserStatus.PENDING,
     });
+
+    await this.notificationsService.notifyByRole(
+      Role.ADMIN,
+      'طلب مراجعة جديد',
+      'مؤثر جديد يطلب المراجعة',
+      NotificationType.NEW_INFLUENCER_REVIEW,
+      { influencerId: userId },
+    );
 
     return {
       message: 'تم إرسال طلب المراجعة بنجاح',
@@ -274,12 +294,14 @@ export class InfluencerAuthService {
       throw new BadRequestException('تم تأكيد هذا الحساب مسبقاً');
     }
 
+    await this.countriesService.findOne(dto.countryId);
+
     const hashedPassword = await bcrypt.hash(dto.password, this.SALT_ROUNDS);
 
     const updatedUser = await this.usersService.update(user.id, {
       fullName: dto.fullName || user.fullName,
       phone: dto.phone,
-      country: dto.country,
+      countryId: dto.countryId,
       password: hashedPassword,
       status: UserStatus.CONFIRMED,
     });

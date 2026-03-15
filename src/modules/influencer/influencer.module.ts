@@ -8,6 +8,8 @@ import { TokenService, JwtStrategy, JwtRefreshStrategy } from '../../common/auth
 import { UsersModule } from '../users/users.module';
 import { SocialLinkingModule } from '../social-linking/social-linking.module';
 import { MailModule } from '../mail/mail.module';
+import { CountriesModule } from '../countries/countries.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -17,6 +19,8 @@ import { MailModule } from '../mail/mail.module';
     UsersModule,
     SocialLinkingModule,
     MailModule,
+    CountriesModule,
+    NotificationsModule,
   ],
   controllers: [InfluencerAuthController],
   providers: [InfluencerAuthService, TokenService, JwtStrategy, JwtRefreshStrategy],

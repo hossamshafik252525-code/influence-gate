@@ -6,11 +6,14 @@ import {
   UpdateDateColumn,
   OneToMany,
   OneToOne,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { Role, UserStatus } from '../../../common/enums';
 import { SocialPlatform } from '../../social-linking/entities/social-platform.entity';
 import { UserCategory } from '../../categories/entities/user-category.entity';
 import { AdvertiserProfile } from '../../advertiser/entities/advertiser-profile.entity';
+import { Country } from '../../countries/entities/country.entity';
 
 @Entity('users')
 export class User {
@@ -23,11 +26,15 @@ export class User {
   @Column({ unique: true })
   email: string;
 
-  @Column({ nullable: true })
+  @Column({ unique: true, nullable: true })
   phone: string;
 
   @Column({ nullable: true })
-  country: string;
+  countryId: string;
+
+  @ManyToOne(() => Country, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'countryId' })
+  country: Country;
 
   @Column({ select: false, nullable: true })
   password: string;

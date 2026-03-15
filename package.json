@@ -17,7 +17,8 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "seed:countries": "ts-node -r tsconfig-paths/register src/database/seeds/seed-countries.ts"
   },
   "dependencies": {
     "@nestjs/axios": "^4.0.1",
@@ -37,6 +38,7 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "cloudinary": "^2.9.0",
+    "firebase-admin": "^13.7.0",
     "ioredis": "^5.10.0",
     "multer": "^2.1.1",
     "passport": "^0.7.0",

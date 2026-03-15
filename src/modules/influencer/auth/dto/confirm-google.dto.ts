@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsOptional, IsString, IsUUID, MinLength } from 'class-validator';
 import { Match } from '../../../../common/auth';
 
 export class ConfirmGoogleDto {
@@ -25,6 +25,6 @@ export class ConfirmGoogleDto {
   phone: string;
 
   @IsNotEmpty({ message: 'الدولة مطلوبة' })
-  @IsString()
-  country: string;
+  @IsUUID()
+  countryId: string;
 }

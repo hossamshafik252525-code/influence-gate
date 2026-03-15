@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
+import { Role } from '../../common/enums';
 
 @Injectable()
 export class UsersService {
@@ -31,8 +32,20 @@ export class UsersService {
     return this.usersRepository.findOne({ where: { id } });
   }
 
+  async findByPhone(phone: string): Promise<User | null> {
+    return this.usersRepository.findOne({ where: { phone } });
+  }
+
   async findByGoogleId(googleId: string): Promise<User | null> {
     return this.usersRepository.findOne({ where: { googleId } });
+  }
+
+  async findIdsByRole(role: Role): Promise<string[]> {
+    const users = await this.usersRepository.find({
+      where: { role },
+      select: ['id'],
+    });
+    return users.map((u) => u.id);
   }
 
   async update(id: string, data: Partial<User>): Promise<User> {

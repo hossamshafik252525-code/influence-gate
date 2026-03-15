@@ -9,6 +9,8 @@ import { SocialLinkingModule } from './modules/social-linking/social-linking.mod
 import { CategoriesModule } from './modules/categories/categories.module';
 import { InfluencerModule } from './modules/influencer/influencer.module';
 import { AdvertiserModule } from './modules/advertiser/advertiser.module';
+import { CountriesModule } from './modules/countries/countries.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -43,6 +45,8 @@ import { AdvertiserModule } from './modules/advertiser/advertiser.module';
     CategoriesModule,
     InfluencerModule,
     AdvertiserModule,
+    CountriesModule,
+    NotificationsModule,
   ],
 })
 export class AppModule {}

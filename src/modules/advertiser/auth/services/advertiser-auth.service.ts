@@ -42,6 +42,11 @@ export class AdvertiserAuthService {
       throw new ConflictException('البريد الإلكتروني مسجل مسبقاً');
     }
 
+    const existingPhone = await this.usersService.findByPhone(dto.phone);
+    if (existingPhone) {
+      throw new ConflictException('رقم الهاتف مسجل مسبقاً');
+    }
+
     const existingUsername = await this.advertiserProfileRepository.findOne({
       where: { username: dto.username },
     });
