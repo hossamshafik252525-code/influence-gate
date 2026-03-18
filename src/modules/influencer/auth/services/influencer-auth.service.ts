@@ -269,7 +269,7 @@ export class InfluencerAuthService {
       fullName: googleProfile.name,
       email: googleProfile.email,
       googleId: googleProfile.id,
-      status: UserStatus.NOT_CONFIRMED,
+      status: UserStatus.CONFIRMED,
     });
 
     return {

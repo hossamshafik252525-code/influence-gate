@@ -11,6 +11,7 @@ import { InfluencerModule } from './modules/influencer/influencer.module';
 import { AdvertiserModule } from './modules/advertiser/advertiser.module';
 import { CountriesModule } from './modules/countries/countries.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { CampaignModule } from './modules/campaign/campaign.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     AdvertiserModule,
     CountriesModule,
     NotificationsModule,
+    CampaignModule,
   ],
 })
 export class AppModule {}

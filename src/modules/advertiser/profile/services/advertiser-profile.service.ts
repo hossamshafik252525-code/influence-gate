@@ -40,7 +40,10 @@ export class AdvertiserProfileService {
     let logoPublicId: string | undefined;
 
     if (file) {
-      const uploadResult = await this.cloudinaryService.uploadImage(file, 'advertiser_logos');
+      const uploadResult = await this.cloudinaryService.uploadImage(
+        file,
+        'advertiser_logos',
+      );
       logoUrl = uploadResult.secure_url;
       logoPublicId = uploadResult.public_id;
     }
@@ -60,7 +63,10 @@ export class AdvertiserProfileService {
     }
 
     await this.advertiserProfileRepository.update(profile.id, updateData);
-    await this.usersService.update(userId, { status: UserStatus.CONFIRMED, countryId: dto.countryId });
+    await this.usersService.update(userId, {
+      status: UserStatus.CONFIRMED,
+      countryId: dto.countryId,
+    });
 
     return this.advertiserProfileRepository.findOne({ where: { userId } });
   }
