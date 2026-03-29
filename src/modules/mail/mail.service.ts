@@ -6,6 +6,15 @@ import * as SibApiV3Sdk from 'sib-api-v3-sdk';
 export class MailService {
   constructor(private readonly configService: ConfigService) {}
 
+  async sendToAdmin(subject: string, body: string): Promise<void> {
+    await this.send({
+      to: 'Influencegate2025@gmail.com',
+      subject,
+      html: `<div style="font-family: Arial, sans-serif; padding: 20px;">${body}</div>`,
+      text: body,
+    });
+  }
+
   async sendOtp(email: string, otp: string): Promise<void> {
     const html = this.buildOtpTemplate(otp);
 

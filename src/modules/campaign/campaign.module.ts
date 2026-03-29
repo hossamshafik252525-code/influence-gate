@@ -10,11 +10,13 @@ import { CampaignSubmissionService } from './services/campaign-submission.servic
 import { CampaignReviewService } from './services/campaign-review.service';
 import { CampaignLifecycleService } from './services/campaign-lifecycle.service';
 import { CampaignQueryService } from './services/campaign-query.service';
+import { InfluencerCampaignQueryService } from './services/influencer-campaign-query.service';
 import { CampaignApplication } from './entities/campaign-application.entity';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { CloudinaryModule } from '../cloudinary/cloudinary.module';
 import { CategoriesModule } from '../categories/categories.module';
 import { UsersModule } from '../users/users.module';
+import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
 
 @Module({
   imports: [
@@ -23,6 +25,7 @@ import { UsersModule } from '../users/users.module';
     CloudinaryModule,
     CategoriesModule,
     UsersModule,
+    PlatformSettingsModule,
   ],
   controllers: [AdvertiserCampaignController, AdminCampaignController, InfluencerCampaignController],
   providers: [
@@ -31,6 +34,7 @@ import { UsersModule } from '../users/users.module';
     CampaignReviewService,
     CampaignLifecycleService,
     CampaignQueryService,
+    InfluencerCampaignQueryService,
   ],
   exports: [CampaignCreationService, CampaignQueryService],
 })

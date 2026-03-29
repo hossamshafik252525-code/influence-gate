@@ -7,8 +7,8 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { User } from '../../users/entities/user.entity';
 import { Platform } from '../../../common/enums';
+import { InfluencerProfile } from '../../influencer/entities/influencer-profile.entity';
 
 @Entity('social_platforms')
 export class SocialPlatform {
@@ -16,11 +16,11 @@ export class SocialPlatform {
   id: string;
 
   @Column()
-  userId: string;
+  influencerProfileId: string;
 
-  @ManyToOne(() => User, (user) => user.socialPlatforms, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'userId' })
-  user: User;
+  @ManyToOne(() => InfluencerProfile, (ip) => ip.socialPlatforms, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'influencerProfileId' })
+  influencerProfile: InfluencerProfile;
 
   @Column({ type: 'enum', enum: Platform })
   platform: Platform;

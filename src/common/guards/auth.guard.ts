@@ -1,10 +1,11 @@
 import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { Role } from '../enums';
+import { Role, UserStatus } from '../enums';
 import { ROLES_KEY } from '../decorators/roles.decorator';
+import { STATUSES_KEY } from '../decorators/statuses.decorator';
 
 @Injectable()
-export class RolesGuard implements CanActivate {
+export class AuthGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
@@ -13,7 +14,12 @@ export class RolesGuard implements CanActivate {
       context.getClass(),
     ]);
 
-    if (!requiredRoles || requiredRoles.length === 0) {
+    const requiredStatuses = this.reflector.getAllAndOverride<UserStatus[]>(STATUSES_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+
+    if (!requiredRoles?.length && !requiredStatuses?.length) {
       return true;
     }
 
@@ -23,9 +29,11 @@ export class RolesGuard implements CanActivate {
       throw new ForbiddenException('غير مصرح لك بالوصول');
     }
 
-    const hasRole = requiredRoles.includes(user.role);
+    if (requiredRoles?.length && !requiredRoles.includes(user.role)) {
+      throw new ForbiddenException('غير مصرح لك بالوصول');
+    }
 
-    if (!hasRole) {
+    if (requiredStatuses?.length && !requiredStatuses.includes(user.status)) {
       throw new ForbiddenException('غير مصرح لك بالوصول');
     }
 

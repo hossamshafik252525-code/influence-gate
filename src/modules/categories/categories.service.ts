@@ -89,6 +89,10 @@ export class CategoriesService {
     return { message: 'تم حذف الفئة بنجاح' };
   }
 
+  async getUserCategories(userId: string): Promise<UserCategory[]> {
+    return this.userCategoryRepo.find({ where: { user: { id: userId } } });
+  }
+
   async selectCategories(userId: string, categoryIds: string[]) {
     await this.userCategoryRepo.delete({ user: { id: userId } });
 

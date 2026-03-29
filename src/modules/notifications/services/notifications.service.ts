@@ -7,6 +7,7 @@ import { FcmService } from './fcm.service';
 import { UsersService } from '../../users/users.service';
 import { NotificationType } from '../enums';
 import { Role } from '../../../common/enums';
+import { PaginatedResult } from '../../../common/interfaces';
 
 @Injectable()
 export class NotificationsService {
@@ -61,7 +62,7 @@ export class NotificationsService {
     userId: string,
     page: number,
     limit: number,
-  ): Promise<{ data: Notification[]; total: number; page: number; limit: number }> {
+  ): Promise<PaginatedResult<Notification>> {
     const [data, total] = await this.notificationRepository.findAndCount({
       where: { recipientId: userId, isRead: false },
       order: { createdAt: 'DESC' },
@@ -69,7 +70,7 @@ export class NotificationsService {
       take: limit,
     });
 
-    return { data, total, page, limit };
+    return { data, pagination: { total, page, limit } };
   }
 
   async markAsRead(notificationId: string, userId: string): Promise<void> {

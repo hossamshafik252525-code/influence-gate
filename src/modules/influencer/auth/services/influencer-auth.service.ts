@@ -4,11 +4,12 @@ import {
   UnauthorizedException,
   ConflictException,
 } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '../../../users/users.service';
-import { SocialLinkingService } from '../../../social-linking/social-linking.service';
 import { RedisService } from '../../../redis/redis.service';
 import { MailService } from '../../../mail/mail.service';
 import { TokenService } from '../../../../common/auth';
@@ -24,6 +25,7 @@ import {
 import { Role, UserStatus } from '../../../../common/enums';
 import { NotificationType } from '../../../notifications/enums';
 import { User } from '../../../users/entities/user.entity';
+import { InfluencerProfile } from '../../entities/influencer-profile.entity';
 
 @Injectable()
 export class InfluencerAuthService {
@@ -31,8 +33,9 @@ export class InfluencerAuthService {
   private readonly SALT_ROUNDS = 10;
 
   constructor(
+    @InjectRepository(InfluencerProfile)
+    private readonly influencerProfileRepo: Repository<InfluencerProfile>,
     private readonly usersService: UsersService,
-    private readonly socialLinkingService: SocialLinkingService,
     private readonly redisService: RedisService,
     private readonly mailService: MailService,
     private readonly tokenService: TokenService,
@@ -104,10 +107,19 @@ export class InfluencerAuthService {
       phone: data.phone,
       countryId: data.countryId,
       password: data.password,
-      status: UserStatus.CONFIRMED,
+      status: UserStatus.PENDING,
     });
 
     await this.redisService.del(`signup:${dto.email}`);
+    await this.ensureProfileExists(user.id);
+
+    await this.notificationsService.notifyByRole(
+      Role.ADMIN,
+      'طلب مراجعة جديد',
+      'مؤثر جديد يطلب المراجعة',
+      NotificationType.NEW_INFLUENCER_REVIEW,
+      { influencerId: user.id },
+    );
 
     const tokens = this.tokenService.generateTokens(user.id);
 
@@ -211,35 +223,6 @@ export class InfluencerAuthService {
     return { message: 'تم إعادة تعيين كلمة المرور بنجاح' };
   }
 
-  async connectSocial() {
-    return this.socialLinkingService.getMetaAuthUrl();
-  }
-
-  async sendForReview(userId: string) {
-    const user = await this.usersService.findById(userId);
-
-    if (user.status !== UserStatus.CONFIRMED) {
-      throw new BadRequestException('يجب تأكيد الحساب أولاً');
-    }
-
-    const updatedUser = await this.usersService.update(userId, {
-      status: UserStatus.PENDING,
-    });
-
-    await this.notificationsService.notifyByRole(
-      Role.ADMIN,
-      'طلب مراجعة جديد',
-      'مؤثر جديد يطلب المراجعة',
-      NotificationType.NEW_INFLUENCER_REVIEW,
-      { influencerId: userId },
-    );
-
-    return {
-      message: 'تم إرسال طلب المراجعة بنجاح',
-      user: this.sanitizeUser(updatedUser),
-    };
-  }
-
   async googleRegister(accessToken: string) {
     const googleProfile = await this.fetchGoogleProfile(accessToken);
     const existingUser = await this.usersService.findByGoogleId(googleProfile.id);
@@ -269,8 +252,10 @@ export class InfluencerAuthService {
       fullName: googleProfile.name,
       email: googleProfile.email,
       googleId: googleProfile.id,
-      status: UserStatus.CONFIRMED,
+      status: UserStatus.NOT_CONFIRMED,
     });
+
+    await this.ensureProfileExists(user.id);
 
     return {
       confirmed: false,
@@ -303,8 +288,18 @@ export class InfluencerAuthService {
       phone: dto.phone,
       countryId: dto.countryId,
       password: hashedPassword,
-      status: UserStatus.CONFIRMED,
+      status: UserStatus.PENDING,
     });
+
+    await this.ensureProfileExists(updatedUser.id);
+
+    await this.notificationsService.notifyByRole(
+      Role.ADMIN,
+      'طلب مراجعة جديد',
+      'مؤثر جديد يطلب المراجعة',
+      NotificationType.NEW_INFLUENCER_REVIEW,
+      { influencerId: updatedUser.id },
+    );
 
     const tokens = this.tokenService.generateTokens(updatedUser.id);
 
@@ -313,6 +308,13 @@ export class InfluencerAuthService {
       ...tokens,
       user: this.sanitizeUser(updatedUser),
     };
+  }
+
+  private async ensureProfileExists(userId: string): Promise<void> {
+    const existing = await this.influencerProfileRepo.findOne({ where: { userId } });
+    if (!existing) {
+      await this.influencerProfileRepo.save(this.influencerProfileRepo.create({ userId }));
+    }
   }
 
   private async fetchGoogleProfile(

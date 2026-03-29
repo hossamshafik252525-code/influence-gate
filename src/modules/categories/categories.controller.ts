@@ -17,7 +17,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto, UpdateCategoryDto, SelectCategoriesDto } from './dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../../common/guards/roles.guard';
+import { AuthGuard } from '../../common/guards/auth.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { AuthUser } from '../../common/decorators/auth-user.decorator';
 import { Role } from '../../common/enums';
@@ -28,7 +28,7 @@ export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, AuthGuard)
   @Roles(Role.ADMIN, Role.OWNER)
   @UseInterceptors(FileInterceptor('icon'))
   create(
@@ -53,14 +53,14 @@ export class CategoriesController {
   }
 
   @Get(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, AuthGuard)
   @Roles(Role.ADMIN, Role.OWNER)
   findOne(@Param('id') id: string) {
     return this.categoriesService.findOne(id);
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, AuthGuard)
   @Roles(Role.ADMIN, Role.OWNER)
   @UseInterceptors(FileInterceptor('icon'))
   update(
@@ -69,7 +69,7 @@ export class CategoriesController {
     @UploadedFile(
       new ParseFilePipe({
         validators: [
-          new MaxFileSizeValidator({ maxSize: 5000000 }), // 5MB
+          new MaxFileSizeValidator({ maxSize: 5000000 }),
           new FileTypeValidator({ fileType: '.(png|jpeg|jpg|webp|svg)' }),
         ],
         fileIsRequired: false,
@@ -81,7 +81,7 @@ export class CategoriesController {
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, AuthGuard)
   @Roles(Role.ADMIN, Role.OWNER)
   remove(@Param('id') id: string) {
     return this.categoriesService.remove(id);

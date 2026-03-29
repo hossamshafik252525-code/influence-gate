@@ -56,18 +56,6 @@ export class InfluencerAuthController {
     return this.influencerAuthService.resetPassword(dto);
   }
 
-  @UseGuards(JwtAuthGuard)
-  @Post('connect-social')
-  connectSocial() {
-    return this.influencerAuthService.connectSocial();
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Post('send-for-review')
-  sendForReview(@AuthUser() user: User) {
-    return this.influencerAuthService.sendForReview(user.id);
-  }
-
   @Post('google')
   googleRegister(@Body() dto: GoogleRegisterDto) {
     return this.influencerAuthService.googleRegister(dto.accessToken);

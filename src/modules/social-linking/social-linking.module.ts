@@ -5,11 +5,12 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { SocialLinkingController } from './social-linking.controller';
 import { SocialLinkingService } from './social-linking.service';
 import { SocialPlatform } from './entities/social-platform.entity';
+import { InfluencerProfile } from '../influencer/entities/influencer-profile.entity';
 import { MetaStrategy, MetaController, TikTokStrategy, TikTokController } from './strategies';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([SocialPlatform]),
+    TypeOrmModule.forFeature([SocialPlatform, InfluencerProfile]),
     HttpModule,
     ScheduleModule.forRoot(),
   ],

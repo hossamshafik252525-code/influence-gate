@@ -4,3 +4,5 @@ export * from './platform.enum';
 export * from './content-type.enum';
 export * from './target-platform.enum';
 export * from './expected-budget.enum';
+export * from './implementation-type.enum';
+export * from './content-type-offer.enum';

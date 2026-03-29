@@ -13,6 +13,7 @@ import {
 import { CategoriesService } from '../../categories/categories.service';
 import { CloudinaryService } from '../../cloudinary/cloudinary.service';
 import { UsersService } from '../../users/users.service';
+import { PlatformSettingsService } from '../../platform-settings/platform-settings.service';
 import { Role } from '../../../common/enums';
 
 @Injectable()
@@ -25,6 +26,7 @@ export class CampaignCreationService {
     private readonly categoriesService: CategoriesService,
     private readonly cloudinaryService: CloudinaryService,
     private readonly usersService: UsersService,
+    private readonly platformSettingsService: PlatformSettingsService,
   ) {}
 
   async createDraft(advertiserId: string): Promise<Campaign> {
@@ -167,9 +169,13 @@ export class CampaignCreationService {
     dto: SaveCampaignBudgetDto,
   ): Promise<Campaign> {
     const campaign = await this.findDraftOrFail(campaignId, advertiserId);
+    const feePercentage = await this.platformSettingsService.getPlatformFeePercentage();
+    const influencerPrice =
+      (dto.budget * (1 - feePercentage / 100)) / (campaign.requiredInfluencersCount || 1);
 
     await this.campaignRepository.update(campaign.id, {
       budget: dto.budget,
+      influencerPrice: Math.round(influencerPrice * 100) / 100,
       currentStep: CampaignStep.REVIEW,
     });
 

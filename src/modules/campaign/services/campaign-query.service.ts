@@ -5,6 +5,7 @@ import { Campaign } from '../entities/campaign.entity';
 import { CampaignApplication } from '../entities/campaign-application.entity';
 import { CampaignStatus } from '../enums';
 import { GetMyCampaignsQueryDto } from '../dto/get-my-campaigns-query.dto';
+import { PaginatedResult } from '../../../common/interfaces';
 
 export interface CampaignStatistics {
   totalCampaigns: number;
@@ -13,20 +14,11 @@ export interface CampaignStatistics {
   totalSpent: number;
 }
 
-export interface GetMyCampaignsResult {
-  data: Campaign[];
-  total: number;
-  page: number;
-  limit: number;
+export interface GetMyCampaignsResult extends PaginatedResult<Campaign> {
   statistics: CampaignStatistics;
 }
 
-export interface GetApplicationsResult {
-  data: CampaignApplication[];
-  total: number;
-  page: number;
-  limit: number;
-}
+export type GetApplicationsResult = PaginatedResult<CampaignApplication>;
 
 @Injectable()
 export class CampaignQueryService {
@@ -113,9 +105,7 @@ export class CampaignQueryService {
 
     return {
       data,
-      total,
-      page: query.page,
-      limit: query.limit,
+      pagination: { total, page: query.page, limit: query.limit },
       statistics,
     };
   }
@@ -169,7 +159,7 @@ export class CampaignQueryService {
       take: limit,
     });
 
-    return { data, total, page, limit };
+    return { data, pagination: { total, page, limit } };
   }
 
   private async getStatistics(advertiserId: string): Promise<CampaignStatistics> {

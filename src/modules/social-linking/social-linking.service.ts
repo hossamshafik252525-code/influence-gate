@@ -10,6 +10,7 @@ import { SocialPlatform } from './entities/social-platform.entity';
 import { MetaStrategy, TikTokStrategy } from './strategies';
 import { Platform } from '../../common/enums';
 import { SocialProviderStrategy } from './interfaces/social-provider.interface';
+import { InfluencerProfile } from '../influencer/entities/influencer-profile.entity';
 
 @Injectable()
 export class SocialLinkingService {
@@ -18,6 +19,8 @@ export class SocialLinkingService {
   constructor(
     @InjectRepository(SocialPlatform)
     private readonly socialPlatformRepo: Repository<SocialPlatform>,
+    @InjectRepository(InfluencerProfile)
+    private readonly influencerProfileRepo: Repository<InfluencerProfile>,
     private readonly metaStrategy: MetaStrategy,
     private readonly tiktokStrategy: TikTokStrategy,
   ) {}
@@ -27,8 +30,9 @@ export class SocialLinkingService {
   }
 
   async getLinkedPlatforms(userId: string) {
+    const influencerProfileId = await this.resolveProfileId(userId);
     const platforms = await this.socialPlatformRepo.find({
-      where: { userId },
+      where: { influencerProfileId },
       select: [
         'id',
         'platform',
@@ -45,12 +49,19 @@ export class SocialLinkingService {
   }
 
   async hasLinkedPlatforms(userId: string): Promise<boolean> {
-    const count = await this.socialPlatformRepo.count({ where: { userId } });
+    const influencerProfileId = await this.resolveProfileId(userId);
+    const count = await this.socialPlatformRepo.count({ where: { influencerProfileId } });
     return count > 0;
   }
 
+  async countLinkedPlatforms(userId: string): Promise<number> {
+    const influencerProfileId = await this.resolveProfileId(userId);
+    return this.socialPlatformRepo.count({ where: { influencerProfileId } });
+  }
+
   async refreshPlatformStats(userId: string, platform: Platform) {
-    const record = await this.findPlatformOrFail(userId, platform);
+    const influencerProfileId = await this.resolveProfileId(userId);
+    const record = await this.findPlatformOrFail(influencerProfileId, platform);
     const strategy = this.resolveStrategy(platform);
 
     const refreshedToken = await strategy.refreshToken(record);
@@ -67,7 +78,8 @@ export class SocialLinkingService {
   }
 
   async unlinkPlatform(userId: string, platform: Platform) {
-    const record = await this.findPlatformOrFail(userId, platform);
+    const influencerProfileId = await this.resolveProfileId(userId);
+    const record = await this.findPlatformOrFail(influencerProfileId, platform);
     await this.socialPlatformRepo.remove(record);
     return { message: 'تم إلغاء ربط المنصة بنجاح' };
   }
@@ -112,12 +124,20 @@ export class SocialLinkingService {
     });
   }
 
+  private async resolveProfileId(userId: string): Promise<string> {
+    const profile = await this.influencerProfileRepo.findOne({ where: { userId } });
+    if (!profile) {
+      throw new NotFoundException('الملف الشخصي للمؤثر غير موجود');
+    }
+    return profile.id;
+  }
+
   private async findPlatformOrFail(
-    userId: string,
+    influencerProfileId: string,
     platform: Platform,
   ): Promise<SocialPlatform> {
     const record = await this.socialPlatformRepo.findOne({
-      where: { userId, platform },
+      where: { influencerProfileId, platform },
     });
 
     if (!record) {

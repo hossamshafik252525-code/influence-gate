@@ -12,6 +12,9 @@ import { AdvertiserModule } from './modules/advertiser/advertiser.module';
 import { CountriesModule } from './modules/countries/countries.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { CampaignModule } from './modules/campaign/campaign.module';
+import { WalletModule } from './modules/wallet/wallet.module';
+import { PlatformSettingsModule } from './modules/platform-settings/platform-settings.module';
+import { LandingPageModule } from './modules/landing-page/landing-page.module';
 
 @Module({
   imports: [
@@ -49,6 +52,9 @@ import { CampaignModule } from './modules/campaign/campaign.module';
     CountriesModule,
     NotificationsModule,
     CampaignModule,
+    WalletModule,
+    PlatformSettingsModule,
+    LandingPageModule,
   ],
 })
 export class AppModule {}

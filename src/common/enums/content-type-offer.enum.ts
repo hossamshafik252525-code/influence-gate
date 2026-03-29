@@ -1,4 +1,4 @@
-export enum CampaignContentType {
+export enum ContentTypeOffer {
   STORY = 'story',
   REEL = 'reel',
   POST = 'post',

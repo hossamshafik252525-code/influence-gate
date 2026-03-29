@@ -12,7 +12,8 @@ import { User } from '../../users/entities/user.entity';
 import { Category } from '../../categories/entities/category.entity';
 import { CampaignInvitedInfluencer } from './campaign-invited-influencer.entity';
 import { CampaignApplication } from './campaign-application.entity';
-import { CampaignStatus, CampaignStep, ImplementationType, InfluencerType, CampaignVisibility, CampaignContentType } from '../enums';
+import { ImplementationType, ContentTypeOffer } from '../../../common/enums';
+import { CampaignStatus, CampaignStep, InfluencerType, CampaignVisibility } from '../enums';
 import { TargetPlatform } from '../../../common/enums';
 
 @Entity('campaigns')
@@ -62,7 +63,7 @@ export class Campaign {
   implementationPeriodDays: number;
 
   @Column({ type: 'jsonb', nullable: true })
-  contentTypes: CampaignContentType[];
+  contentTypes: ContentTypeOffer[];
 
   @Column({ type: 'text', nullable: true })
   contentDescription: string;
@@ -84,6 +85,9 @@ export class Campaign {
 
   @Column({ type: 'decimal', precision: 12, scale: 2, nullable: true })
   budget: number;
+
+  @Column({ type: 'decimal', precision: 12, scale: 2, nullable: true })
+  influencerPrice: number;
 
   @Column({ type: 'timestamp', nullable: true })
   submittedAt: Date;

@@ -14,11 +14,11 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../../../common/guards/roles.guard';
-import { ConfirmedUserGuard } from '../../../common/guards/confirmed-user.guard';
+import { AuthGuard } from '../../../common/guards/auth.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
+import { Statuses } from '../../../common/decorators/statuses.decorator';
 import { AuthUser } from '../../../common/decorators/auth-user.decorator';
-import { Role } from '../../../common/enums';
+import { Role, UserStatus } from '../../../common/enums';
 import { User } from '../../users/entities/user.entity';
 import { CampaignCreationService } from '../services/campaign-creation.service';
 import { CampaignSubmissionService } from '../services/campaign-submission.service';
@@ -36,8 +36,9 @@ import { Campaign } from '../entities/campaign.entity';
 import { PaginationDto } from '../../notifications/dto/pagination.dto';
 
 @Controller('campaigns/advertiser')
-@UseGuards(JwtAuthGuard, RolesGuard, ConfirmedUserGuard)
+@UseGuards(JwtAuthGuard, AuthGuard)
 @Roles(Role.ADVERTISER)
+@Statuses(UserStatus.CONFIRMED)
 export class AdvertiserCampaignController {
   constructor(
     private readonly campaignCreationService: CampaignCreationService,

@@ -10,8 +10,7 @@ import {
   Min,
   MaxLength,
 } from 'class-validator';
-import { TargetPlatform } from '../../../common/enums';
-import { ImplementationType } from '../enums';
+import { TargetPlatform, ImplementationType } from '../../../common/enums';
 
 export class SaveCampaignInformationDto {
   @IsNotEmpty({ message: 'اسم الحملة مطلوب' })

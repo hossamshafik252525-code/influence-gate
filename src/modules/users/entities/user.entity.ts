@@ -10,9 +10,9 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { Role, UserStatus } from '../../../common/enums';
-import { SocialPlatform } from '../../social-linking/entities/social-platform.entity';
 import { UserCategory } from '../../categories/entities/user-category.entity';
 import { AdvertiserProfile } from '../../advertiser/entities/advertiser-profile.entity';
+import { InfluencerProfile } from '../../influencer/entities/influencer-profile.entity';
 import { Country } from '../../countries/entities/country.entity';
 
 @Entity('users')
@@ -48,14 +48,14 @@ export class User {
   @Column({ type: 'enum', enum: UserStatus, default: UserStatus.CONFIRMED })
   status: UserStatus;
 
-  @OneToMany(() => SocialPlatform, (sp) => sp.user, { eager: false })
-  socialPlatforms: SocialPlatform[];
-
   @OneToMany(() => UserCategory, (userCategory) => userCategory.user)
   userCategories: UserCategory[];
 
   @OneToOne(() => AdvertiserProfile, (ap) => ap.user)
   advertiserProfile: AdvertiserProfile;
+
+  @OneToOne(() => InfluencerProfile, (ip) => ip.user)
+  influencerProfile: InfluencerProfile;
 
   @CreateDateColumn()
   createdAt: Date;

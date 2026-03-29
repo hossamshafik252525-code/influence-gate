@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -8,6 +8,7 @@ import { randomBytes } from 'crypto';
 import { SocialProviderStrategy } from '../../interfaces/social-provider.interface';
 import { SocialPlatform } from '../../entities/social-platform.entity';
 import { Platform } from '../../../../common/enums';
+import { InfluencerProfile } from '../../../influencer/entities/influencer-profile.entity';
 import {
   TikTokTokenResponse,
   TikTokUserInfoResponse,
@@ -30,6 +31,8 @@ export class TikTokStrategy implements SocialProviderStrategy {
   constructor(
     @InjectRepository(SocialPlatform)
     private readonly socialPlatformRepo: Repository<SocialPlatform>,
+    @InjectRepository(InfluencerProfile)
+    private readonly influencerProfileRepo: Repository<InfluencerProfile>,
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
   ) {
@@ -54,6 +57,8 @@ export class TikTokStrategy implements SocialProviderStrategy {
   }
 
   async handleCallback(code: string, userId: string): Promise<SocialPlatform[]> {
+    const influencerProfileId = await this.resolveProfileId(userId);
+
     const tokenData = await this.exchangeCodeForTokens(code);
     const tokenExpiresAt = this.calculateTokenExpiry(tokenData.expires_in);
     const refreshTokenExpiresAt = this.calculateTokenExpiry(tokenData.refresh_expires_in);
@@ -63,7 +68,7 @@ export class TikTokStrategy implements SocialProviderStrategy {
     const statistics = this.extractStatistics(userData);
 
     await this.upsertPlatform(
-      userId,
+      influencerProfileId,
       tokenData.open_id,
       userData.username ?? userData.display_name,
       tokenData.access_token,
@@ -74,7 +79,7 @@ export class TikTokStrategy implements SocialProviderStrategy {
       statistics,
     );
 
-    return this.findUserPlatforms(userId);
+    return this.findUserPlatforms(influencerProfileId);
   }
 
   async refreshStats(record: SocialPlatform): Promise<Record<string, any>> {
@@ -187,7 +192,7 @@ export class TikTokStrategy implements SocialProviderStrategy {
   }
 
   private async upsertPlatform(
-    userId: string,
+    influencerProfileId: string,
     platformUserId: string,
     platformUsername: string,
     accessToken: string,
@@ -198,7 +203,7 @@ export class TikTokStrategy implements SocialProviderStrategy {
     statistics: Record<string, any>,
   ): Promise<SocialPlatform> {
     const existing = await this.socialPlatformRepo.findOne({
-      where: { userId, platform: Platform.TIKTOK },
+      where: { influencerProfileId, platform: Platform.TIKTOK },
     });
 
     const platformData = {
@@ -218,7 +223,7 @@ export class TikTokStrategy implements SocialProviderStrategy {
     }
 
     const record = this.socialPlatformRepo.create({
-      userId,
+      influencerProfileId,
       platform: Platform.TIKTOK,
       ...platformData,
     });
@@ -226,9 +231,17 @@ export class TikTokStrategy implements SocialProviderStrategy {
     return this.socialPlatformRepo.save(record);
   }
 
-  private async findUserPlatforms(userId: string): Promise<SocialPlatform[]> {
+  private async resolveProfileId(userId: string): Promise<string> {
+    const profile = await this.influencerProfileRepo.findOne({ where: { userId } });
+    if (!profile) {
+      throw new NotFoundException('الملف الشخصي للمؤثر غير موجود');
+    }
+    return profile.id;
+  }
+
+  private async findUserPlatforms(influencerProfileId: string): Promise<SocialPlatform[]> {
     return this.socialPlatformRepo.find({
-      where: { userId },
+      where: { influencerProfileId },
       select: [
         'id',
         'platform',

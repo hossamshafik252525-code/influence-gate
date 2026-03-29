@@ -1,21 +1,10 @@
-import { IsOptional, IsInt, Min, IsEnum, IsUUID, IsNumber, IsString } from 'class-validator';
+import { IsOptional, IsEnum, IsUUID, IsNumber, IsString, Min } from 'class-validator';
 import { Type } from 'class-transformer';
-import { CampaignStatus, CampaignContentType } from '../enums';
-import { TargetPlatform } from '../../../common/enums';
+import { TargetPlatform, ContentTypeOffer } from '../../../common/enums';
+import { CampaignStatus } from '../enums';
+import { PaginationQueryDto } from '../../../common/dto';
 
-export class GetMyCampaignsQueryDto {
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt({ message: 'رقم الصفحة يجب أن يكون رقماً صحيحاً' })
-  @Min(1, { message: 'رقم الصفحة يجب أن يكون 1 على الأقل' })
-  page: number = 1;
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt({ message: 'عدد العناصر يجب أن يكون رقماً صحيحاً' })
-  @Min(1, { message: 'عدد العناصر يجب أن يكون 1 على الأقل' })
-  limit: number = 10;
-
+export class GetMyCampaignsQueryDto extends PaginationQueryDto {
   @IsOptional()
   @IsEnum(CampaignStatus, { message: 'حالة الحملة غير صالحة' })
   status?: CampaignStatus;
@@ -25,8 +14,8 @@ export class GetMyCampaignsQueryDto {
   platform?: TargetPlatform;
 
   @IsOptional()
-  @IsEnum(CampaignContentType, { message: 'نوع المحتوى غير صالح' })
-  contentType?: CampaignContentType;
+  @IsEnum(ContentTypeOffer, { message: 'نوع المحتوى غير صالح' })
+  contentType?: ContentTypeOffer;
 
   @IsOptional()
   @Type(() => Number)

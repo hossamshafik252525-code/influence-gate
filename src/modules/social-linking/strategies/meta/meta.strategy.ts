@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -7,6 +7,7 @@ import { firstValueFrom } from 'rxjs';
 import { SocialProviderStrategy } from '../../interfaces/social-provider.interface';
 import { SocialPlatform } from '../../entities/social-platform.entity';
 import { Platform } from '../../../../common/enums';
+import { InfluencerProfile } from '../../../influencer/entities/influencer-profile.entity';
 import {
   MetaTokenResponse,
   MetaFacebookProfile,
@@ -26,6 +27,8 @@ export class MetaStrategy implements SocialProviderStrategy {
   constructor(
     @InjectRepository(SocialPlatform)
     private readonly socialPlatformRepo: Repository<SocialPlatform>,
+    @InjectRepository(InfluencerProfile)
+    private readonly influencerProfileRepo: Repository<InfluencerProfile>,
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
   ) {
@@ -55,6 +58,8 @@ export class MetaStrategy implements SocialProviderStrategy {
   }
 
   async handleCallback(code: string, userId: string): Promise<SocialPlatform[]> {
+    const influencerProfileId = await this.resolveProfileId(userId);
+
     const shortLivedToken = await this.exchangeCodeForToken(code);
     const longLivedToken = await this.exchangeForLongLivedToken(shortLivedToken);
     const tokenExpiresAt = this.calculateTokenExpiry();
@@ -63,7 +68,7 @@ export class MetaStrategy implements SocialProviderStrategy {
     const facebookStats = this.extractFacebookStatistics(facebookProfile);
 
     await this.upsertPlatform(
-      userId,
+      influencerProfileId,
       Platform.FACEBOOK,
       facebookProfile.id,
       facebookProfile.name,
@@ -83,7 +88,7 @@ export class MetaStrategy implements SocialProviderStrategy {
       const igStats = this.extractInstagramStatistics(igProfile);
 
       await this.upsertPlatform(
-        userId,
+        influencerProfileId,
         Platform.INSTAGRAM,
         instagramAccount.igUserId,
         igProfile.username,
@@ -95,7 +100,7 @@ export class MetaStrategy implements SocialProviderStrategy {
       );
     }
 
-    return this.findUserPlatforms(userId);
+    return this.findUserPlatforms(influencerProfileId);
   }
 
   async refreshStats(record: SocialPlatform): Promise<Record<string, any>> {
@@ -273,7 +278,7 @@ export class MetaStrategy implements SocialProviderStrategy {
   }
 
   private async upsertPlatform(
-    userId: string,
+    influencerProfileId: string,
     platform: Platform,
     platformUserId: string,
     platformUsername: string | null,
@@ -284,7 +289,7 @@ export class MetaStrategy implements SocialProviderStrategy {
     statistics: Record<string, any>,
   ): Promise<SocialPlatform> {
     const existing = await this.socialPlatformRepo.findOne({
-      where: { userId, platform },
+      where: { influencerProfileId, platform },
     });
 
     if (existing) {
@@ -302,7 +307,7 @@ export class MetaStrategy implements SocialProviderStrategy {
     }
 
     const record = this.socialPlatformRepo.create({
-      userId,
+      influencerProfileId,
       platform,
       platformUserId,
       platformUsername,
@@ -317,9 +322,17 @@ export class MetaStrategy implements SocialProviderStrategy {
     return this.socialPlatformRepo.save(record);
   }
 
-  private async findUserPlatforms(userId: string): Promise<SocialPlatform[]> {
+  private async resolveProfileId(userId: string): Promise<string> {
+    const profile = await this.influencerProfileRepo.findOne({ where: { userId } });
+    if (!profile) {
+      throw new NotFoundException('الملف الشخصي للمؤثر غير موجود');
+    }
+    return profile.id;
+  }
+
+  private async findUserPlatforms(influencerProfileId: string): Promise<SocialPlatform[]> {
     return this.socialPlatformRepo.find({
-      where: { userId },
+      where: { influencerProfileId },
       select: [
         'id',
         'platform',
