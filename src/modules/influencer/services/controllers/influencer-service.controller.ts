@@ -2,14 +2,14 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@n
 import { InfluencerServiceService } from '../services/influencer-service.service';
 import { CreateInfluencerServiceDto, UpdateInfluencerServiceDto } from '../dto';
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
-import { AuthGuard } from '../../../../common/guards/auth.guard';
+import { RolesStatusGuard } from '../../../../common/guards/auth.guard';
 import { Roles } from '../../../../common/decorators/roles.decorator';
 import { Statuses } from '../../../../common/decorators/statuses.decorator';
 import { AuthUser } from '../../../../common/decorators/auth-user.decorator';
 import { Role, UserStatus } from '../../../../common/enums';
 import { User } from '../../../users/entities/user.entity';
 
-@UseGuards(JwtAuthGuard, AuthGuard)
+@UseGuards(JwtAuthGuard, RolesStatusGuard)
 @Roles(Role.INFLUENCER)
 @Statuses(UserStatus.ACTIVE)
 @Controller('influencer/services')

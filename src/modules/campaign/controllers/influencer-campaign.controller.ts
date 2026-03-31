@@ -7,7 +7,7 @@ import {
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
-import { AuthGuard } from '../../../common/guards/auth.guard';
+import { RolesStatusGuard } from '../../../common/guards/auth.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { Statuses } from '../../../common/decorators/statuses.decorator';
 import { AuthUser } from '../../../common/decorators/auth-user.decorator';
@@ -17,9 +17,9 @@ import { InfluencerCampaignQueryService } from '../services/influencer-campaign-
 import { GetInfluencerCampaignsQueryDto } from '../dto';
 
 @Controller('campaigns/influencer')
-@UseGuards(JwtAuthGuard, AuthGuard)
+@UseGuards(JwtAuthGuard, RolesStatusGuard)
 @Roles(Role.INFLUENCER)
-@Statuses(UserStatus.PENDING, UserStatus.ACTIVE)
+@Statuses(UserStatus.PENDING, UserStatus.CONFIRMED)
 export class InfluencerCampaignController {
   constructor(
     private readonly influencerCampaignQueryService: InfluencerCampaignQueryService,

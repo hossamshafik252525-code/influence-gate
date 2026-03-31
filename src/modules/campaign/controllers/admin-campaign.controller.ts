@@ -8,7 +8,7 @@ import {
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
-import { AuthGuard } from '../../../common/guards/auth.guard';
+import { RolesStatusGuard } from '../../../common/guards/auth.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { Role } from '../../../common/enums';
 import { CampaignReviewService } from '../services/campaign-review.service';
@@ -16,7 +16,7 @@ import { ReviewCampaignDto } from '../dto';
 import { Campaign } from '../entities/campaign.entity';
 
 @Controller('campaigns/admin')
-@UseGuards(JwtAuthGuard, AuthGuard)
+@UseGuards(JwtAuthGuard, RolesStatusGuard)
 @Roles(Role.ADMIN)
 export class AdminCampaignController {
   constructor(private readonly campaignReviewService: CampaignReviewService) {}

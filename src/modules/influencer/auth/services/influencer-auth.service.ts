@@ -144,10 +144,16 @@ export class InfluencerAuthService {
       throw new BadRequestException('لا يوجد طلب تسجيل لهذا البريد الإلكتروني');
     }
 
+    const cooldown = await this.redisService.get(`resend-cooldown:${email}`);
+    if (cooldown) {
+      throw new BadRequestException('يرجى الانتظار 60 ثانية قبل إعادة الإرسال');
+    }
+
     const otp = this.generateOtp();
     data.otp = otp;
 
     await this.redisService.set(`signup:${email}`, data, this.OTP_TTL);
+    await this.redisService.set(`resend-cooldown:${email}`, '1', 60);
     await this.mailService.sendOtp(email, otp);
 
     return { message: 'تم إعادة إرسال رمز التحقق' };

@@ -15,6 +15,7 @@ import { CampaignModule } from './modules/campaign/campaign.module';
 import { WalletModule } from './modules/wallet/wallet.module';
 import { PlatformSettingsModule } from './modules/platform-settings/platform-settings.module';
 import { LandingPageModule } from './modules/landing-page/landing-page.module';
+import { AdminModule } from './modules/admin/admin.module';
 
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { LandingPageModule } from './modules/landing-page/landing-page.module';
     WalletModule,
     PlatformSettingsModule,
     LandingPageModule,
+    AdminModule,
   ],
 })
 export class AppModule {}

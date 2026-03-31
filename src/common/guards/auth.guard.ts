@@ -1,14 +1,19 @@
 import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
+import { ModuleRef, Reflector } from '@nestjs/core';
 import { Role, UserStatus } from '../enums';
 import { ROLES_KEY } from '../decorators/roles.decorator';
 import { STATUSES_KEY } from '../decorators/statuses.decorator';
+import { SocialLinkingService } from '../../modules/social-linking/social-linking.service';
+import { InfluencerServiceService } from '../../modules/influencer/services/services/influencer-service.service';
 
 @Injectable()
-export class AuthGuard implements CanActivate {
-  constructor(private readonly reflector: Reflector) {}
+export class RolesStatusGuard implements CanActivate {
+  constructor(
+    private readonly reflector: Reflector,
+    private readonly moduleRef: ModuleRef,
+  ) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const requiredRoles = this.reflector.getAllAndOverride<Role[]>(ROLES_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -33,10 +38,47 @@ export class AuthGuard implements CanActivate {
       throw new ForbiddenException('غير مصرح لك بالوصول');
     }
 
-    if (requiredStatuses?.length && !requiredStatuses.includes(user.status)) {
-      throw new ForbiddenException('غير مصرح لك بالوصول');
+    if (requiredStatuses?.length) {
+      if (requiredStatuses.includes(UserStatus.ACTIVE)) {
+        await this.checkActiveRequirements(user.id, user.status, user.role);
+      } else {
+        const nonActiveStatuses = requiredStatuses.filter((s) => s !== UserStatus.ACTIVE);
+        if (nonActiveStatuses.length && !nonActiveStatuses.includes(user.status)) {
+          throw new ForbiddenException('غير مصرح لك بالوصول');
+        }
+      }
     }
 
     return true;
+  }
+
+  private async checkActiveRequirements(
+    userId: string,
+    userStatus: UserStatus,
+    userRole: Role,
+  ): Promise<void> {
+    if (userRole !== Role.INFLUENCER) {
+      throw new ForbiddenException('غير مصرح لك بالوصول');
+    }
+
+    if (userStatus !== UserStatus.CONFIRMED) {
+      throw new ForbiddenException('يجب أن يكون حسابك مؤكداً للقيام بهذا الإجراء');
+    }
+
+    const socialLinkingService = this.moduleRef.get(SocialLinkingService, { strict: false });
+    const hasLinked = await socialLinkingService.hasLinkedPlatforms(userId);
+
+    if (!hasLinked) {
+      throw new ForbiddenException('يجب ربط منصة واحدة على الأقل');
+    }
+
+    const influencerServiceService = this.moduleRef.get(InfluencerServiceService, {
+      strict: false,
+    });
+    const services = await influencerServiceService.findAllByUser(userId);
+
+    if (!services.length) {
+      throw new ForbiddenException('يجب إضافة خدمة واحدة على الأقل');
+    }
   }
 }

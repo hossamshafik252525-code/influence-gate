@@ -14,7 +14,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
-import { AuthGuard } from '../../../common/guards/auth.guard';
+import { RolesStatusGuard } from '../../../common/guards/auth.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { Statuses } from '../../../common/decorators/statuses.decorator';
 import { AuthUser } from '../../../common/decorators/auth-user.decorator';
@@ -36,7 +36,7 @@ import { Campaign } from '../entities/campaign.entity';
 import { PaginationDto } from '../../notifications/dto/pagination.dto';
 
 @Controller('campaigns/advertiser')
-@UseGuards(JwtAuthGuard, AuthGuard)
+@UseGuards(JwtAuthGuard, RolesStatusGuard)
 @Roles(Role.ADVERTISER)
 @Statuses(UserStatus.CONFIRMED)
 export class AdvertiserCampaignController {
