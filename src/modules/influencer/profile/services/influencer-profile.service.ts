@@ -60,6 +60,7 @@ export class InfluencerProfileService {
       totalFollowers,
       completedCampaignsCount,
       rating: Number(profile.rating),
+      ratingCount: profile.ratingCount,
     };
   }
 

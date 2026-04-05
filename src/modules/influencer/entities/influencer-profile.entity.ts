@@ -27,8 +27,14 @@ export class InfluencerProfile {
   @Column({ nullable: true })
   portfolioLink: string;
 
+  @Column({ nullable: true })
+  profileImageUrl: string;
+
   @Column({ type: 'decimal', precision: 3, scale: 2, default: 0 })
   rating: number;
+
+  @Column({ type: 'int', default: 0 })
+  ratingCount: number;
 
   @OneToMany(() => InfluencerService, (service) => service.influencerProfile)
   services: InfluencerService[];

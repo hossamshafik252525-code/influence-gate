@@ -14,7 +14,11 @@ import { AuthUser } from '../../../common/decorators/auth-user.decorator';
 import { User } from '../../users/entities/user.entity';
 import { NotificationsService } from '../services/notifications.service';
 import { FcmTokenService } from '../services/fcm-token.service';
-import { RegisterFcmTokenDto, RemoveFcmTokenDto, PaginationDto } from '../dto';
+import {
+  RegisterFcmTokenDto,
+  RemoveFcmTokenDto,
+  GetNotificationsQueryDto,
+} from '../dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('notifications')
@@ -38,8 +42,16 @@ export class NotificationsController {
   }
 
   @Get()
-  getMyNotifications(@AuthUser() user: User, @Query() query: PaginationDto) {
-    return this.notificationsService.getMyNotifications(user.id, query.page, query.limit);
+  getMyNotifications(
+    @AuthUser() user: User,
+    @Query() query: GetNotificationsQueryDto,
+  ) {
+    return this.notificationsService.getMyNotifications(
+      user.id,
+      query.page,
+      query.limit,
+      query.type,
+    );
   }
 
   @Patch(':id/read')

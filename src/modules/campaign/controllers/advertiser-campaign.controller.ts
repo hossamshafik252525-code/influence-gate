@@ -10,9 +10,10 @@ import {
   UseGuards,
   UseInterceptors,
   UploadedFile,
+  UploadedFiles,
   ParseUUIDPipe,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor, AnyFilesInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { RolesStatusGuard } from '../../../common/guards/auth.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
@@ -24,6 +25,9 @@ import { CampaignCreationService } from '../services/campaign-creation.service';
 import { CampaignSubmissionService } from '../services/campaign-submission.service';
 import { CampaignLifecycleService } from '../services/campaign-lifecycle.service';
 import { CampaignQueryService } from '../services/campaign-query.service';
+import { CampaignApplicationReviewService } from '../services/campaign-application-review.service';
+import { CampaignSubmissionQueryService } from '../services/campaign-submission-query.service';
+import { CampaignSubmissionReviewService } from '../services/campaign-submission-review.service';
 import {
   SaveCampaignInformationDto,
   SaveContentRequirementsDto,
@@ -31,6 +35,8 @@ import {
   SaveCampaignBudgetDto,
   ResolvePendingMinimumDto,
   GetMyCampaignsQueryDto,
+  ReviewApplicationDto,
+  ReviewSubmissionDto,
 } from '../dto';
 import { Campaign } from '../entities/campaign.entity';
 import { PaginationDto } from '../../notifications/dto/pagination.dto';
@@ -45,6 +51,9 @@ export class AdvertiserCampaignController {
     private readonly campaignSubmissionService: CampaignSubmissionService,
     private readonly campaignLifecycleService: CampaignLifecycleService,
     private readonly campaignQueryService: CampaignQueryService,
+    private readonly campaignApplicationReviewService: CampaignApplicationReviewService,
+    private readonly campaignSubmissionQueryService: CampaignSubmissionQueryService,
+    private readonly campaignSubmissionReviewService: CampaignSubmissionReviewService,
   ) {}
 
   @Post('draft')
@@ -82,7 +91,12 @@ export class AdvertiserCampaignController {
     @AuthUser() user: User,
     @Query() query: PaginationDto,
   ) {
-    return this.campaignQueryService.getCampaignApplications(id, user.id, query.page, query.limit);
+    return this.campaignQueryService.getCampaignApplications(
+      id,
+      user.id,
+      query.page,
+      query.limit,
+    );
   }
 
   @Patch(':id/step/information')
@@ -102,7 +116,12 @@ export class AdvertiserCampaignController {
     @Body() dto: SaveContentRequirementsDto,
     @UploadedFile() file?: Express.Multer.File,
   ): Promise<Campaign> {
-    return this.campaignCreationService.saveContentRequirements(id, user.id, dto, file);
+    return this.campaignCreationService.saveContentRequirements(
+      id,
+      user.id,
+      dto,
+      file,
+    );
   }
 
   @Patch(':id/step/influencers')
@@ -111,7 +130,11 @@ export class AdvertiserCampaignController {
     @AuthUser() user: User,
     @Body() dto: SaveInfluencerRequirementsDto,
   ): Promise<Campaign> {
-    return this.campaignCreationService.saveInfluencerRequirements(id, user.id, dto);
+    return this.campaignCreationService.saveInfluencerRequirements(
+      id,
+      user.id,
+      dto,
+    );
   }
 
   @Patch(':id/step/budget')
@@ -137,6 +160,55 @@ export class AdvertiserCampaignController {
     @AuthUser() user: User,
     @Body() dto: ResolvePendingMinimumDto,
   ): Promise<Campaign> {
-    return this.campaignLifecycleService.resolvePendingMinimum(id, user.id, dto);
+    return this.campaignLifecycleService.resolvePendingMinimum(
+      id,
+      user.id,
+      dto,
+    );
+  }
+
+  @Patch('applications/:applicationId/review')
+  reviewApplication(
+    @Param('applicationId', ParseUUIDPipe) applicationId: string,
+    @AuthUser() user: User,
+    @Body() dto: ReviewApplicationDto,
+  ) {
+    return this.campaignApplicationReviewService.reviewApplication(
+      user.id,
+      applicationId,
+      dto,
+    );
+  }
+
+  @Get(':id/submissions')
+  getCampaignSubmissions(
+    @Param('id', ParseUUIDPipe) id: string,
+    @AuthUser() user: User,
+    @Query() query: PaginationDto,
+  ) {
+    return this.campaignSubmissionQueryService.getSubmissions(
+      user.id,
+      id,
+      query.page,
+      query.limit,
+    );
+  }
+
+  @Patch('submissions/:submissionId/review')
+  @UseInterceptors(
+    AnyFilesInterceptor({ limits: { fileSize: 10 * 1024 * 1024, files: 5 } }),
+  )
+  reviewSubmission(
+    @Param('submissionId', ParseUUIDPipe) submissionId: string,
+    @AuthUser() user: User,
+    @Body() dto: ReviewSubmissionDto,
+    @UploadedFiles() files: Express.Multer.File[],
+  ) {
+    return this.campaignSubmissionReviewService.reviewSubmission(
+      user.id,
+      submissionId,
+      dto,
+      files ?? [],
+    );
   }
 }

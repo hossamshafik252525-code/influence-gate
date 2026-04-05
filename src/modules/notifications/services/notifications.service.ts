@@ -62,9 +62,10 @@ export class NotificationsService {
     userId: string,
     page: number,
     limit: number,
+    type?: NotificationType,
   ): Promise<PaginatedResult<Notification>> {
     const [data, total] = await this.notificationRepository.findAndCount({
-      where: { recipientId: userId, isRead: false },
+      where: { recipientId: userId, isRead: false, ...(type && { type }) },
       order: { createdAt: 'DESC' },
       skip: (page - 1) * limit,
       take: limit,

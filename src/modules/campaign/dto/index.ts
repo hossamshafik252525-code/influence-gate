@@ -6,3 +6,6 @@ export { ReviewCampaignDto } from './review-campaign.dto';
 export { ResolvePendingMinimumDto } from './resolve-pending-minimum.dto';
 export { GetMyCampaignsQueryDto } from './get-my-campaigns-query.dto';
 export { GetInfluencerCampaignsQueryDto } from './get-influencer-campaigns-query.dto';
+export { ReviewApplicationDto } from './review-application.dto';
+export { SubmitContentDto } from './submit-content.dto';
+export { ReviewSubmissionDto } from './review-submission.dto';

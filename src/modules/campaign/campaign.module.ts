@@ -11,7 +11,15 @@ import { CampaignReviewService } from './services/campaign-review.service';
 import { CampaignLifecycleService } from './services/campaign-lifecycle.service';
 import { CampaignQueryService } from './services/campaign-query.service';
 import { InfluencerCampaignQueryService } from './services/influencer-campaign-query.service';
+import { CampaignApplicationService } from './services/campaign-application.service';
+import { CampaignApplicationReviewService } from './services/campaign-application-review.service';
+import { CampaignContentSubmissionService } from './services/campaign-content-submission.service';
+import { CampaignSubmissionReviewService } from './services/campaign-submission-review.service';
+import { CampaignSubmissionQueryService } from './services/campaign-submission-query.service';
+import { CampaignInvitationService } from './services/campaign-invitation.service';
 import { CampaignApplication } from './entities/campaign-application.entity';
+import { CampaignSubmission } from './entities/campaign-submission.entity';
+import { InfluencerProfile } from '../influencer/entities/influencer-profile.entity';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { CloudinaryModule } from '../cloudinary/cloudinary.module';
 import { CategoriesModule } from '../categories/categories.module';
@@ -20,7 +28,7 @@ import { PlatformSettingsModule } from '../platform-settings/platform-settings.m
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Campaign, CampaignInvitedInfluencer, CampaignApplication]),
+    TypeOrmModule.forFeature([Campaign, CampaignInvitedInfluencer, CampaignApplication, CampaignSubmission, InfluencerProfile]),
     NotificationsModule,
     CloudinaryModule,
     CategoriesModule,
@@ -35,6 +43,12 @@ import { PlatformSettingsModule } from '../platform-settings/platform-settings.m
     CampaignLifecycleService,
     CampaignQueryService,
     InfluencerCampaignQueryService,
+    CampaignApplicationService,
+    CampaignApplicationReviewService,
+    CampaignContentSubmissionService,
+    CampaignSubmissionReviewService,
+    CampaignSubmissionQueryService,
+    CampaignInvitationService,
   ],
   exports: [CampaignCreationService, CampaignQueryService],
 })
