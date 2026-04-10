@@ -23,7 +23,7 @@ import { User } from '../../users/entities/user.entity';
 import { InfluencerCampaignQueryService } from '../services/influencer-campaign-query.service';
 import { CampaignApplicationService } from '../services/campaign-application.service';
 import { CampaignContentSubmissionService } from '../services/campaign-content-submission.service';
-import { CampaignInvitationService } from '../services/campaign-invitation.service';
+import { CampaignInvitationResponseService } from '../services/campaign-invitation-response.service';
 import { GetInfluencerCampaignsQueryDto, SubmitContentDto } from '../dto';
 import { PaginationQueryDto } from '../../../common/dto';
 
@@ -36,7 +36,7 @@ export class InfluencerCampaignController {
     private readonly influencerCampaignQueryService: InfluencerCampaignQueryService,
     private readonly campaignApplicationService: CampaignApplicationService,
     private readonly campaignContentSubmissionService: CampaignContentSubmissionService,
-    private readonly campaignInvitationService: CampaignInvitationService,
+    private readonly campaignInvitationResponseService: CampaignInvitationResponseService,
   ) {}
 
   @Get()
@@ -55,14 +55,6 @@ export class InfluencerCampaignController {
     return this.influencerCampaignQueryService.getMyApplications(user.id, query);
   }
 
-  @Get('applications/:id')
-  getApplicationDetail(
-    @AuthUser() user: User,
-    @Param('id', ParseUUIDPipe) id: string,
-  ) {
-    return this.influencerCampaignQueryService.getApplicationDetail(id, user.id);
-  }
-
   @Get('invitations')
   getMyInvitations(
     @AuthUser() user: User,
@@ -71,12 +63,24 @@ export class InfluencerCampaignController {
     return this.influencerCampaignQueryService.getMyInvitations(user.id, query);
   }
 
-  @Get(':id')
-  getCampaignDetail(
+  @Post('invitations/:campaignId/accept')
+  @Statuses(UserStatus.CONFIRMED)
+  @HttpCode(HttpStatus.OK)
+  acceptInvitation(
     @AuthUser() user: User,
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('campaignId', ParseUUIDPipe) campaignId: string,
   ) {
-    return this.influencerCampaignQueryService.getCampaignDetail(id, user.id);
+    return this.campaignInvitationResponseService.acceptInvitation(user.id, campaignId);
+  }
+
+  @Post('invitations/:campaignId/reject')
+  @Statuses(UserStatus.CONFIRMED)
+  @HttpCode(HttpStatus.OK)
+  rejectInvitation(
+    @AuthUser() user: User,
+    @Param('campaignId', ParseUUIDPipe) campaignId: string,
+  ) {
+    return this.campaignInvitationResponseService.rejectInvitation(user.id, campaignId);
   }
 
   @Post(':id/apply')
@@ -102,22 +106,11 @@ export class InfluencerCampaignController {
     return this.campaignContentSubmissionService.submitContent(user.id, id, dto, files ?? []);
   }
 
-  @Post('invitations/:campaignId/accept')
-  @Statuses(UserStatus.CONFIRMED)
-  @HttpCode(HttpStatus.CREATED)
-  acceptInvitation(
+  @Get(':id')
+  getCampaignDetail(
     @AuthUser() user: User,
-    @Param('campaignId', ParseUUIDPipe) campaignId: string,
+    @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.campaignApplicationService.applyToCampaign(user.id, campaignId);
-  }
-
-  @Post('invitations/:campaignId/reject')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  rejectInvitation(
-    @AuthUser() user: User,
-    @Param('campaignId', ParseUUIDPipe) campaignId: string,
-  ) {
-    return this.campaignInvitationService.rejectInvitation(user.id, campaignId);
+    return this.influencerCampaignQueryService.getCampaignDetail(id, user.id);
   }
 }

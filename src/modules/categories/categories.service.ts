@@ -2,7 +2,8 @@ import { Injectable, NotFoundException, ConflictException } from '@nestjs/common
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Category } from './entities/category.entity';
-import { UserCategory } from './entities/user-category.entity';
+import { InfluencerCategory } from '../influencer/entities/influencer-category.entity';
+import { InfluencerProfile } from '../influencer/entities/influencer-profile.entity';
 import { CreateCategoryDto, UpdateCategoryDto } from './dto';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 
@@ -11,8 +12,10 @@ export class CategoriesService {
   constructor(
     @InjectRepository(Category)
     private readonly categoriesRepo: Repository<Category>,
-    @InjectRepository(UserCategory)
-    private readonly userCategoryRepo: Repository<UserCategory>,
+    @InjectRepository(InfluencerCategory)
+    private readonly influencerCategoryRepo: Repository<InfluencerCategory>,
+    @InjectRepository(InfluencerProfile)
+    private readonly influencerProfileRepo: Repository<InfluencerProfile>,
     private readonly cloudinaryService: CloudinaryService,
   ) {}
 
@@ -89,21 +92,26 @@ export class CategoriesService {
     return { message: 'تم حذف الفئة بنجاح' };
   }
 
-  async getUserCategories(userId: string): Promise<UserCategory[]> {
-    return this.userCategoryRepo.find({ where: { user: { id: userId } } });
+  async getUserCategories(userId: string): Promise<InfluencerCategory[]> {
+    return this.influencerCategoryRepo.find({ where: { influencerProfile: { userId } }, relations: ['category'] });
   }
 
   async selectCategories(userId: string, categoryIds: string[]) {
-    await this.userCategoryRepo.delete({ user: { id: userId } });
+    const profile = await this.influencerProfileRepo.findOne({ where: { userId } });
+    if (!profile) {
+      throw new NotFoundException('الملف الشخصي غير موجود');
+    }
+
+    await this.influencerCategoryRepo.delete({ influencerProfile: { id: profile.id } });
 
     if (categoryIds.length > 0) {
-      const userCategories = categoryIds.map((categoryId) =>
-        this.userCategoryRepo.create({
-          user: { id: userId },
+      const influencerCategories = categoryIds.map((categoryId) =>
+        this.influencerCategoryRepo.create({
+          influencerProfile: { id: profile.id },
           category: { id: categoryId },
         }),
       );
-      await this.userCategoryRepo.save(userCategories);
+      await this.influencerCategoryRepo.save(influencerCategories);
     }
 
     return { message: 'تم اختيار الفئات بنجاح' };

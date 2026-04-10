@@ -1,22 +1,28 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { Campaign } from '../entities/campaign.entity';
 import { CampaignApplication } from '../entities/campaign-application.entity';
 import { CampaignInvitedInfluencer } from '../entities/campaign-invited-influencer.entity';
 import { CampaignSubmission } from '../entities/campaign-submission.entity';
-import { CampaignStatus, CampaignVisibility, ApplicationStatus } from '../enums';
+import { InfluencerProfile } from '../../influencer/entities/influencer-profile.entity';
+import {
+  CampaignStatus,
+  CampaignVisibility,
+  ApplicationStatus,
+  InvitationStatus,
+} from '../enums';
+import { CampaignListItemMapper, CampaignDetailMapper, InvitationListItemMapper } from '../mappers';
 import { GetInfluencerCampaignsQueryDto } from '../dto/get-influencer-campaigns-query.dto';
 import { PaginationQueryDto } from '../../../common/dto';
 import {
-  InfluencerCampaignListItem,
-  InfluencerCampaignDetail,
   InfluencerCampaignsResult,
+  MyCampaignsResult,
   ApplicationListItem,
   MyApplicationsResult,
-  ApplicationDetailResult,
-  InvitationListItem,
   MyInvitationsResult,
+  InvitationListItem,
+  CampaignDetailResult,
 } from '../interfaces/influencer-campaign.interface';
 
 @Injectable()
@@ -30,19 +36,21 @@ export class InfluencerCampaignQueryService {
     private readonly invitationRepo: Repository<CampaignInvitedInfluencer>,
     @InjectRepository(CampaignSubmission)
     private readonly submissionRepo: Repository<CampaignSubmission>,
+    @InjectRepository(InfluencerProfile)
+    private readonly influencerProfileRepo: Repository<InfluencerProfile>,
   ) {}
 
   async getCampaigns(
     userId: string,
     query: GetInfluencerCampaignsQueryDto,
-  ): Promise<InfluencerCampaignsResult> {
+  ): Promise<InfluencerCampaignsResult | MyCampaignsResult> {
     if (query.type === 'new') {
       return this.getNewCampaigns(userId, query);
     }
     return this.getMyCampaigns(userId, query);
   }
 
-  async getCampaignDetail(campaignId: string, userId: string): Promise<InfluencerCampaignDetail> {
+  async getCampaignDetail(campaignId: string, userId: string): Promise<CampaignDetailResult> {
     const campaign = await this.campaignRepo.findOne({
       where: { id: campaignId },
       relations: ['category'],
@@ -59,33 +67,18 @@ export class InfluencerCampaignQueryService {
       }
     }
 
-    const application = await this.applicationRepo.findOne({
-      where: { campaignId, influencerId: userId },
-    });
+    const [application, submission, invitation] = await Promise.all([
+      this.applicationRepo.findOne({ where: { campaignId, influencerId: userId } }),
+      this.submissionRepo.findOne({ where: { campaignId, influencerId: userId } }),
+      campaign.campaignVisibility === CampaignVisibility.PRIVATE
+        ? this.invitationRepo.findOne({
+            where: { campaignId, influencerId: userId },
+            relations: ['orderedServices'],
+          })
+        : Promise.resolve(null),
+    ]);
 
-    return {
-      id: campaign.id,
-      status:campaign.status,
-      campaignNumber: campaign.campaignNumber,
-      name: campaign.name,
-      description: campaign.description,
-      category: campaign.category
-        ? { id: campaign.category.id, name: campaign.category.name }
-        : null,
-      includedPlatforms: campaign.includedPlatforms,
-      contentTypes: campaign.contentTypes,
-      requirementsFile:campaign.contentPdfUrl,
-      contentDescription: campaign.contentDescription,
-      implementationType: campaign.implementationType,
-      implementationPeriodDays: campaign.implementationPeriodDays,
-      deadlineDate: campaign.deadlineDate,
-      implementationStartDate: campaign.implementationStartDate ?? null,
-      implementationEndDate: campaign.implementationEndDate ?? null,
-      influencerPrice: Number(campaign.influencerPrice),
-      requiredInfluencersCount: campaign.requiredInfluencersCount,
-      influencerType: campaign.influencerType,
-      hasApplied: !!application,
-    };
+    return CampaignDetailMapper.toDetail(campaign, application, submission, invitation);
   }
 
   async getMyApplications(
@@ -137,64 +130,6 @@ export class InfluencerCampaignQueryService {
     return { data, pagination: { total, page: query.page, limit: query.limit } };
   }
 
-  async getApplicationDetail(
-    applicationId: string,
-    userId: string,
-  ): Promise<ApplicationDetailResult> {
-    const application = await this.applicationRepo.findOne({
-      where: { id: applicationId, influencerId: userId },
-      relations: ['campaign', 'campaign.category'],
-    });
-
-    if (!application) {
-      throw new NotFoundException('الطلب غير موجود');
-    }
-
-    const campaign = application.campaign;
-
-    const submission = await this.submissionRepo.findOne({
-      where: { campaignId: campaign.id, influencerId: userId },
-    });
-
-    return {
-      id: campaign.id,
-      status:campaign.status,
-      campaignNumber: campaign.campaignNumber,
-      name: campaign.name,
-      description: campaign.description,
-      category: campaign.category
-        ? { id: campaign.category.id, name: campaign.category.name }
-        : null,
-      includedPlatforms: campaign.includedPlatforms,
-      contentTypes: campaign.contentTypes,
-      contentDescription: campaign.contentDescription,
-      requirementsFile:campaign.contentPdfUrl,
-      implementationType: campaign.implementationType,
-      implementationPeriodDays: campaign.implementationPeriodDays,
-      deadlineDate: campaign.deadlineDate,
-      implementationStartDate: campaign.implementationStartDate ?? null,
-      implementationEndDate: campaign.implementationEndDate ?? null,
-      influencerPrice: Number(campaign.influencerPrice),
-      requiredInfluencersCount: campaign.requiredInfluencersCount,
-      influencerType: campaign.influencerType,
-      hasApplied: true,
-      application: {
-        id: application.id,
-        status: application.status,
-      },
-      submission: submission
-        ? {
-            id: submission.id,
-            status: submission.status,
-            links: submission.links,
-            fileUrls: submission.fileUrls ?? null,
-            modificationDetails: submission.modificationDetails ?? null,
-            modificationFileUrls: submission.modificationFileUrls ?? null,
-          }
-        : null,
-    };
-  }
-
   async getMyInvitations(
     userId: string,
     query: PaginationQueryDto,
@@ -202,49 +137,27 @@ export class InfluencerCampaignQueryService {
     const [invitations, total] = await this.invitationRepo
       .createQueryBuilder('inv')
       .innerJoinAndSelect('inv.campaign', 'campaign')
+      .leftJoinAndSelect('inv.orderedServices', 'orderedService')
+      .leftJoinAndSelect('orderedService.service', 'service')
       .where('inv.influencerId = :userId', { userId })
-      .andWhere('campaign.status IN (:...statuses)', {
-        statuses: [CampaignStatus.APPROVED, CampaignStatus.PENDING_MINIMUM],
+      .andWhere('inv.status NOT IN (:...excludedStatuses)', {
+        excludedStatuses: [InvitationStatus.REJECTED, InvitationStatus.CANCELLED],
       })
-      .select([
-        'inv.id',
-        'inv.campaignId',
-        'inv.createdAt',
-        'campaign.id',
-        'campaign.campaignNumber',
-        'campaign.name',
-        'campaign.description',
-        'campaign.includedPlatforms',
-        'campaign.contentTypes',
-        'campaign.deadlineDate',
-        'campaign.implementationStartDate',
-        'campaign.implementationEndDate',
-        'campaign.influencerPrice',
-        'campaign.status',
-      ])
+      .andWhere('campaign.status IN (:...statuses)', {
+        statuses: [
+          CampaignStatus.APPROVED,
+          CampaignStatus.PENDING_MINIMUM,
+          CampaignStatus.IMPLEMENTATION,
+        ],
+      })
       .orderBy('inv.createdAt', 'DESC')
       .skip((query.page - 1) * query.limit)
       .take(query.limit)
       .getManyAndCount();
 
-    const data: InvitationListItem[] = invitations.map((inv) => ({
-      id: inv.id,
-      campaignId: inv.campaignId,
-      createdAt: inv.createdAt,
-      campaign: {
-        id: inv.campaign.id,
-        campaignNumber: inv.campaign.campaignNumber,
-        name: inv.campaign.name,
-        description: inv.campaign.description,
-        includedPlatforms: inv.campaign.includedPlatforms,
-        contentTypes: inv.campaign.contentTypes,
-        deadlineDate: inv.campaign.deadlineDate,
-        implementationStartDate: inv.campaign.implementationStartDate ?? null,
-        implementationEndDate: inv.campaign.implementationEndDate ?? null,
-        influencerPrice: Number(inv.campaign.influencerPrice),
-        status: inv.campaign.status,
-      },
-    }));
+    const data: InvitationListItem[] = invitations.map((inv) =>
+      InvitationListItemMapper.toListItem(inv),
+    );
 
     return { data, pagination: { total, page: query.page, limit: query.limit } };
   }
@@ -253,9 +166,10 @@ export class InfluencerCampaignQueryService {
     userId: string,
     query: GetInfluencerCampaignsQueryDto,
   ): Promise<InfluencerCampaignsResult> {
+    const { contentTypes, platforms, categoryIds } = await this.loadInfluencerMatchSignals(userId);
+
     const qb = this.campaignRepo
       .createQueryBuilder('campaign')
-      .leftJoinAndSelect('campaign.category', 'category')
       .where('campaign.status IN (:...statuses)', {
         statuses: [CampaignStatus.APPROVED, CampaignStatus.PENDING_MINIMUM],
       })
@@ -265,7 +179,18 @@ export class InfluencerCampaignQueryService {
       .andWhere(
         '(campaign.deadlineDate >= CURRENT_DATE OR campaign.status = :pendingMinimum)',
         { pendingMinimum: CampaignStatus.PENDING_MINIMUM },
-      );
+      )
+      .andWhere((subQb) => {
+        const sub = subQb
+          .subQuery()
+          .select('1')
+          .from(CampaignApplication, 'app_sub')
+          .where('app_sub.campaignId = campaign.id')
+          .andWhere('app_sub.influencerId = :userId')
+          .getQuery();
+        return `NOT EXISTS ${sub}`;
+      })
+      .setParameter('userId', userId);
 
     this.applyCommonFilters(qb, query);
 
@@ -281,14 +206,15 @@ export class InfluencerCampaignQueryService {
       'campaign.createdAt',
     ]);
 
-    qb.orderBy('campaign.createdAt', 'DESC');
+    this.applyMatchOrdering(qb, contentTypes, platforms, categoryIds);
+
     qb.skip((query.page - 1) * query.limit);
     qb.take(query.limit);
 
     const [campaigns, total] = await qb.getManyAndCount();
 
     return {
-      data: campaigns.map((c) => this.mapToListItem(c)),
+      data: campaigns.map((c) => CampaignListItemMapper.toNewCampaign(c)),
       pagination: { total, page: query.page, limit: query.limit },
     };
   }
@@ -296,7 +222,7 @@ export class InfluencerCampaignQueryService {
   private async getMyCampaigns(
     userId: string,
     query: GetInfluencerCampaignsQueryDto,
-  ): Promise<InfluencerCampaignsResult> {
+  ): Promise<MyCampaignsResult> {
     const qb = this.campaignRepo
       .createQueryBuilder('campaign')
       .innerJoin(
@@ -305,11 +231,7 @@ export class InfluencerCampaignQueryService {
         'app.influencerId = :userId AND app.status = :accepted',
         { userId, accepted: ApplicationStatus.ACCEPTED },
       )
-      .leftJoinAndSelect('campaign.category', 'category');
-
-    if (query.status) {
-      qb.andWhere('campaign.status = :status', { status: query.status });
-    }
+      .where('campaign.status = :status', { status: CampaignStatus.IMPLEMENTATION });
 
     this.applyCommonFilters(qb, query);
 
@@ -331,10 +253,81 @@ export class InfluencerCampaignQueryService {
 
     const [campaigns, total] = await qb.getManyAndCount();
 
+    const campaignIds = campaigns.map((c) => c.id);
+    const submissions = campaignIds.length
+      ? await this.submissionRepo.find({
+          where: { campaignId: In(campaignIds), influencerId: userId },
+        })
+      : [];
+
+    const submissionMap = new Map(submissions.map((s) => [s.campaignId, s]));
+
     return {
-      data: campaigns.map((c) => this.mapToListItem(c)),
+      data: campaigns.map((c) =>
+        CampaignListItemMapper.toMyCampaign(c, submissionMap.get(c.id) ?? null),
+      ),
       pagination: { total, page: query.page, limit: query.limit },
     };
+  }
+
+  private async loadInfluencerMatchSignals(
+    userId: string,
+  ): Promise<{ contentTypes: string[]; platforms: string[]; categoryIds: string[] }> {
+    const profile = await this.influencerProfileRepo.findOne({
+      where: { userId },
+      relations: ['services', 'categories'],
+    });
+
+    const services = profile?.services ?? [];
+    const categories = profile?.categories ?? [];
+
+    return {
+      contentTypes: [...new Set(services.map((s) => s.contentType as string))],
+      platforms: [...new Set(services.flatMap((s) => s.includedPlatforms as string[]))],
+      categoryIds: [...new Set(categories.map((c) => c.categoryId))],
+    };
+  }
+
+  private applyMatchOrdering(
+    qb: ReturnType<Repository<Campaign>['createQueryBuilder']>,
+    contentTypes: string[],
+    platforms: string[],
+    categoryIds: string[],
+  ): void {
+    const parts: string[] = [];
+
+    if (contentTypes.length) {
+      parts.push(
+        `CASE WHEN EXISTS (
+          SELECT 1 FROM jsonb_array_elements_text(campaign.contentTypes) AS ct_elem
+          WHERE ct_elem = ANY(:matchContentTypes)
+        ) THEN 1 ELSE 0 END`,
+      );
+      qb.setParameter('matchContentTypes', contentTypes);
+    }
+
+    if (platforms.length) {
+      parts.push(
+        `CASE WHEN EXISTS (
+          SELECT 1 FROM jsonb_array_elements_text(campaign.includedPlatforms) AS pl_elem
+          WHERE pl_elem = ANY(:matchPlatforms)
+        ) THEN 1 ELSE 0 END`,
+      );
+      qb.setParameter('matchPlatforms', platforms);
+    }
+
+    if (categoryIds.length) {
+      parts.push(
+        `CASE WHEN campaign.categoryId IN (:...matchCategoryIds) THEN 1 ELSE 0 END`,
+      );
+      qb.setParameter('matchCategoryIds', categoryIds);
+    }
+
+    if (parts.length) {
+      qb.addOrderBy(`(${parts.join(' + ')})`, 'DESC');
+    }
+
+    qb.addOrderBy('campaign.createdAt', 'DESC');
   }
 
   private applyCommonFilters(
@@ -391,39 +384,22 @@ export class InfluencerCampaignQueryService {
     }
   }
 
-  private mapToListItem(campaign: Campaign): InfluencerCampaignListItem {
-    return {
-      id: campaign.id,
-      campaignNumber: campaign.campaignNumber,
-      name: campaign.name,
-      description: campaign.description,
-      deadlineDate: campaign.deadlineDate,
-      includedPlatforms: campaign.includedPlatforms,
-      contentTypes: campaign.contentTypes,
-      influencerPrice: Number(campaign.influencerPrice),
-    };
-  }
-
   private async hasAccessToPrivateCampaign(
     campaignId: string,
     userId: string,
   ): Promise<boolean> {
+    const invitation = await this.invitationRepo.findOne({
+      where: { campaignId, influencerId: userId },
+    });
+
+    if (invitation && invitation.status !== InvitationStatus.CANCELLED) {
+      return true;
+    }
+
     const application = await this.applicationRepo.findOne({
       where: { campaignId, influencerId: userId },
     });
 
-    if (application) {
-      return true;
-    }
-
-    const invited = await this.campaignRepo
-      .createQueryBuilder('campaign')
-      .innerJoin('campaign.invitedInfluencers', 'invited', 'invited.influencerId = :userId', {
-        userId,
-      })
-      .where('campaign.id = :campaignId', { campaignId })
-      .getCount();
-
-    return invited > 0;
+    return !!application;
   }
 }

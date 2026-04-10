@@ -16,6 +16,7 @@ import { WalletModule } from './modules/wallet/wallet.module';
 import { PlatformSettingsModule } from './modules/platform-settings/platform-settings.module';
 import { LandingPageModule } from './modules/landing-page/landing-page.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { SupportModule } from './modules/support/support.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { AdminModule } from './modules/admin/admin.module';
     PlatformSettingsModule,
     LandingPageModule,
     AdminModule,
+    SupportModule,
   ],
 })
 export class AppModule {}

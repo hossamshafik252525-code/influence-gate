@@ -7,7 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Campaign } from '../entities/campaign.entity';
 import { CampaignApplication } from '../entities/campaign-application.entity';
-import { CampaignStatus, ApplicationStatus } from '../enums';
+import { CampaignStatus, ApplicationStatus, CampaignVisibility } from '../enums';
 import { ReviewApplicationDto } from '../dto';
 import { NotificationsService } from '../../notifications/services/notifications.service';
 import { NotificationType } from '../../notifications/enums';
@@ -38,6 +38,10 @@ export class CampaignApplicationReviewService {
 
     if (application.campaign.advertiserId !== advertiserId) {
       throw new BadRequestException('غير مصرح لك بمراجعة هذا الطلب');
+    }
+
+    if (application.campaign.campaignVisibility === CampaignVisibility.PRIVATE) {
+      throw new BadRequestException('مراجعة الطلبات متاحة للحملات العامة فقط');
     }
 
     if (

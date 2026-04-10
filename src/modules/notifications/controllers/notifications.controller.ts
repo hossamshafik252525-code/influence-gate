@@ -15,9 +15,14 @@ import { User } from '../../users/entities/user.entity';
 import { NotificationsService } from '../services/notifications.service';
 import { FcmTokenService } from '../services/fcm-token.service';
 import {
+  NotificationSettingsService,
+  NotificationSettingView,
+} from '../services/notification-settings.service';
+import {
   RegisterFcmTokenDto,
   RemoveFcmTokenDto,
   GetNotificationsQueryDto,
+  UpdateNotificationSettingsDto,
 } from '../dto';
 
 @UseGuards(JwtAuthGuard)
@@ -26,6 +31,7 @@ export class NotificationsController {
   constructor(
     private readonly notificationsService: NotificationsService,
     private readonly fcmTokenService: FcmTokenService,
+    private readonly notificationSettingsService: NotificationSettingsService,
   ) {}
 
   @Post('fcm-token')
@@ -57,5 +63,18 @@ export class NotificationsController {
   @Patch(':id/read')
   markAsRead(@Param('id') id: string, @AuthUser() user: User): Promise<void> {
     return this.notificationsService.markAsRead(id, user.id);
+  }
+
+  @Get('settings')
+  getSettings(@AuthUser() user: User): Promise<NotificationSettingView[]> {
+    return this.notificationSettingsService.getSettings(user.id);
+  }
+
+  @Patch('settings')
+  updateSettings(
+    @AuthUser() user: User,
+    @Body() dto: UpdateNotificationSettingsDto,
+  ): Promise<NotificationSettingView[]> {
+    return this.notificationSettingsService.updateSettings(user.id, dto.settings);
   }
 }

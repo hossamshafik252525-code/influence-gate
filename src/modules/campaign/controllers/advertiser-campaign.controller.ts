@@ -28,6 +28,7 @@ import { CampaignQueryService } from '../services/campaign-query.service';
 import { CampaignApplicationReviewService } from '../services/campaign-application-review.service';
 import { CampaignSubmissionQueryService } from '../services/campaign-submission-query.service';
 import { CampaignSubmissionReviewService } from '../services/campaign-submission-review.service';
+import { PrivateCampaignLaunchService } from '../services/private-campaign-launch.service';
 import {
   SaveCampaignInformationDto,
   SaveContentRequirementsDto,
@@ -54,6 +55,7 @@ export class AdvertiserCampaignController {
     private readonly campaignApplicationReviewService: CampaignApplicationReviewService,
     private readonly campaignSubmissionQueryService: CampaignSubmissionQueryService,
     private readonly campaignSubmissionReviewService: CampaignSubmissionReviewService,
+    private readonly privateCampaignLaunchService: PrivateCampaignLaunchService,
   ) {}
 
   @Post('draft')
@@ -152,6 +154,14 @@ export class AdvertiserCampaignController {
     @AuthUser() user: User,
   ): Promise<Campaign> {
     return this.campaignSubmissionService.submitForReview(id, user.id);
+  }
+
+  @Post(':id/launch')
+  launchPrivateCampaign(
+    @Param('id', ParseUUIDPipe) id: string,
+    @AuthUser() user: User,
+  ): Promise<Campaign> {
+    return this.privateCampaignLaunchService.manualLaunch(id, user.id);
   }
 
   @Post(':id/resolve-pending')

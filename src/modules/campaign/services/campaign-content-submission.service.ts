@@ -8,8 +8,15 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Campaign } from '../entities/campaign.entity';
 import { CampaignApplication } from '../entities/campaign-application.entity';
+import { CampaignInvitedInfluencer } from '../entities/campaign-invited-influencer.entity';
 import { CampaignSubmission } from '../entities/campaign-submission.entity';
-import { CampaignStatus, ApplicationStatus, SubmissionStatus } from '../enums';
+import {
+  CampaignStatus,
+  ApplicationStatus,
+  SubmissionStatus,
+  CampaignVisibility,
+  InvitationStatus,
+} from '../enums';
 import { SubmitContentDto } from '../dto/submit-content.dto';
 import { CloudinaryService } from '../../cloudinary/cloudinary.service';
 import { NotificationsService } from '../../notifications/services/notifications.service';
@@ -22,6 +29,8 @@ export class CampaignContentSubmissionService {
     private readonly campaignRepo: Repository<Campaign>,
     @InjectRepository(CampaignApplication)
     private readonly applicationRepo: Repository<CampaignApplication>,
+    @InjectRepository(CampaignInvitedInfluencer)
+    private readonly invitationRepo: Repository<CampaignInvitedInfluencer>,
     @InjectRepository(CampaignSubmission)
     private readonly submissionRepo: Repository<CampaignSubmission>,
     private readonly cloudinaryService: CloudinaryService,
@@ -44,11 +53,8 @@ export class CampaignContentSubmissionService {
       throw new BadRequestException('الحملة ليست في مرحلة التنفيذ');
     }
 
-    const application = await this.applicationRepo.findOne({
-      where: { campaignId, influencerId, status: ApplicationStatus.ACCEPTED },
-    });
-
-    if (!application) {
+    const isParticipant = await this.isParticipant(campaign, influencerId);
+    if (!isParticipant) {
       throw new ForbiddenException('لا يمكنك تقديم محتوى لهذه الحملة');
     }
 
@@ -103,5 +109,30 @@ export class CampaignContentSubmissionService {
     );
 
     return submission;
+  }
+
+  private async isParticipant(
+    campaign: Campaign,
+    influencerId: string,
+  ): Promise<boolean> {
+    if (campaign.campaignVisibility === CampaignVisibility.PRIVATE) {
+      const invitation = await this.invitationRepo.findOne({
+        where: {
+          campaignId: campaign.id,
+          influencerId,
+          status: InvitationStatus.ACCEPTED,
+        },
+      });
+      return !!invitation;
+    }
+
+    const application = await this.applicationRepo.findOne({
+      where: {
+        campaignId: campaign.id,
+        influencerId,
+        status: ApplicationStatus.ACCEPTED,
+      },
+    });
+    return !!application;
   }
 }

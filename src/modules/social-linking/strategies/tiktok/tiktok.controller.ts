@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common';
 import { TikTokStrategy } from './tiktok.strategy';
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import { AuthUser } from '../../../../common/decorators/auth-user.decorator';
@@ -11,12 +11,12 @@ export class TikTokController {
   constructor(private readonly tiktokStrategy: TikTokStrategy) {}
 
   @Get('auth-url')
-  getAuthUrl() {
+  getAuthUrl(): { url: string } {
     return this.tiktokStrategy.getAuthUrl();
   }
 
-  @Get('callback')
-  handleCallback(@Query() dto: TikTokCallbackDto, @AuthUser() user: User) {
+  @Post('link')
+  handleLink(@Body() dto: TikTokCallbackDto, @AuthUser() user: User): Promise<import('../../entities/social-platform.entity').SocialPlatform[]> {
     return this.tiktokStrategy.handleCallback(dto.code, user.id);
   }
 }

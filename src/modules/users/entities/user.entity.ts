@@ -10,7 +10,7 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { Role, UserStatus } from '../../../common/enums';
-import { UserCategory } from '../../categories/entities/user-category.entity';
+
 import { AdvertiserProfile } from '../../advertiser/entities/advertiser-profile.entity';
 import { InfluencerProfile } from '../../influencer/entities/influencer-profile.entity';
 import { Country } from '../../countries/entities/country.entity';
@@ -48,8 +48,7 @@ export class User {
   @Column({ type: 'enum', enum: UserStatus, default: UserStatus.CONFIRMED })
   status: UserStatus;
 
-  @OneToMany(() => UserCategory, (userCategory) => userCategory.user)
-  userCategories: UserCategory[];
+
 
   @OneToOne(() => AdvertiserProfile, (ap) => ap.user)
   advertiserProfile: AdvertiserProfile;

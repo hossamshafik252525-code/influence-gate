@@ -11,6 +11,7 @@ import {
 import { User } from '../../users/entities/user.entity';
 import { InfluencerService } from './influencer-service.entity';
 import { SocialPlatform } from '../../social-linking/entities/social-platform.entity';
+import { InfluencerCategory } from './influencer-category.entity';
 
 @Entity('influencer_profiles')
 export class InfluencerProfile {
@@ -24,11 +25,17 @@ export class InfluencerProfile {
   @JoinColumn({ name: 'userId' })
   user: User;
 
+  @Column({ unique: true, nullable: true })
+  userName: string;
+
   @Column({ nullable: true })
   portfolioLink: string;
 
   @Column({ nullable: true })
   profileImageUrl: string;
+
+  @Column({ nullable: true })
+  profileImagePublicId: string;
 
   @Column({ type: 'decimal', precision: 3, scale: 2, default: 0 })
   rating: number;
@@ -41,6 +48,9 @@ export class InfluencerProfile {
 
   @OneToMany(() => SocialPlatform, (sp) => sp.influencerProfile)
   socialPlatforms: SocialPlatform[];
+
+  @OneToMany(() => InfluencerCategory, (ic) => ic.influencerProfile)
+  categories: InfluencerCategory[];
 
   @CreateDateColumn()
   createdAt: Date;

@@ -32,6 +32,14 @@ export class UsersService {
     return this.usersRepository.findOne({ where: { id } });
   }
 
+  async findByIdWithPassword(id: string): Promise<User | null> {
+    return this.usersRepository
+      .createQueryBuilder('user')
+      .addSelect('user.password')
+      .where('user.id = :id', { id })
+      .getOne();
+  }
+
   async findByPhone(phone: string): Promise<User | null> {
     return this.usersRepository.findOne({ where: { phone } });
   }

@@ -85,7 +85,10 @@ export class CampaignSubmissionService {
       throw new BadRequestException('يجب اختيار مؤثرين للحملة الخاصة');
     }
 
-    if (campaign.budget === null || campaign.budget === undefined) {
+    if (
+      campaign.campaignVisibility === CampaignVisibility.PUBLIC &&
+      (campaign.budget === null || campaign.budget === undefined)
+    ) {
       throw new BadRequestException('يجب إكمال الميزانية');
     }
   }

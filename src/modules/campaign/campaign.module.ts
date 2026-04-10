@@ -2,6 +2,9 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Campaign } from './entities/campaign.entity';
 import { CampaignInvitedInfluencer } from './entities/campaign-invited-influencer.entity';
+import { CampaignInvitationService } from './entities/campaign-invitation-service.entity';
+import { CampaignApplication } from './entities/campaign-application.entity';
+import { CampaignSubmission } from './entities/campaign-submission.entity';
 import { AdvertiserCampaignController } from './controllers/advertiser-campaign.controller';
 import { AdminCampaignController } from './controllers/admin-campaign.controller';
 import { InfluencerCampaignController } from './controllers/influencer-campaign.controller';
@@ -16,10 +19,10 @@ import { CampaignApplicationReviewService } from './services/campaign-applicatio
 import { CampaignContentSubmissionService } from './services/campaign-content-submission.service';
 import { CampaignSubmissionReviewService } from './services/campaign-submission-review.service';
 import { CampaignSubmissionQueryService } from './services/campaign-submission-query.service';
-import { CampaignInvitationService } from './services/campaign-invitation.service';
-import { CampaignApplication } from './entities/campaign-application.entity';
-import { CampaignSubmission } from './entities/campaign-submission.entity';
+import { CampaignInvitationResponseService } from './services/campaign-invitation-response.service';
+import { PrivateCampaignLaunchService } from './services/private-campaign-launch.service';
 import { InfluencerProfile } from '../influencer/entities/influencer-profile.entity';
+import { InfluencerService as InfluencerServiceEntity } from '../influencer/entities/influencer-service.entity';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { CloudinaryModule } from '../cloudinary/cloudinary.module';
 import { CategoriesModule } from '../categories/categories.module';
@@ -28,7 +31,15 @@ import { PlatformSettingsModule } from '../platform-settings/platform-settings.m
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Campaign, CampaignInvitedInfluencer, CampaignApplication, CampaignSubmission, InfluencerProfile]),
+    TypeOrmModule.forFeature([
+      Campaign,
+      CampaignInvitedInfluencer,
+      CampaignInvitationService,
+      CampaignApplication,
+      CampaignSubmission,
+      InfluencerProfile,
+      InfluencerServiceEntity,
+    ]),
     NotificationsModule,
     CloudinaryModule,
     CategoriesModule,
@@ -48,8 +59,9 @@ import { PlatformSettingsModule } from '../platform-settings/platform-settings.m
     CampaignContentSubmissionService,
     CampaignSubmissionReviewService,
     CampaignSubmissionQueryService,
-    CampaignInvitationService,
+    CampaignInvitationResponseService,
+    PrivateCampaignLaunchService,
   ],
-  exports: [CampaignCreationService, CampaignQueryService],
+  exports: [CampaignCreationService, CampaignQueryService, TypeOrmModule],
 })
 export class CampaignModule {}

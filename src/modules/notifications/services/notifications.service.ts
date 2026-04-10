@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Notification } from '../entities/notification.entity';
 import { FcmTokenService } from './fcm-token.service';
 import { FcmService } from './fcm.service';
+import { NotificationSettingsService } from './notification-settings.service';
 import { UsersService } from '../../users/users.service';
 import { NotificationType } from '../enums';
 import { Role } from '../../../common/enums';
@@ -16,6 +17,7 @@ export class NotificationsService {
     private readonly notificationRepository: Repository<Notification>,
     private readonly fcmTokenService: FcmTokenService,
     private readonly fcmService: FcmService,
+    private readonly notificationSettingsService: NotificationSettingsService,
     private readonly usersService: UsersService,
   ) {}
 
@@ -26,6 +28,11 @@ export class NotificationsService {
     type: NotificationType,
     data?: Record<string, string>,
   ): Promise<void> {
+    const enabled = await this.notificationSettingsService.isEnabled(recipientId, type);
+    if (!enabled) {
+      return;
+    }
+
     await this.notificationRepository.save(
       this.notificationRepository.create({ recipientId, title, body, type, data }),
     );
@@ -43,18 +50,22 @@ export class NotificationsService {
     type: NotificationType,
     data?: Record<string, string>,
   ): Promise<void> {
-    const recipientIds = await this.usersService.findIdsByRole(role);
+    const allIds = await this.usersService.findIdsByRole(role);
+    const recipientIds = await this.notificationSettingsService.filterEnabledRecipients(
+      allIds,
+      type,
+    );
 
     if (recipientIds.length > 0) {
       const rows = recipientIds.map((recipientId) =>
         this.notificationRepository.create({ recipientId, title, body, type, data }),
       );
       await this.notificationRepository.save(rows);
-    }
 
-    const tokens = await this.fcmTokenService.findTokensByRole(role);
-    if (tokens.length > 0) {
-      await this.fcmService.sendToTokens(tokens, title, body, data);
+      const tokens = await this.fcmTokenService.findTokensByUserIds(recipientIds);
+      if (tokens.length > 0) {
+        await this.fcmService.sendToTokens(tokens, title, body, data);
+      }
     }
   }
 

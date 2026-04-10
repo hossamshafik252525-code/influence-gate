@@ -6,7 +6,7 @@ import {
   UpdateDateColumn,
   OneToMany,
 } from 'typeorm';
-import { UserCategory } from './user-category.entity';
+import { InfluencerCategory } from '../../influencer/entities/influencer-category.entity';
 
 @Entity('categories')
 export class Category {
@@ -28,6 +28,6 @@ export class Category {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  @OneToMany(() => UserCategory, (userCategory) => userCategory.category)
-  userCategories: UserCategory[];
+  @OneToMany(() => InfluencerCategory, (ic) => ic.category)
+  influencerCategories: InfluencerCategory[];
 }

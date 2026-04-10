@@ -1,14 +1,23 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Campaign } from '../entities/campaign.entity';
 import { CampaignInvitedInfluencer } from '../entities/campaign-invited-influencer.entity';
-import { CampaignStatus, CampaignStep, CampaignVisibility } from '../enums';
+import { CampaignInvitationService } from '../entities/campaign-invitation-service.entity';
+import { InfluencerService as InfluencerServiceEntity } from '../../influencer/entities/influencer-service.entity';
+import { InfluencerProfile } from '../../influencer/entities/influencer-profile.entity';
+import {
+  CampaignStatus,
+  CampaignStep,
+  CampaignVisibility,
+  InvitationStatus,
+} from '../enums';
 import {
   SaveCampaignInformationDto,
   SaveContentRequirementsDto,
   SaveInfluencerRequirementsDto,
   SaveCampaignBudgetDto,
+  InvitedInfluencerWithServicesDto,
 } from '../dto';
 import { CategoriesService } from '../../categories/categories.service';
 import { CloudinaryService } from '../../cloudinary/cloudinary.service';
@@ -23,6 +32,12 @@ export class CampaignCreationService {
     private readonly campaignRepository: Repository<Campaign>,
     @InjectRepository(CampaignInvitedInfluencer)
     private readonly invitedInfluencerRepository: Repository<CampaignInvitedInfluencer>,
+    @InjectRepository(CampaignInvitationService)
+    private readonly invitationServiceRepository: Repository<CampaignInvitationService>,
+    @InjectRepository(InfluencerServiceEntity)
+    private readonly influencerServiceRepository: Repository<InfluencerServiceEntity>,
+    @InjectRepository(InfluencerProfile)
+    private readonly influencerProfileRepository: Repository<InfluencerProfile>,
     private readonly categoriesService: CategoriesService,
     private readonly cloudinaryService: CloudinaryService,
     private readonly usersService: UsersService,
@@ -49,7 +64,7 @@ export class CampaignCreationService {
       await this.cloudinaryService.deleteFile(campaign.contentPdfPublicId);
     }
 
-    await this.invitedInfluencerRepository.delete({ campaignId: campaign.id });
+    await this.clearInvitations(campaign.id);
     await this.campaignRepository.remove(campaign);
   }
 
@@ -125,41 +140,43 @@ export class CampaignCreationService {
   ): Promise<Campaign> {
     const campaign = await this.findDraftOrFail(campaignId, advertiserId);
 
+    await this.clearInvitations(campaign.id);
+
+    let nextStep = CampaignStep.BUDGET;
+
     if (dto.campaignVisibility === CampaignVisibility.PRIVATE) {
-      if (!dto.invitedInfluencerIds || dto.invitedInfluencerIds.length === 0) {
+      if (!dto.invitedInfluencers || dto.invitedInfluencers.length === 0) {
         throw new BadRequestException('يجب اختيار مؤثرين للحملة الخاصة');
       }
 
-      for (const influencerId of dto.invitedInfluencerIds) {
-        const influencer = await this.usersService.findById(influencerId);
-        if (!influencer || influencer.role !== Role.INFLUENCER) {
-          throw new BadRequestException(`المؤثر غير موجود: ${influencerId}`);
-        }
+      if (dto.invitedInfluencers.length < dto.requiredInfluencersCount) {
+        throw new BadRequestException(
+          'عدد المؤثرين المختارين يجب أن يكون أكبر من أو يساوي العدد المطلوب',
+        );
       }
 
-      await this.invitedInfluencerRepository.delete({ campaignId: campaign.id });
+      await this.persistPrivateInvitations(campaign.id, dto.invitedInfluencers);
 
-      const invitations = dto.invitedInfluencerIds.map((influencerId) =>
-        this.invitedInfluencerRepository.create({
-          campaignId: campaign.id,
-          influencerId,
-        }),
-      );
-      await this.invitedInfluencerRepository.save(invitations);
-    } else {
-      await this.invitedInfluencerRepository.delete({ campaignId: campaign.id });
+      nextStep = CampaignStep.REVIEW;
     }
 
-    await this.campaignRepository.update(campaign.id, {
+    const updateData: Partial<Campaign> = {
       requiredInfluencersCount: dto.requiredInfluencersCount,
       influencerType: dto.influencerType,
       campaignVisibility: dto.campaignVisibility,
-      currentStep: CampaignStep.BUDGET,
-    });
+      currentStep: nextStep,
+    };
+
+    if (dto.campaignVisibility === CampaignVisibility.PRIVATE) {
+      updateData.budget = null;
+      updateData.influencerPrice = null;
+    }
+
+    await this.campaignRepository.update(campaign.id, updateData);
 
     return this.campaignRepository.findOne({
       where: { id: campaign.id },
-      relations: ['invitedInfluencers'],
+      relations: ['invitedInfluencers', 'invitedInfluencers.orderedServices'],
     });
   }
 
@@ -169,6 +186,11 @@ export class CampaignCreationService {
     dto: SaveCampaignBudgetDto,
   ): Promise<Campaign> {
     const campaign = await this.findDraftOrFail(campaignId, advertiserId);
+
+    if (campaign.campaignVisibility === CampaignVisibility.PRIVATE) {
+      throw new BadRequestException('لا يتم تحديد الميزانية للحملات الخاصة');
+    }
+
     const feePercentage = await this.platformSettingsService.getPlatformFeePercentage();
     const influencerPrice =
       (dto.budget * (1 - feePercentage / 100)) / (campaign.requiredInfluencersCount || 1);
@@ -185,7 +207,13 @@ export class CampaignCreationService {
   async getDraft(campaignId: string, advertiserId: string): Promise<Campaign> {
     const campaign = await this.campaignRepository.findOne({
       where: { id: campaignId, advertiserId },
-      relations: ['category', 'invitedInfluencers', 'invitedInfluencers.influencer'],
+      relations: [
+        'category',
+        'invitedInfluencers',
+        'invitedInfluencers.influencer',
+        'invitedInfluencers.orderedServices',
+        'invitedInfluencers.orderedServices.service',
+      ],
     });
 
     if (!campaign) {
@@ -201,6 +229,69 @@ export class CampaignCreationService {
       relations: ['category'],
       order: { updatedAt: 'DESC' },
     });
+  }
+
+  private async persistPrivateInvitations(
+    campaignId: string,
+    invited: InvitedInfluencerWithServicesDto[],
+  ): Promise<void> {
+    const feePercentage = await this.platformSettingsService.getPlatformFeePercentage();
+    const feeMultiplier = 1 + feePercentage / 100;
+
+    for (const item of invited) {
+      const influencer = await this.usersService.findById(item.influencerId);
+      if (!influencer || influencer.role !== Role.INFLUENCER) {
+        throw new BadRequestException(`المؤثر غير موجود: ${item.influencerId}`);
+      }
+
+      const profile = await this.influencerProfileRepository.findOne({
+        where: { userId: item.influencerId },
+      });
+      if (!profile) {
+        throw new BadRequestException(`الملف الشخصي للمؤثر غير موجود: ${item.influencerId}`);
+      }
+
+      const services = await this.influencerServiceRepository.find({
+        where: { id: In(item.serviceIds), influencerProfileId: profile.id },
+      });
+
+      if (services.length !== item.serviceIds.length) {
+        throw new BadRequestException(
+          `إحدى الخدمات المختارة غير متاحة للمؤثر: ${item.influencerId}`,
+        );
+      }
+
+      const invitation = this.invitedInfluencerRepository.create({
+        campaignId,
+        influencerId: item.influencerId,
+        status: InvitationStatus.PENDING,
+      });
+      const savedInvitation = await this.invitedInfluencerRepository.save(invitation);
+
+      const serviceRows = services.map((service) => {
+        const basePrice = Number(service.price);
+        const priceWithFee = Math.round(basePrice * feeMultiplier * 100) / 100;
+        return this.invitationServiceRepository.create({
+          invitationId: savedInvitation.id,
+          serviceId: service.id,
+          basePrice,
+          priceWithFee,
+        });
+      });
+      await this.invitationServiceRepository.save(serviceRows);
+    }
+  }
+
+  private async clearInvitations(campaignId: string): Promise<void> {
+    const invitations = await this.invitedInfluencerRepository.find({
+      where: { campaignId },
+    });
+    if (invitations.length === 0) {
+      return;
+    }
+    const invitationIds = invitations.map((i) => i.id);
+    await this.invitationServiceRepository.delete({ invitationId: In(invitationIds) });
+    await this.invitedInfluencerRepository.delete({ campaignId });
   }
 
   private async findDraftOrFail(campaignId: string, advertiserId: string): Promise<Campaign> {

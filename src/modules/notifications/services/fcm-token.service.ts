@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { FcmToken } from '../entities/fcm-token.entity';
 import { DeviceType } from '../enums';
 import { Role } from '../../../common/enums';
@@ -41,6 +41,14 @@ export class FcmTokenService {
 
   async findTokensByUserId(userId: string): Promise<string[]> {
     const rows = await this.fcmTokenRepository.find({ where: { userId } });
+    return rows.map((r) => r.token);
+  }
+
+  async findTokensByUserIds(userIds: string[]): Promise<string[]> {
+    if (userIds.length === 0) {
+      return [];
+    }
+    const rows = await this.fcmTokenRepository.find({ where: { userId: In(userIds) } });
     return rows.map((r) => r.token);
   }
 }

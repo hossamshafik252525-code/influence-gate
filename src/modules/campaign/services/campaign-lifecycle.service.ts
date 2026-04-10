@@ -4,10 +4,18 @@ import { Repository, LessThanOrEqual } from 'typeorm';
 import { Cron } from '@nestjs/schedule';
 import { Campaign } from '../entities/campaign.entity';
 import { CampaignApplication } from '../entities/campaign-application.entity';
-import { CampaignStatus, PendingMinimumAction, ApplicationStatus } from '../enums';
+import { CampaignInvitedInfluencer } from '../entities/campaign-invited-influencer.entity';
+import {
+  CampaignStatus,
+  PendingMinimumAction,
+  ApplicationStatus,
+  CampaignVisibility,
+  InvitationStatus,
+} from '../enums';
 import { ResolvePendingMinimumDto } from '../dto';
 import { NotificationsService } from '../../notifications/services/notifications.service';
 import { NotificationType } from '../../notifications/enums';
+import { PrivateCampaignLaunchService } from './private-campaign-launch.service';
 
 @Injectable()
 export class CampaignLifecycleService {
@@ -16,7 +24,10 @@ export class CampaignLifecycleService {
     private readonly campaignRepository: Repository<Campaign>,
     @InjectRepository(CampaignApplication)
     private readonly applicationRepository: Repository<CampaignApplication>,
+    @InjectRepository(CampaignInvitedInfluencer)
+    private readonly invitationRepository: Repository<CampaignInvitedInfluencer>,
     private readonly notificationsService: NotificationsService,
+    private readonly privateCampaignLaunchService: PrivateCampaignLaunchService,
   ) {}
 
   @Cron('0 0 * * *')
@@ -123,6 +134,21 @@ export class CampaignLifecycleService {
       }
 
       case PendingMinimumAction.LAUNCH_ANYWAY: {
+        if (campaign.campaignVisibility === CampaignVisibility.PRIVATE) {
+          const acceptedInvitations = await this.invitationRepository.count({
+            where: { campaignId: campaign.id, status: InvitationStatus.ACCEPTED },
+          });
+
+          if (acceptedInvitations === 0) {
+            throw new BadRequestException(
+              'لا يمكن إطلاق الحملة بدون مؤثر مقبول واحد على الأقل',
+            );
+          }
+
+          await this.privateCampaignLaunchService.launch(campaign);
+          break;
+        }
+
         const acceptedCount = await this.applicationRepository.count({
           where: { campaignId: campaign.id, status: ApplicationStatus.ACCEPTED },
         });

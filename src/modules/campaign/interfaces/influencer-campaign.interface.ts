@@ -1,5 +1,11 @@
 import { TargetPlatform, ContentTypeOffer, ImplementationType } from '../../../common/enums';
-import { InfluencerType, ApplicationStatus, CampaignStatus, SubmissionStatus } from '../enums';
+import {
+  InfluencerType,
+  ApplicationStatus,
+  CampaignStatus,
+  SubmissionStatus,
+  InvitationStatus,
+} from '../enums';
 import { PaginatedResult } from '../../../common/interfaces';
 
 export interface ApplicationInfluencerSummary {
@@ -32,29 +38,12 @@ export interface InfluencerCampaignListItem {
   influencerPrice: number;
 }
 
-export interface InfluencerCampaignDetail {
-  id: string;
-  status:string;
-  campaignNumber: number;
-  name: string;
-  description: string;
-  category: { id: string; name: string } | null;
-  includedPlatforms: TargetPlatform[];
-  contentTypes: ContentTypeOffer[];
-  contentDescription: string;
-  requirementsFile:string;
-  implementationType: ImplementationType;
-  implementationPeriodDays: number;
-  deadlineDate: Date;
-  implementationStartDate: Date | null;
-  implementationEndDate: Date | null;
-  influencerPrice: number;
-  requiredInfluencersCount: number;
-  influencerType: InfluencerType;
-  hasApplied: boolean;
+export interface MyCampaignListItem extends InfluencerCampaignListItem {
+  submissionStatus: SubmissionStatus | null;
 }
 
 export type InfluencerCampaignsResult = PaginatedResult<InfluencerCampaignListItem>;
+export type MyCampaignsResult = PaginatedResult<MyCampaignListItem>;
 
 export interface ApplicationCampaignSummary {
   id: string;
@@ -87,12 +76,26 @@ export interface ApplicationSubmissionDetail {
   modificationFileUrls: string[] | null;
 }
 
-export interface ApplicationDetailResult extends InfluencerCampaignDetail {
-  application: {
-    id: string;
-    status: ApplicationStatus;
-  };
-  submission: ApplicationSubmissionDetail | null;
+export interface CampaignDetailResult {
+  id: string;
+  campaignNumber: number;
+  status: CampaignStatus;
+  name: string;
+  description: string;
+  category: { id: string; name: string } | null;
+  includedPlatforms: TargetPlatform[];
+  contentTypes: ContentTypeOffer[];
+  contentDescription: string;
+  requirementsFile: string;
+  implementationType: ImplementationType;
+  implementationPeriodDays: number;
+  relevantDeadline: Date | null;
+  influencerPrice?: number;
+  orderedServicesPrice?: number;
+  requiredInfluencersCount: number;
+  influencerType: InfluencerType;
+  application?: { id: string; status: ApplicationStatus };
+  submission?: ApplicationSubmissionDetail;
 }
 
 export interface InvitationCampaignSummary {
@@ -109,11 +112,25 @@ export interface InvitationCampaignSummary {
   status: CampaignStatus;
 }
 
+export interface InvitationOrderedServiceItem {
+  id: string;
+  serviceId: string;
+  basePrice: number;
+  priceWithFee: number;
+  implementationType: ImplementationType;
+  contentType: ContentTypeOffer;
+  description: string;
+  implementationPeriodDays: number;
+  includedPlatforms: TargetPlatform[];
+}
+
 export interface InvitationListItem {
   id: string;
   campaignId: string;
+  status: InvitationStatus;
   createdAt: Date;
   campaign: InvitationCampaignSummary;
+  orderedServices: InvitationOrderedServiceItem[];
 }
 
 export type MyInvitationsResult = PaginatedResult<InvitationListItem>;
