@@ -64,7 +64,7 @@ export class InfluencerCampaignController {
   }
 
   @Post('invitations/:campaignId/accept')
-  @Statuses(UserStatus.CONFIRMED)
+  @Statuses(UserStatus.ACTIVE)
   @HttpCode(HttpStatus.OK)
   acceptInvitation(
     @AuthUser() user: User,
@@ -74,7 +74,7 @@ export class InfluencerCampaignController {
   }
 
   @Post('invitations/:campaignId/reject')
-  @Statuses(UserStatus.CONFIRMED)
+  @Statuses(UserStatus.ACTIVE)
   @HttpCode(HttpStatus.OK)
   rejectInvitation(
     @AuthUser() user: User,
@@ -84,7 +84,7 @@ export class InfluencerCampaignController {
   }
 
   @Post(':id/apply')
-  @Statuses(UserStatus.CONFIRMED)
+  @Statuses(UserStatus.ACTIVE)
   @HttpCode(HttpStatus.CREATED)
   applyToCampaign(
     @AuthUser() user: User,
@@ -94,7 +94,7 @@ export class InfluencerCampaignController {
   }
 
   @Post(':id/submit')
-  @Statuses(UserStatus.CONFIRMED)
+  @Statuses(UserStatus.ACTIVE)
   @HttpCode(HttpStatus.CREATED)
   @UseInterceptors(AnyFilesInterceptor({ limits: { fileSize: 10 * 1024 * 1024, files: 5 } }))
   submitContent(
