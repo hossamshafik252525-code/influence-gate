@@ -1,3 +1,4 @@
 export interface WalletSummary {
-  balance: number;
+  withdrawableBalance: number;
+  pendingBalance: number;
 }

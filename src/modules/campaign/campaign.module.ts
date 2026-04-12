@@ -28,6 +28,7 @@ import { CloudinaryModule } from '../cloudinary/cloudinary.module';
 import { CategoriesModule } from '../categories/categories.module';
 import { UsersModule } from '../users/users.module';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
+import { WalletModule } from '../wallet/wallet.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { PlatformSettingsModule } from '../platform-settings/platform-settings.m
     CategoriesModule,
     UsersModule,
     PlatformSettingsModule,
+    WalletModule,
   ],
   controllers: [AdvertiserCampaignController, AdminCampaignController, InfluencerCampaignController],
   providers: [

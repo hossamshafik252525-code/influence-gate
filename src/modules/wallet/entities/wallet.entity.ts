@@ -22,7 +22,10 @@ export class Wallet {
   user: User;
 
   @Column({ type: 'decimal', precision: 12, scale: 2, default: 0 })
-  balance: number;
+  withdrawableBalance: number;
+
+  @Column({ type: 'decimal', precision: 12, scale: 2, default: 0 })
+  pendingBalance: number;
 
   @CreateDateColumn()
   createdAt: Date;

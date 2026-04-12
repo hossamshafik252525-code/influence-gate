@@ -5,17 +5,21 @@ import { Cron } from '@nestjs/schedule';
 import { Campaign } from '../entities/campaign.entity';
 import { CampaignApplication } from '../entities/campaign-application.entity';
 import { CampaignInvitedInfluencer } from '../entities/campaign-invited-influencer.entity';
+import { CampaignSubmission } from '../entities/campaign-submission.entity';
 import {
   CampaignStatus,
   PendingMinimumAction,
   ApplicationStatus,
   CampaignVisibility,
   InvitationStatus,
+  SubmissionStatus,
 } from '../enums';
 import { ResolvePendingMinimumDto } from '../dto';
 import { NotificationsService } from '../../notifications/services/notifications.service';
 import { NotificationType } from '../../notifications/enums';
 import { PrivateCampaignLaunchService } from './private-campaign-launch.service';
+import { WalletTransactionService } from '../../wallet/services/wallet-transaction.service';
+import { TransactionStatus } from '../../wallet/enums';
 
 @Injectable()
 export class CampaignLifecycleService {
@@ -26,8 +30,11 @@ export class CampaignLifecycleService {
     private readonly applicationRepository: Repository<CampaignApplication>,
     @InjectRepository(CampaignInvitedInfluencer)
     private readonly invitationRepository: Repository<CampaignInvitedInfluencer>,
+    @InjectRepository(CampaignSubmission)
+    private readonly submissionRepository: Repository<CampaignSubmission>,
     private readonly notificationsService: NotificationsService,
     private readonly privateCampaignLaunchService: PrivateCampaignLaunchService,
+    private readonly walletTransactionService: WalletTransactionService,
   ) {}
 
   @Cron('0 0 * * *')
@@ -97,6 +104,7 @@ export class CampaignLifecycleService {
     });
 
     for (const campaign of campaigns) {
+      await this.generateCancelledTransactionsForUnacceptedInfluencers(campaign);
       await this.campaignRepository.update(campaign.id, {
         status: CampaignStatus.COMPLETED,
       });
@@ -176,6 +184,69 @@ export class CampaignLifecycleService {
     }
 
     return this.campaignRepository.findOne({ where: { id: campaign.id } });
+  }
+
+  private async generateCancelledTransactionsForUnacceptedInfluencers(
+    campaign: Campaign,
+  ): Promise<void> {
+    const influencerIds =
+      campaign.campaignVisibility === CampaignVisibility.PUBLIC
+        ? await this.getAcceptedPublicInfluencerIds(campaign.id)
+        : await this.getAcceptedPrivateInfluencerIds(campaign.id);
+
+    if (!influencerIds.length) return;
+
+    const acceptedSubmissions = await this.submissionRepository.find({
+      where: { campaignId: campaign.id, status: SubmissionStatus.ACCEPTED },
+    });
+
+    const acceptedInfluencerSet = new Set(acceptedSubmissions.map((s) => s.influencerId));
+
+    for (const influencerId of influencerIds) {
+      if (!acceptedInfluencerSet.has(influencerId)) {
+        const amount =
+          campaign.campaignVisibility === CampaignVisibility.PUBLIC
+            ? Number(campaign.influencerPrice)
+            : await this.getPrivateInfluencerPrice(campaign.id, influencerId);
+
+        await this.walletTransactionService.createRevenueTransaction({
+          influencerId,
+          amount,
+          campaignId: campaign.id,
+          campaignName: campaign.name,
+          includedPlatforms: campaign.includedPlatforms,
+          status: TransactionStatus.CANCELLED,
+        });
+      }
+    }
+  }
+
+  private async getAcceptedPublicInfluencerIds(campaignId: string): Promise<string[]> {
+    const applications = await this.applicationRepository.find({
+      where: { campaignId, status: ApplicationStatus.ACCEPTED },
+    });
+    return applications.map((a) => a.influencerId);
+  }
+
+  private async getAcceptedPrivateInfluencerIds(campaignId: string): Promise<string[]> {
+    const invitations = await this.invitationRepository.find({
+      where: { campaignId, status: InvitationStatus.ACCEPTED },
+    });
+    return invitations.map((i) => i.influencerId);
+  }
+
+  private async getPrivateInfluencerPrice(
+    campaignId: string,
+    influencerId: string,
+  ): Promise<number> {
+    const invitation = await this.invitationRepository.findOne({
+      where: { campaignId, influencerId, status: InvitationStatus.ACCEPTED },
+      relations: ['orderedServices'],
+    });
+
+    if (!invitation) return 0;
+
+    return invitation.orderedServices.reduce((sum, s) => sum + Number(s.priceWithFee), 0);
   }
 
   private calculateEndDate(periodDays: number): Date {

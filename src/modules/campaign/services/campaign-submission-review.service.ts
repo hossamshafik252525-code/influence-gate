@@ -9,11 +9,19 @@ import { Repository } from 'typeorm';
 import { Campaign } from '../entities/campaign.entity';
 import { CampaignApplication } from '../entities/campaign-application.entity';
 import { CampaignSubmission } from '../entities/campaign-submission.entity';
-import { ApplicationStatus, CampaignStatus, SubmissionStatus } from '../enums';
+import { CampaignInvitedInfluencer } from '../entities/campaign-invited-influencer.entity';
+import {
+  ApplicationStatus,
+  CampaignStatus,
+  CampaignVisibility,
+  SubmissionStatus,
+} from '../enums';
 import { ReviewSubmissionDto } from '../dto/review-submission.dto';
 import { CloudinaryService } from '../../cloudinary/cloudinary.service';
 import { NotificationsService } from '../../notifications/services/notifications.service';
 import { NotificationType } from '../../notifications/enums';
+import { WalletTransactionService } from '../../wallet/services/wallet-transaction.service';
+import { TransactionStatus } from '../../wallet/enums';
 
 @Injectable()
 export class CampaignSubmissionReviewService {
@@ -24,8 +32,11 @@ export class CampaignSubmissionReviewService {
     private readonly applicationRepo: Repository<CampaignApplication>,
     @InjectRepository(CampaignSubmission)
     private readonly submissionRepo: Repository<CampaignSubmission>,
+    @InjectRepository(CampaignInvitedInfluencer)
+    private readonly invitedInfluencerRepo: Repository<CampaignInvitedInfluencer>,
     private readonly cloudinaryService: CloudinaryService,
     private readonly notificationsService: NotificationsService,
+    private readonly walletTransactionService: WalletTransactionService,
   ) {}
 
   async reviewSubmission(
@@ -108,8 +119,37 @@ export class CampaignSubmissionReviewService {
     );
 
     if (dto.status === SubmissionStatus.ACCEPTED) {
+      await this.generateRevenueTransaction(submission);
       await this.checkAndCompleteCampaign(submission.campaignId);
     }
+  }
+
+  private async generateRevenueTransaction(
+    submission: CampaignSubmission & { campaign: Campaign },
+  ): Promise<void> {
+    const campaign = submission.campaign;
+    let amount: number;
+
+    if (campaign.campaignVisibility === CampaignVisibility.PUBLIC) {
+      amount = Number(campaign.influencerPrice);
+    } else {
+      const invitation = await this.invitedInfluencerRepo.findOne({
+        where: { campaignId: campaign.id, influencerId: submission.influencerId },
+        relations: ['orderedServices'],
+      });
+      amount = invitation
+        ? invitation.orderedServices.reduce((sum, s) => sum + Number(s.priceWithFee), 0)
+        : 0;
+    }
+
+    await this.walletTransactionService.createRevenueTransaction({
+      influencerId: submission.influencerId,
+      amount,
+      campaignId: campaign.id,
+      campaignName: campaign.name,
+      includedPlatforms: campaign.includedPlatforms,
+      status: TransactionStatus.PENDING_REVIEW,
+    });
   }
 
   private async checkAndCompleteCampaign(campaignId: string): Promise<void> {
