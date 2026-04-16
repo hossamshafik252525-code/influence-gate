@@ -7,3 +7,4 @@ export { ResetPasswordDto } from './reset-password.dto';
 export { RefreshTokenDto } from './refresh-token.dto';
 export { GoogleRegisterDto } from './google-register.dto';
 export { ConfirmGoogleDto } from './confirm-google.dto';
+export { VerifyResetCodeDto } from './verify-reset-code.dto';

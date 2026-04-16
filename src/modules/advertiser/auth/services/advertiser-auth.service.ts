@@ -20,11 +20,13 @@ import {
   AdvertiserLoginDto,
   AdvertiserVerifyOtpDto,
   AdvertiserResetPasswordDto,
+  AdvertiserVerifyResetCodeDto,
 } from '../dto';
 
 @Injectable()
 export class AdvertiserAuthService {
   private readonly OTP_TTL = 600;
+  private readonly RESET_VERIFIED_TTL = 900;
   private readonly SALT_ROUNDS = 10;
 
   constructor(
@@ -180,18 +182,22 @@ export class AdvertiserAuthService {
       throw new BadRequestException('البريد الإلكتروني غير مسجل');
     }
 
+    const cooldown = await this.redisService.get(`advertiser-forgot-cooldown:${email}`);
+    if (cooldown) {
+      throw new BadRequestException('يرجى الانتظار 60 ثانية قبل إعادة الإرسال');
+    }
+
     const otp = this.generateOtp();
 
     await this.redisService.set(`advertiser-reset:${email}`, { otp }, this.OTP_TTL);
+    await this.redisService.set(`advertiser-forgot-cooldown:${email}`, '1', 60);
     await this.mailService.sendOtp(email, otp);
 
     return { message: 'تم إرسال رمز إعادة تعيين كلمة المرور' };
   }
 
-  async resetPassword(dto: AdvertiserResetPasswordDto): Promise<{ message: string }> {
-    const data = await this.redisService.get<{ otp: string }>(
-      `advertiser-reset:${dto.email}`,
-    );
+  async verifyResetCode(dto: AdvertiserVerifyResetCodeDto): Promise<{ message: string }> {
+    const data = await this.redisService.get<{ otp: string }>(`advertiser-reset:${dto.email}`);
 
     if (!data) {
       throw new BadRequestException('رمز التحقق منتهي الصلاحية أو غير موجود');
@@ -199,6 +205,19 @@ export class AdvertiserAuthService {
 
     if (data.otp !== dto.otp) {
       throw new BadRequestException('رمز التحقق غير صحيح');
+    }
+
+    await this.redisService.del(`advertiser-reset:${dto.email}`);
+    await this.redisService.set(`advertiser-reset-verified:${dto.email}`, { verified: true }, this.RESET_VERIFIED_TTL);
+
+    return { message: 'تم التحقق من الرمز بنجاح' };
+  }
+
+  async resetPassword(dto: AdvertiserResetPasswordDto): Promise<{ message: string }> {
+    const verified = await this.redisService.get<{ verified: boolean }>(`advertiser-reset-verified:${dto.email}`);
+
+    if (!verified) {
+      throw new BadRequestException('انتهت صلاحية جلسة إعادة التعيين أو لم يتم التحقق من الرمز');
     }
 
     const user = await this.usersService.findByEmail(dto.email);
@@ -210,7 +229,7 @@ export class AdvertiserAuthService {
     const hashedPassword = await bcrypt.hash(dto.password, this.SALT_ROUNDS);
 
     await this.usersService.update(user.id, { password: hashedPassword });
-    await this.redisService.del(`advertiser-reset:${dto.email}`);
+    await this.redisService.del(`advertiser-reset-verified:${dto.email}`);
 
     return { message: 'تم إعادة تعيين كلمة المرور بنجاح' };
   }

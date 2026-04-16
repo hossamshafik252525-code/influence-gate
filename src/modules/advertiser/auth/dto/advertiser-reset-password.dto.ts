@@ -6,10 +6,6 @@ export class AdvertiserResetPasswordDto {
   @IsEmail({}, { message: 'البريد الإلكتروني غير صالح' })
   email: string;
 
-  @IsNotEmpty({ message: 'رمز التحقق مطلوب' })
-  @IsString()
-  otp: string;
-
   @IsNotEmpty({ message: 'كلمة المرور مطلوبة' })
   @IsString()
   @MinLength(8, { message: 'كلمة المرور يجب أن تكون 8 أحرف على الأقل' })

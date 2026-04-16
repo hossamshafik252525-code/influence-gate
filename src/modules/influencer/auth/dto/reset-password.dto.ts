@@ -8,10 +8,6 @@ export class ResetPasswordDto {
 
   @IsNotEmpty()
   @IsString()
-  otp: string;
-
-  @IsNotEmpty()
-  @IsString()
   @MinLength(6)
   password: string;
 

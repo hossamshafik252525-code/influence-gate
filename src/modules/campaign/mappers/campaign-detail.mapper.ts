@@ -2,11 +2,13 @@ import { Campaign } from '../entities/campaign.entity';
 import { CampaignApplication } from '../entities/campaign-application.entity';
 import { CampaignInvitedInfluencer } from '../entities/campaign-invited-influencer.entity';
 import { CampaignSubmission } from '../entities/campaign-submission.entity';
-import { CampaignStatus, CampaignVisibility } from '../enums';
+import { CampaignVisibility } from '../enums';
 import {
   CampaignDetailResult,
   ApplicationSubmissionDetail,
+  OrderedServiceDetail,
 } from '../interfaces/influencer-campaign.interface';
+import { resolveCampaignDeadline } from '../utils';
 
 export class CampaignDetailMapper {
   static toDetail(
@@ -30,7 +32,7 @@ export class CampaignDetailMapper {
       requirementsFile: campaign.contentPdfUrl,
       implementationType: campaign.implementationType,
       implementationPeriodDays: campaign.implementationPeriodDays,
-      relevantDeadline: CampaignDetailMapper.resolveDeadline(campaign),
+      relevantDeadline: resolveCampaignDeadline(campaign),
       requiredInfluencersCount: campaign.requiredInfluencersCount,
       influencerType: campaign.influencerType,
       ...CampaignDetailMapper.resolvePrice(campaign, invitation),
@@ -44,20 +46,27 @@ export class CampaignDetailMapper {
       result.submission = CampaignDetailMapper.mapSubmission(submission);
     }
 
-    return result;
-  }
-
-  private static resolveDeadline(campaign: Campaign): Date | null {
-    switch (campaign.status) {
-      case CampaignStatus.APPROVED:
-        return campaign.deadlineDate;
-      case CampaignStatus.PENDING_MINIMUM:
-        return campaign.pendingMinimumDeadline;
-      case CampaignStatus.IMPLEMENTATION:
-        return campaign.implementationEndDate;
-      default:
-        return null;
+    if (invitation) {
+      result.invitation = {
+        id: invitation.id,
+        status: invitation.status,
+        orderedServices: (invitation.orderedServices ?? []).map(
+          (os): OrderedServiceDetail => ({
+            id: os.id,
+            serviceId: os.serviceId,
+            basePrice: Number(os.basePrice),
+            priceWithFee: Number(os.priceWithFee),
+            implementationType: os.service?.implementationType,
+            contentType: os.service?.contentType,
+            description: os.service?.description,
+            implementationPeriodDays: os.service?.implementationPeriodDays,
+            includedPlatforms: os.service?.includedPlatforms,
+          }),
+        ),
+      };
     }
+
+    return result;
   }
 
   private static resolvePrice(

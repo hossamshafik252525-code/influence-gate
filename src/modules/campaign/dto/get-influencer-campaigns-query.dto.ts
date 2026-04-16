@@ -10,16 +10,13 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { TargetPlatform, ContentTypeOffer, ImplementationType } from '../../../common/enums';
-import { CampaignStatus } from '../enums';
 import { PaginationQueryDto } from '../../../common/dto';
 
 export class GetInfluencerCampaignsQueryDto extends PaginationQueryDto {
-  @IsIn(['new', 'my'], { message: 'نوع الفلتر يجب أن يكون new أو my' })
-  type: 'new' | 'my';
-
-  @IsOptional()
-  @IsEnum(CampaignStatus, { message: 'حالة الحملة غير صالحة' })
-  status?: CampaignStatus;
+  @IsIn(['new', 'current', 'applications', 'invitations'], {
+    message: 'نوع الفلتر يجب أن يكون new أو current أو applications أو invitations',
+  })
+  type: 'new' | 'current' | 'applications' | 'invitations';
 
   @IsOptional()
   @IsString({ message: 'كلمة البحث يجب أن تكون نصاً' })

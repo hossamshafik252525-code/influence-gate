@@ -25,7 +25,6 @@ import { CampaignApplicationService } from '../services/campaign-application.ser
 import { CampaignContentSubmissionService } from '../services/campaign-content-submission.service';
 import { CampaignInvitationResponseService } from '../services/campaign-invitation-response.service';
 import { GetInfluencerCampaignsQueryDto, SubmitContentDto } from '../dto';
-import { PaginationQueryDto } from '../../../common/dto';
 
 @Controller('campaigns/influencer')
 @UseGuards(JwtAuthGuard, RolesStatusGuard)
@@ -45,22 +44,6 @@ export class InfluencerCampaignController {
     @Query() query: GetInfluencerCampaignsQueryDto,
   ) {
     return this.influencerCampaignQueryService.getCampaigns(user.id, query);
-  }
-
-  @Get('applications')
-  getMyApplications(
-    @AuthUser() user: User,
-    @Query() query: PaginationQueryDto,
-  ) {
-    return this.influencerCampaignQueryService.getMyApplications(user.id, query);
-  }
-
-  @Get('invitations')
-  getMyInvitations(
-    @AuthUser() user: User,
-    @Query() query: PaginationQueryDto,
-  ) {
-    return this.influencerCampaignQueryService.getMyInvitations(user.id, query);
   }
 
   @Post('invitations/:campaignId/accept')

@@ -7,6 +7,7 @@ import {
   AdvertiserResendOtpDto,
   AdvertiserForgotPasswordDto,
   AdvertiserResetPasswordDto,
+  AdvertiserVerifyResetCodeDto,
 } from '../dto';
 import { JwtRefreshGuard } from '../../../../common/guards/jwt-refresh.guard';
 import { AuthUser } from '../../../../common/decorators/auth-user.decorator';
@@ -45,6 +46,11 @@ export class AdvertiserAuthController {
   @Post('forgot-password')
   forgotPassword(@Body() dto: AdvertiserForgotPasswordDto) {
     return this.advertiserAuthService.forgotPassword(dto.email);
+  }
+
+  @Post('verify-reset-code')
+  verifyResetCode(@Body() dto: AdvertiserVerifyResetCodeDto) {
+    return this.advertiserAuthService.verifyResetCode(dto);
   }
 
   @Post('reset-password')

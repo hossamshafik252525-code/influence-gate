@@ -7,6 +7,7 @@ import {
   ResendOtpDto,
   ForgotPasswordDto,
   ResetPasswordDto,
+  VerifyResetCodeDto,
   RefreshTokenDto,
   GoogleRegisterDto,
   ConfirmGoogleDto,
@@ -49,6 +50,11 @@ export class InfluencerAuthController {
   @Post('forgot-password')
   forgotPassword(@Body() dto: ForgotPasswordDto) {
     return this.influencerAuthService.forgotPassword(dto.email);
+  }
+
+  @Post('verify-reset-code')
+  verifyResetCode(@Body() dto: VerifyResetCodeDto) {
+    return this.influencerAuthService.verifyResetCode(dto);
   }
 
   @Post('reset-password')

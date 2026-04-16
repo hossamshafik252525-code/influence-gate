@@ -8,64 +8,50 @@ import {
 } from '../enums';
 import { PaginatedResult } from '../../../common/interfaces';
 
-export interface ApplicationInfluencerSummary {
-  fullName: string;
-  rating: number;
-  ratingCount: number;
-  completedCampaignsCount: number;
-}
-
-export interface CampaignApplicationItem {
-  id: string;
-  campaignId: string;
-  influencerId: string;
-  status: string;
-  createdAt: Date;
-  updatedAt: Date;
-  influencer: ApplicationInfluencerSummary;
-}
-
-export type GetApplicationsResult = PaginatedResult<CampaignApplicationItem>;
-
-export interface InfluencerCampaignListItem {
+export interface CampaignListItemBase {
   id: string;
   campaignNumber: number;
   name: string;
   description: string;
-  deadlineDate: Date;
+  relevantDeadline: Date | null;
   includedPlatforms: TargetPlatform[];
   contentTypes: ContentTypeOffer[];
   influencerPrice: number;
 }
 
-export interface MyCampaignListItem extends InfluencerCampaignListItem {
+export type NewCampaignListItem = CampaignListItemBase;
+
+export interface CurrentCampaignListItem extends CampaignListItemBase {
   submissionStatus: SubmissionStatus | null;
 }
 
-export type InfluencerCampaignsResult = PaginatedResult<InfluencerCampaignListItem>;
-export type MyCampaignsResult = PaginatedResult<MyCampaignListItem>;
+export interface ApplicationCampaignListItem extends CampaignListItemBase {
+  application: { id: string; status: ApplicationStatus };
+}
 
-export interface ApplicationCampaignSummary {
+export interface InvitationCampaignListItem extends CampaignListItemBase {
+  invitation: { id: string; status: InvitationStatus };
+}
+
+export type GetCampaignsItem =
+  | NewCampaignListItem
+  | CurrentCampaignListItem
+  | ApplicationCampaignListItem
+  | InvitationCampaignListItem;
+
+export type GetCampaignsResult = PaginatedResult<GetCampaignsItem>;
+
+export interface OrderedServiceDetail {
   id: string;
-  campaignNumber: number;
-  name: string;
+  serviceId: string;
+  basePrice: number;
+  priceWithFee: number;
+  implementationType: ImplementationType;
+  contentType: ContentTypeOffer;
   description: string;
+  implementationPeriodDays: number;
   includedPlatforms: TargetPlatform[];
-  contentTypes: ContentTypeOffer[];
-  status: CampaignStatus;
-  deadlineDate: Date;
-  implementationStartDate: Date | null;
-  implementationEndDate: Date | null;
 }
-
-export interface ApplicationListItem {
-  id: string;
-  status: ApplicationStatus;
-  createdAt: Date;
-  campaign: ApplicationCampaignSummary;
-}
-
-export type MyApplicationsResult = PaginatedResult<ApplicationListItem>;
 
 export interface ApplicationSubmissionDetail {
   id: string;
@@ -96,41 +82,24 @@ export interface CampaignDetailResult {
   influencerType: InfluencerType;
   application?: { id: string; status: ApplicationStatus };
   submission?: ApplicationSubmissionDetail;
+  invitation?: { id: string; status: InvitationStatus; orderedServices: OrderedServiceDetail[] };
 }
 
-export interface InvitationCampaignSummary {
-  id: string;
-  campaignNumber: number;
-  name: string;
-  description: string;
-  includedPlatforms: TargetPlatform[];
-  contentTypes: ContentTypeOffer[];
-  deadlineDate: Date;
-  implementationStartDate: Date | null;
-  implementationEndDate: Date | null;
-  influencerPrice: number;
-  status: CampaignStatus;
+export interface ApplicationInfluencerSummary {
+  fullName: string;
+  rating: number;
+  ratingCount: number;
+  completedCampaignsCount: number;
 }
 
-export interface InvitationOrderedServiceItem {
-  id: string;
-  serviceId: string;
-  basePrice: number;
-  priceWithFee: number;
-  implementationType: ImplementationType;
-  contentType: ContentTypeOffer;
-  description: string;
-  implementationPeriodDays: number;
-  includedPlatforms: TargetPlatform[];
-}
-
-export interface InvitationListItem {
+export interface CampaignApplicationItem {
   id: string;
   campaignId: string;
-  status: InvitationStatus;
+  influencerId: string;
+  status: string;
   createdAt: Date;
-  campaign: InvitationCampaignSummary;
-  orderedServices: InvitationOrderedServiceItem[];
+  updatedAt: Date;
+  influencer: ApplicationInfluencerSummary;
 }
 
-export type MyInvitationsResult = PaginatedResult<InvitationListItem>;
+export type GetApplicationsResult = PaginatedResult<CampaignApplicationItem>;

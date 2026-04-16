@@ -20,6 +20,7 @@ import {
   LoginDto,
   VerifyOtpDto,
   ResetPasswordDto,
+  VerifyResetCodeDto,
   ConfirmGoogleDto,
 } from '../dto';
 import { Role, UserStatus } from '../../../../common/enums';
@@ -30,6 +31,7 @@ import { InfluencerProfile } from '../../entities/influencer-profile.entity';
 @Injectable()
 export class InfluencerAuthService {
   private readonly OTP_TTL = 600;
+  private readonly RESET_VERIFIED_TTL = 900;
   private readonly SALT_ROUNDS = 10;
 
   constructor(
@@ -189,22 +191,28 @@ export class InfluencerAuthService {
     };
   }
 
-  async forgotPassword(email: string) {
+  async forgotPassword(email: string): Promise<{ message: string }> {
     const user = await this.usersService.findByEmail(email);
 
     if (!user) {
       throw new BadRequestException('البريد الإلكتروني غير مسجل');
     }
 
+    const cooldown = await this.redisService.get(`forgot-cooldown:${email}`);
+    if (cooldown) {
+      throw new BadRequestException('يرجى الانتظار 60 ثانية قبل إعادة الإرسال');
+    }
+
     const otp = this.generateOtp();
 
     await this.redisService.set(`reset:${email}`, { otp }, this.OTP_TTL);
+    await this.redisService.set(`forgot-cooldown:${email}`, '1', 60);
     await this.mailService.sendOtp(email, otp);
 
     return { message: 'تم إرسال رمز إعادة تعيين كلمة المرور' };
   }
 
-  async resetPassword(dto: ResetPasswordDto) {
+  async verifyResetCode(dto: VerifyResetCodeDto): Promise<{ message: string }> {
     const data = await this.redisService.get<{ otp: string }>(`reset:${dto.email}`);
 
     if (!data) {
@@ -213,6 +221,19 @@ export class InfluencerAuthService {
 
     if (data.otp !== dto.otp) {
       throw new BadRequestException('رمز التحقق غير صحيح');
+    }
+
+    await this.redisService.del(`reset:${dto.email}`);
+    await this.redisService.set(`reset-verified:${dto.email}`, { verified: true }, this.RESET_VERIFIED_TTL);
+
+    return { message: 'تم التحقق من الرمز بنجاح' };
+  }
+
+  async resetPassword(dto: ResetPasswordDto): Promise<{ message: string }> {
+    const verified = await this.redisService.get<{ verified: boolean }>(`reset-verified:${dto.email}`);
+
+    if (!verified) {
+      throw new BadRequestException('انتهت صلاحية جلسة إعادة التعيين أو لم يتم التحقق من الرمز');
     }
 
     const user = await this.usersService.findByEmail(dto.email);
@@ -224,7 +245,7 @@ export class InfluencerAuthService {
     const hashedPassword = await bcrypt.hash(dto.password, this.SALT_ROUNDS);
 
     await this.usersService.update(user.id, { password: hashedPassword });
-    await this.redisService.del(`reset:${dto.email}`);
+    await this.redisService.del(`reset-verified:${dto.email}`);
 
     return { message: 'تم إعادة تعيين كلمة المرور بنجاح' };
   }
