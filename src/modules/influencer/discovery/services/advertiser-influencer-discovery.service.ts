@@ -60,12 +60,12 @@ export class AdvertiserInfluencerDiscoveryService {
           WHERE s."influencerProfileId" = profile.id
         )`,
       )
-      .andWhere(
-        `EXISTS (
-          SELECT 1 FROM social_platforms sp
-          WHERE sp."influencerProfileId" = profile.id
-        )`,
-      );
+      // .andWhere(   only on development and later i will delete this comments
+      //   `EXISTS (
+      //     SELECT 1 FROM social_platforms sp
+      //     WHERE sp."influencerProfileId" = profile.id
+      //   )`,
+      // );
 
     this.applyFilters(qb, query, feeMultiplier);
 

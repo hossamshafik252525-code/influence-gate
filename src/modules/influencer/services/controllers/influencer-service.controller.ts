@@ -26,11 +26,6 @@ export class InfluencerServiceController {
     return this.influencerServiceService.findAllByUser(user.id);
   }
 
-  @Get(':id')
-  findOne(@AuthUser() user: User, @Param('id') id: string) {
-    return this.influencerServiceService.findOneByUser(id, user.id);
-  }
-
   @Patch(':id')
   update(
     @AuthUser() user: User,
