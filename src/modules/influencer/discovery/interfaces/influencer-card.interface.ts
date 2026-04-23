@@ -6,8 +6,7 @@ export interface InfluencerServiceCardItem {
   implementationType: ImplementationType;
   contentType: ContentTypeOffer;
   description: string;
-  basePrice: number;
-  priceWithFee: number;
+  price: number;
   implementationPeriodDays: number;
   includedPlatforms: TargetPlatform[];
 }

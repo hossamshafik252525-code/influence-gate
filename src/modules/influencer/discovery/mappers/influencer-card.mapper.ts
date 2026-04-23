@@ -21,7 +21,7 @@ export class InfluencerCardMapper {
     const priceAverage =
       services.length > 0
         ? Math.round(
-            (services.reduce((sum, s) => sum + s.priceWithFee, 0) / services.length) * 100,
+            (services.reduce((sum, s) => sum + s.price, 0) / services.length) * 100,
           ) / 100
         : 0;
 
@@ -55,8 +55,7 @@ export class InfluencerCardMapper {
       implementationType: service.implementationType,
       contentType: service.contentType,
       description: service.description,
-      basePrice,
-      priceWithFee,
+      price:priceWithFee,
       implementationPeriodDays: service.implementationPeriodDays,
       includedPlatforms: service.includedPlatforms,
     };

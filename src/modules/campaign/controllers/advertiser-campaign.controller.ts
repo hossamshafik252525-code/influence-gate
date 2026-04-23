@@ -40,6 +40,7 @@ import {
   ReviewSubmissionDto,
 } from '../dto';
 import { Campaign } from '../entities/campaign.entity';
+import { AdvertiserCampaignResult } from '../interfaces/advertiser-campaign.interface';
 import { PaginationDto } from '../../notifications/dto/pagination.dto';
 
 @Controller('campaigns/advertiser')
@@ -131,7 +132,7 @@ export class AdvertiserCampaignController {
     @Param('id', ParseUUIDPipe) id: string,
     @AuthUser() user: User,
     @Body() dto: SaveInfluencerRequirementsDto,
-  ): Promise<Campaign> {
+  ): Promise<AdvertiserCampaignResult> {
     return this.campaignCreationService.saveInfluencerRequirements(
       id,
       user.id,

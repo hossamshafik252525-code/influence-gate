@@ -24,6 +24,8 @@ import { CloudinaryService } from '../../cloudinary/cloudinary.service';
 import { UsersService } from '../../users/users.service';
 import { PlatformSettingsService } from '../../platform-settings/platform-settings.service';
 import { Role } from '../../../common/enums';
+import { AdvertiserCampaignMapper } from '../mappers/advertiser-campaign.mapper';
+import { AdvertiserCampaignResult } from '../interfaces/advertiser-campaign.interface';
 
 @Injectable()
 export class CampaignCreationService {
@@ -137,7 +139,7 @@ export class CampaignCreationService {
     campaignId: string,
     advertiserId: string,
     dto: SaveInfluencerRequirementsDto,
-  ): Promise<Campaign> {
+  ): Promise<AdvertiserCampaignResult> {
     const campaign = await this.findDraftOrFail(campaignId, advertiserId);
 
     await this.clearInvitations(campaign.id);
@@ -174,10 +176,16 @@ export class CampaignCreationService {
 
     await this.campaignRepository.update(campaign.id, updateData);
 
-    return this.campaignRepository.findOne({
+    const updated = await this.campaignRepository.findOne({
       where: { id: campaign.id },
-      relations: ['invitedInfluencers', 'invitedInfluencers.orderedServices'],
+      relations: [
+        'invitedInfluencers',
+        'invitedInfluencers.orderedServices',
+        'invitedInfluencers.orderedServices.service',
+      ],
     });
+
+    return AdvertiserCampaignMapper.toResult(updated);
   }
 
   async saveBudget(

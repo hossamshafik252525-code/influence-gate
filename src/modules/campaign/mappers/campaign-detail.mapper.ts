@@ -53,9 +53,7 @@ export class CampaignDetailMapper {
         orderedServices: (invitation.orderedServices ?? []).map(
           (os): OrderedServiceDetail => ({
             id: os.id,
-            serviceId: os.serviceId,
-            basePrice: Number(os.basePrice),
-            priceWithFee: Number(os.priceWithFee),
+            price: Number(os.basePrice),
             implementationType: os.service?.implementationType,
             contentType: os.service?.contentType,
             description: os.service?.description,
@@ -81,7 +79,7 @@ export class CampaignDetailMapper {
         (sum, os) => sum + Number(os.basePrice),
         0,
       );
-      return { orderedServicesPrice: total };
+      return { orderedServicesPrice: Math.round(total * 100) / 100 };
     }
     return { influencerPrice: Number(campaign.influencerPrice) };
   }

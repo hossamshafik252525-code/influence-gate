@@ -7,6 +7,7 @@ import {
   CurrentCampaignListItem,
   ApplicationCampaignListItem,
   InvitationCampaignListItem,
+  InvitationCampaignListItemBase,
 } from '../interfaces/influencer-campaign.interface';
 import { resolveCampaignDeadline } from '../utils';
 
@@ -21,6 +22,18 @@ export class CampaignListItemMapper {
       includedPlatforms: campaign.includedPlatforms,
       contentTypes: campaign.contentTypes,
       influencerPrice: Number(campaign.influencerPrice),
+    };
+  }
+
+  private static toInvitationBase(campaign: Campaign): InvitationCampaignListItemBase {
+    return {
+      id: campaign.id,
+      campaignNumber: campaign.campaignNumber,
+      name: campaign.name,
+      description: campaign.description,
+      relevantDeadline: resolveCampaignDeadline(campaign),
+      includedPlatforms: campaign.includedPlatforms,
+      contentTypes: campaign.contentTypes,
     };
   }
 
@@ -53,7 +66,7 @@ export class CampaignListItemMapper {
     invitation: CampaignInvitedInfluencer,
   ): InvitationCampaignListItem {
     return {
-      ...CampaignListItemMapper.toBase(campaign),
+      ...CampaignListItemMapper.toInvitationBase(campaign),
       invitation: { id: invitation.id, status: invitation.status },
     };
   }

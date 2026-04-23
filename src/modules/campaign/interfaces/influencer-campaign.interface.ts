@@ -19,6 +19,16 @@ export interface CampaignListItemBase {
   influencerPrice: number;
 }
 
+export interface InvitationCampaignListItemBase {
+  id: string;
+  campaignNumber: number;
+  name: string;
+  description: string;
+  relevantDeadline: Date | null;
+  includedPlatforms: TargetPlatform[];
+  contentTypes: ContentTypeOffer[];
+}
+
 export type NewCampaignListItem = CampaignListItemBase;
 
 export interface CurrentCampaignListItem extends CampaignListItemBase {
@@ -29,7 +39,7 @@ export interface ApplicationCampaignListItem extends CampaignListItemBase {
   application: { id: string; status: ApplicationStatus };
 }
 
-export interface InvitationCampaignListItem extends CampaignListItemBase {
+export interface InvitationCampaignListItem extends InvitationCampaignListItemBase {
   invitation: { id: string; status: InvitationStatus };
 }
 
@@ -43,9 +53,7 @@ export type GetCampaignsResult = PaginatedResult<GetCampaignsItem>;
 
 export interface OrderedServiceDetail {
   id: string;
-  serviceId: string;
-  basePrice: number;
-  priceWithFee: number;
+  price: number;
   implementationType: ImplementationType;
   contentType: ContentTypeOffer;
   description: string;

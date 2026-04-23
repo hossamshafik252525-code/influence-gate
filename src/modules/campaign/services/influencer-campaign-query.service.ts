@@ -73,7 +73,7 @@ export class InfluencerCampaignQueryService {
       campaign.campaignVisibility === CampaignVisibility.PRIVATE
         ? this.invitationRepo.findOne({
             where: { campaignId, influencerId: userId },
-            relations: ['orderedServices'],
+            relations: ['orderedServices', 'orderedServices.service'],
           })
         : Promise.resolve(null),
     ]);
