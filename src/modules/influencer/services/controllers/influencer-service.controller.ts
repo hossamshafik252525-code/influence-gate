@@ -11,7 +11,7 @@ import { User } from '../../../users/entities/user.entity';
 
 @UseGuards(JwtAuthGuard, RolesStatusGuard)
 @Roles(Role.INFLUENCER)
-@Statuses(UserStatus.ACTIVE)
+@Statuses(UserStatus.CONFIRMED)
 @Controller('influencer/services')
 export class InfluencerServiceController {
   constructor(private readonly influencerServiceService: InfluencerServiceService) {}
