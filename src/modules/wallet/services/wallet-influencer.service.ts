@@ -35,6 +35,9 @@ export class WalletInfluencerService {
     if (filter.status) {
       where.status = filter.status;
     }
+    if (filter.type) {
+      where.type = filter.type;
+    }
 
     const [data, total] = await this.transactionRepo.findAndCount({
       where,
