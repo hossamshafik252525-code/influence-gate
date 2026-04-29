@@ -2,20 +2,19 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Campaign } from '../entities/campaign.entity';
-import { CampaignInvitedInfluencer } from '../entities/campaign-invited-influencer.entity';
 import { CampaignStatus, CampaignVisibility } from '../enums';
 import { ReviewCampaignDto } from '../dto';
 import { NotificationsService } from '../../notifications/services/notifications.service';
 import { NotificationType } from '../../notifications/enums';
+import { PrivateCampaignLaunchService } from './private-campaign-launch.service';
 
 @Injectable()
 export class CampaignReviewService {
   constructor(
     @InjectRepository(Campaign)
     private readonly campaignRepository: Repository<Campaign>,
-    @InjectRepository(CampaignInvitedInfluencer)
-    private readonly invitedInfluencerRepository: Repository<CampaignInvitedInfluencer>,
     private readonly notificationsService: NotificationsService,
+    private readonly privateCampaignLaunchService: PrivateCampaignLaunchService,
   ) {}
 
   async reviewCampaign(campaignId: string, dto: ReviewCampaignDto): Promise<Campaign> {
@@ -49,8 +48,24 @@ export class CampaignReviewService {
 
   private async approveCampaign(campaign: Campaign): Promise<void> {
     await this.campaignRepository.update(campaign.id, {
-      status: CampaignStatus.APPROVED,
       approvedAt: new Date(),
+    });
+
+    if (campaign.campaignVisibility === CampaignVisibility.PRIVATE) {
+      await this.privateCampaignLaunchService.launchOnApproval(campaign);
+
+      await this.notificationsService.notify(
+        campaign.advertiserId,
+        'تمت الموافقة على حملتك',
+        `تمت الموافقة على حملة "${campaign.name}" وبدأت مرحلة التنفيذ`,
+        NotificationType.CAMPAIGN_APPROVED,
+        { campaignId: campaign.id },
+      );
+      return;
+    }
+
+    await this.campaignRepository.update(campaign.id, {
+      status: CampaignStatus.APPROVED,
     });
 
     await this.notificationsService.notify(
@@ -60,22 +75,6 @@ export class CampaignReviewService {
       NotificationType.CAMPAIGN_APPROVED,
       { campaignId: campaign.id },
     );
-
-    if (campaign.campaignVisibility === CampaignVisibility.PRIVATE) {
-      const invitedInfluencers = await this.invitedInfluencerRepository.find({
-        where: { campaignId: campaign.id },
-      });
-
-      for (const invitation of invitedInfluencers) {
-        await this.notificationsService.notify(
-          invitation.influencerId,
-          'دعوة للمشاركة في حملة',
-          `تمت دعوتك للمشاركة في حملة "${campaign.name}"`,
-          NotificationType.CAMPAIGN_INVITATION,
-          { campaignId: campaign.id },
-        );
-      }
-    }
   }
 
   private async rejectCampaign(campaign: Campaign, rejectionReason: string): Promise<void> {

@@ -4,7 +4,6 @@ import {
   IsUUID,
   IsNumber,
   IsString,
-  IsIn,
   IsInt,
   Min,
 } from 'class-validator';
@@ -12,12 +11,7 @@ import { Type } from 'class-transformer';
 import { TargetPlatform, ContentTypeOffer, ImplementationType } from '../../../common/enums';
 import { PaginationQueryDto } from '../../../common/dto';
 
-export class GetInfluencerCampaignsQueryDto extends PaginationQueryDto {
-  @IsIn(['new', 'current', 'applications', 'invitations'], {
-    message: 'نوع الفلتر يجب أن يكون new أو current أو applications أو invitations',
-  })
-  type: 'new' | 'current' | 'applications' | 'invitations';
-
+export class GetNewCampaignsQueryDto extends PaginationQueryDto {
   @IsOptional()
   @IsString({ message: 'كلمة البحث يجب أن تكون نصاً' })
   search?: string;

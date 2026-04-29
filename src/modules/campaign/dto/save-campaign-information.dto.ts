@@ -9,8 +9,10 @@ import {
   IsInt,
   Min,
   MaxLength,
+  ValidateIf,
 } from 'class-validator';
 import { TargetPlatform, ImplementationType } from '../../../common/enums';
+import { CampaignVisibility } from '../enums';
 
 export class SaveCampaignInformationDto {
   @IsNotEmpty({ message: 'اسم الحملة مطلوب' })
@@ -35,9 +37,14 @@ export class SaveCampaignInformationDto {
   @IsEnum(ImplementationType, { message: 'نوع التنفيذ غير صالح' })
   implementationType: ImplementationType;
 
+  @IsNotEmpty({ message: 'نوع الحملة مطلوب' })
+  @IsEnum(CampaignVisibility, { message: 'نوع الحملة غير صالح' })
+  campaignVisibility: CampaignVisibility;
+
+  @ValidateIf((o) => o.campaignVisibility === CampaignVisibility.PUBLIC)
   @IsNotEmpty({ message: 'تاريخ الموعد النهائي مطلوب' })
   @IsDateString({}, { message: 'تاريخ الموعد النهائي غير صالح' })
-  deadlineDate: string;
+  deadlineDate?: string;
 
   @IsNotEmpty({ message: 'مدة التنفيذ مطلوبة' })
   @IsInt({ message: 'مدة التنفيذ يجب أن تكون رقماً صحيحاً' })

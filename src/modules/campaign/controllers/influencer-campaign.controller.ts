@@ -24,7 +24,13 @@ import { InfluencerCampaignQueryService } from '../services/influencer-campaign-
 import { CampaignApplicationService } from '../services/campaign-application.service';
 import { CampaignContentSubmissionService } from '../services/campaign-content-submission.service';
 import { CampaignInvitationResponseService } from '../services/campaign-invitation-response.service';
-import { GetInfluencerCampaignsQueryDto, SubmitContentDto } from '../dto';
+import {
+  GetNewCampaignsQueryDto,
+  GetInfluencerMyCampaignsQueryDto,
+  GetInfluencerApplicationsQueryDto,
+  GetInfluencerInvitationsQueryDto,
+  SubmitContentDto,
+} from '../dto';
 
 @Controller('campaigns/influencer')
 @UseGuards(JwtAuthGuard, RolesStatusGuard)
@@ -38,12 +44,36 @@ export class InfluencerCampaignController {
     private readonly campaignInvitationResponseService: CampaignInvitationResponseService,
   ) {}
 
-  @Get()
-  getCampaigns(
+  @Get('new')
+  getNewCampaigns(
     @AuthUser() user: User,
-    @Query() query: GetInfluencerCampaignsQueryDto,
+    @Query() query: GetNewCampaignsQueryDto,
   ) {
-    return this.influencerCampaignQueryService.getCampaigns(user.id, query);
+    return this.influencerCampaignQueryService.getNewCampaigns(user.id, query);
+  }
+
+  @Get('my')
+  getMyCampaigns(
+    @AuthUser() user: User,
+    @Query() query: GetInfluencerMyCampaignsQueryDto,
+  ) {
+    return this.influencerCampaignQueryService.getMyCampaigns(user.id, query);
+  }
+
+  @Get('applications')
+  getApplications(
+    @AuthUser() user: User,
+    @Query() query: GetInfluencerApplicationsQueryDto,
+  ) {
+    return this.influencerCampaignQueryService.getApplications(user.id, query);
+  }
+
+  @Get('invitations')
+  getInvitations(
+    @AuthUser() user: User,
+    @Query() query: GetInfluencerInvitationsQueryDto,
+  ) {
+    return this.influencerCampaignQueryService.getInvitations(user.id, query);
   }
 
   @Post('invitations/:campaignId/accept')

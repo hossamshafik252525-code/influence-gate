@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository, SelectQueryBuilder } from 'typeorm';
 import { Campaign } from '../entities/campaign.entity';
 import { CampaignApplication } from '../entities/campaign-application.entity';
 import { CampaignInvitedInfluencer } from '../entities/campaign-invited-influencer.entity';
@@ -11,11 +11,21 @@ import {
   CampaignVisibility,
   ApplicationStatus,
   InvitationStatus,
+  ResolvedCampaignStatus,
 } from '../enums';
 import { CampaignListItemMapper, CampaignDetailMapper } from '../mappers';
-import { GetInfluencerCampaignsQueryDto } from '../dto/get-influencer-campaigns-query.dto';
+import { resolvedStatusToCampaignStatuses } from '../utils';
 import {
-  GetCampaignsResult,
+  GetNewCampaignsQueryDto,
+  GetInfluencerMyCampaignsQueryDto,
+  GetInfluencerApplicationsQueryDto,
+  GetInfluencerInvitationsQueryDto,
+} from '../dto';
+import {
+  GetNewCampaignsResult,
+  GetMyCampaignsResult,
+  GetInfluencerApplicationsResult,
+  GetInfluencerInvitationsResult,
   CampaignDetailResult,
 } from '../interfaces/influencer-campaign.interface';
 
@@ -34,57 +44,10 @@ export class InfluencerCampaignQueryService {
     private readonly influencerProfileRepo: Repository<InfluencerProfile>,
   ) {}
 
-  async getCampaigns(
+  async getNewCampaigns(
     userId: string,
-    query: GetInfluencerCampaignsQueryDto,
-  ): Promise<GetCampaignsResult> {
-    switch (query.type) {
-      case 'new':
-        return this.getNewCampaigns(userId, query);
-      case 'current':
-        return this.getCurrentCampaigns(userId, query);
-      case 'applications':
-        return this.getApplicationCampaigns(userId, query);
-      case 'invitations':
-        return this.getInvitationCampaigns(userId, query);
-    }
-  }
-
-  async getCampaignDetail(campaignId: string, userId: string): Promise<CampaignDetailResult> {
-    const campaign = await this.campaignRepo.findOne({
-      where: { id: campaignId },
-      relations: ['category'],
-    });
-
-    if (!campaign) {
-      throw new NotFoundException('الحملة غير موجودة');
-    }
-
-    if (campaign.campaignVisibility !== CampaignVisibility.PUBLIC) {
-      const hasAccess = await this.hasAccessToPrivateCampaign(campaignId, userId);
-      if (!hasAccess) {
-        throw new ForbiddenException('لا يمكنك الوصول لهذه الحملة');
-      }
-    }
-
-    const [application, submission, invitation] = await Promise.all([
-      this.applicationRepo.findOne({ where: { campaignId, influencerId: userId } }),
-      this.submissionRepo.findOne({ where: { campaignId, influencerId: userId } }),
-      campaign.campaignVisibility === CampaignVisibility.PRIVATE
-        ? this.invitationRepo.findOne({
-            where: { campaignId, influencerId: userId },
-            relations: ['orderedServices', 'orderedServices.service'],
-          })
-        : Promise.resolve(null),
-    ]);
-
-    return CampaignDetailMapper.toDetail(campaign, application, submission, invitation);
-  }
-
-  private async getNewCampaigns(
-    userId: string,
-    query: GetInfluencerCampaignsQueryDto,
-  ): Promise<GetCampaignsResult> {
+    query: GetNewCampaignsQueryDto,
+  ): Promise<GetNewCampaignsResult> {
     const { contentTypes, platforms, categoryIds } = await this.loadInfluencerMatchSignals(userId);
 
     const qb = this.campaignRepo
@@ -125,20 +88,17 @@ export class InfluencerCampaignQueryService {
     };
   }
 
-  private async getCurrentCampaigns(
+  async getMyCampaigns(
     userId: string,
-    query: GetInfluencerCampaignsQueryDto,
-  ): Promise<GetCampaignsResult> {
+    query: GetInfluencerMyCampaignsQueryDto,
+  ): Promise<GetMyCampaignsResult> {
+    const campaignStatuses = resolvedStatusToCampaignStatuses(query.status);
+
     const qb = this.campaignRepo
       .createQueryBuilder('campaign')
-      .innerJoin(
-        'campaign.applications',
-        'app',
-        'app.influencerId = :userId AND app.status = :accepted',
-        { userId, accepted: ApplicationStatus.ACCEPTED },
-      )
-      .where('campaign.status = :status', { status: CampaignStatus.IMPLEMENTATION });
+      .where('campaign.status IN (:...statuses)', { statuses: campaignStatuses });
 
+    this.applyMembershipFilter(qb, userId, query.status);
     this.applyCommonFilters(qb, query);
     this.selectCampaignListFields(qb);
 
@@ -148,111 +108,46 @@ export class InfluencerCampaignQueryService {
 
     const [campaigns, total] = await qb.getManyAndCount();
 
-    const campaignIds = campaigns.map((c) => c.id);
-    const submissions = campaignIds.length
-      ? await this.submissionRepo.find({
-          where: { campaignId: In(campaignIds), influencerId: userId },
-        })
-      : [];
-
-    const submissionMap = new Map(submissions.map((s) => [s.campaignId, s]));
-
     return {
-      data: campaigns.map((c) =>
-        CampaignListItemMapper.toCurrent(c, submissionMap.get(c.id) ?? null),
-      ),
+      data: campaigns.map((c) => CampaignListItemMapper.toMy(c)),
       pagination: { total, page: query.page, limit: query.limit },
     };
   }
 
-  private async getApplicationCampaigns(
+  async getApplications(
     userId: string,
-    query: GetInfluencerCampaignsQueryDto,
-  ): Promise<GetCampaignsResult> {
-    const [applications, total] = await this.applicationRepo
+    query: GetInfluencerApplicationsQueryDto,
+  ): Promise<GetInfluencerApplicationsResult> {
+    const qb = this.applicationRepo
       .createQueryBuilder('app')
-      .innerJoin('app.campaign', 'campaign')
-      .where('app.influencerId = :userId', { userId })
-      .select([
-        'app.id',
-        'app.status',
-        'app.createdAt',
-        'app.campaignId',
-      ])
-      .orderBy('app.createdAt', 'DESC')
+      .innerJoinAndSelect('app.campaign', 'campaign')
+      .where('app.influencerId = :userId', { userId });
+
+    this.applyCommonFiltersOnAlias(qb, query);
+
+    qb.orderBy('app.createdAt', 'DESC')
       .skip((query.page - 1) * query.limit)
-      .take(query.limit)
-      .getManyAndCount();
+      .take(query.limit);
 
-    const campaignIds = applications.map((a) => a.campaignId);
-    const campaigns = campaignIds.length
-      ? await this.campaignRepo
-          .createQueryBuilder('campaign')
-          .where('campaign.id IN (:...ids)', { ids: campaignIds })
-          .select([
-            'campaign.id',
-            'campaign.campaignNumber',
-            'campaign.name',
-            'campaign.description',
-            'campaign.status',
-            'campaign.deadlineDate',
-            'campaign.pendingMinimumDeadline',
-            'campaign.implementationEndDate',
-            'campaign.includedPlatforms',
-            'campaign.contentTypes',
-            'campaign.influencerPrice',
-          ])
-          .getMany()
-      : [];
-
-    const campaignMap = new Map(campaigns.map((c) => [c.id, c]));
+    const [applications, total] = await qb.getManyAndCount();
 
     return {
-      data: applications
-        .filter((a) => campaignMap.has(a.campaignId))
-        .map((a) => CampaignListItemMapper.toApplication(campaignMap.get(a.campaignId)!, a)),
+      data: applications.map((a) => CampaignListItemMapper.toApplicationItem(a, a.campaign)),
       pagination: { total, page: query.page, limit: query.limit },
     };
   }
 
-  private async getInvitationCampaigns(
+  async getInvitations(
     userId: string,
-    query: GetInfluencerCampaignsQueryDto,
-  ): Promise<GetCampaignsResult> {
+    query: GetInfluencerInvitationsQueryDto,
+  ): Promise<GetInfluencerInvitationsResult> {
     const qb = this.invitationRepo
       .createQueryBuilder('inv')
       .innerJoinAndSelect('inv.campaign', 'campaign')
       .where('inv.influencerId = :userId', { userId })
-      .andWhere('inv.status NOT IN (:...excludedStatuses)', {
-        excludedStatuses: [InvitationStatus.REJECTED, InvitationStatus.CANCELLED],
-      })
-      .andWhere('campaign.status IN (:...statuses)', {
-        statuses: [
-          CampaignStatus.APPROVED,
-          CampaignStatus.PENDING_MINIMUM,
-          CampaignStatus.IMPLEMENTATION,
-        ],
-      });
+      .andWhere('inv.status = :status', { status: InvitationStatus.PENDING });
 
     this.applyCommonFiltersOnAlias(qb, query);
-
-    qb.select([
-      'inv.id',
-      'inv.status',
-      'inv.createdAt',
-      'campaign.id',
-      'campaign.campaignNumber',
-      'campaign.name',
-      'campaign.description',
-      'campaign.status',
-      'campaign.includedPlatforms',
-      'campaign.contentTypes',
-      'campaign.influencerPrice',
-      'campaign.deadlineDate',
-      'campaign.pendingMinimumDeadline',
-      'campaign.implementationEndDate',
-      'campaign.createdAt',
-    ]);
 
     qb.orderBy('inv.createdAt', 'DESC')
       .skip((query.page - 1) * query.limit)
@@ -262,15 +157,75 @@ export class InfluencerCampaignQueryService {
 
     return {
       data: invitations.map((inv) =>
-        CampaignListItemMapper.toInvitation(inv.campaign, inv),
+        CampaignListItemMapper.toInvitationItem(inv, inv.campaign),
       ),
       pagination: { total, page: query.page, limit: query.limit },
     };
   }
 
-  private selectCampaignListFields(
-    qb: ReturnType<Repository<Campaign>['createQueryBuilder']>,
+  async getCampaignDetail(campaignId: string, userId: string): Promise<CampaignDetailResult> {
+    const campaign = await this.campaignRepo.findOne({
+      where: { id: campaignId },
+      relations: ['category'],
+    });
+
+    if (!campaign) {
+      throw new NotFoundException('الحملة غير موجودة');
+    }
+
+    if (campaign.campaignVisibility !== CampaignVisibility.PUBLIC) {
+      const hasAccess = await this.hasAccessToPrivateCampaign(campaignId, userId);
+      if (!hasAccess) {
+        throw new ForbiddenException('لا يمكنك الوصول لهذه الحملة');
+      }
+    }
+
+    const [application, submission, invitation] = await Promise.all([
+      this.applicationRepo.findOne({ where: { campaignId, influencerId: userId } }),
+      this.submissionRepo.findOne({ where: { campaignId, influencerId: userId } }),
+      campaign.campaignVisibility === CampaignVisibility.PRIVATE
+        ? this.invitationRepo.findOne({
+            where: { campaignId, influencerId: userId },
+            relations: ['orderedServices', 'orderedServices.service'],
+          })
+        : Promise.resolve(null),
+    ]);
+
+    return CampaignDetailMapper.toDetail(campaign, application, submission, invitation);
+  }
+
+  private applyMembershipFilter(
+    qb: SelectQueryBuilder<Campaign>,
+    userId: string,
+    status: ResolvedCampaignStatus,
   ): void {
+    qb.setParameter('userId', userId);
+
+    const acceptedApplicationExists = `EXISTS (
+      SELECT 1 FROM campaign_applications app_m
+      WHERE app_m."campaignId" = campaign.id
+        AND app_m."influencerId" = :userId
+        AND app_m.status = :acceptedAppStatus
+    )`;
+    qb.setParameter('acceptedAppStatus', ApplicationStatus.ACCEPTED);
+
+    if (status === ResolvedCampaignStatus.APPLICATION_PERIOD) {
+      qb.andWhere(acceptedApplicationExists);
+      return;
+    }
+
+    const acceptedInvitationExists = `EXISTS (
+      SELECT 1 FROM campaign_invited_influencers inv_m
+      WHERE inv_m."campaignId" = campaign.id
+        AND inv_m."influencerId" = :userId
+        AND inv_m.status = :acceptedInvStatus
+    )`;
+    qb.setParameter('acceptedInvStatus', InvitationStatus.ACCEPTED);
+
+    qb.andWhere(`(${acceptedApplicationExists} OR ${acceptedInvitationExists})`);
+  }
+
+  private selectCampaignListFields(qb: SelectQueryBuilder<Campaign>): void {
     qb.select([
       'campaign.id',
       'campaign.campaignNumber',
@@ -306,7 +261,7 @@ export class InfluencerCampaignQueryService {
   }
 
   private applyMatchOrdering(
-    qb: ReturnType<Repository<Campaign>['createQueryBuilder']>,
+    qb: SelectQueryBuilder<Campaign>,
     contentTypes: string[],
     platforms: string[],
     categoryIds: string[],
@@ -348,8 +303,8 @@ export class InfluencerCampaignQueryService {
   }
 
   private applyCommonFilters(
-    qb: ReturnType<Repository<Campaign>['createQueryBuilder']>,
-    query: GetInfluencerCampaignsQueryDto,
+    qb: SelectQueryBuilder<Campaign>,
+    query: GetNewCampaignsQueryDto,
   ): void {
     if (query.search) {
       const trimmed = query.search.trim();
@@ -401,9 +356,9 @@ export class InfluencerCampaignQueryService {
     }
   }
 
-  private applyCommonFiltersOnAlias(
-    qb: ReturnType<Repository<CampaignInvitedInfluencer>['createQueryBuilder']>,
-    query: GetInfluencerCampaignsQueryDto,
+  private applyCommonFiltersOnAlias<T>(
+    qb: SelectQueryBuilder<T>,
+    query: GetNewCampaignsQueryDto,
   ): void {
     if (query.search) {
       const trimmed = query.search.trim();

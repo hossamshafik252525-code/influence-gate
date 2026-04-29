@@ -8,7 +8,7 @@ import {
   ApplicationSubmissionDetail,
   OrderedServiceDetail,
 } from '../interfaces/influencer-campaign.interface';
-import { resolveCampaignDeadline } from '../utils';
+import { resolveCampaignDeadline, resolveCampaignStatus } from '../utils';
 
 export class CampaignDetailMapper {
   static toDetail(
@@ -20,7 +20,7 @@ export class CampaignDetailMapper {
     const result: CampaignDetailResult = {
       id: campaign.id,
       campaignNumber: campaign.campaignNumber,
-      status: campaign.status,
+      status: resolveCampaignStatus(campaign.status),
       name: campaign.name,
       description: campaign.description,
       category: campaign.category

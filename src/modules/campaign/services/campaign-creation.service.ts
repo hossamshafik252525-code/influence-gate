@@ -79,21 +79,28 @@ export class CampaignCreationService {
 
     await this.categoriesService.findOne(dto.categoryId);
 
-    const deadlineDate = new Date(dto.deadlineDate);
-    if (deadlineDate <= new Date()) {
-      throw new BadRequestException('تاريخ الموعد النهائي يجب أن يكون في المستقبل');
-    }
-
-    await this.campaignRepository.update(campaign.id, {
+    const updateData: Partial<Campaign> = {
       name: dto.name,
       description: dto.description,
       categoryId: dto.categoryId,
       includedPlatforms: dto.includedPlatforms,
       implementationType: dto.implementationType,
-      deadlineDate: deadlineDate,
+      campaignVisibility: dto.campaignVisibility,
       implementationPeriodDays: dto.implementationPeriodDays,
       currentStep: CampaignStep.CONTENT,
-    });
+    };
+
+    if (dto.campaignVisibility === CampaignVisibility.PUBLIC) {
+      const deadlineDate = new Date(dto.deadlineDate);
+      if (deadlineDate <= new Date()) {
+        throw new BadRequestException('تاريخ الموعد النهائي يجب أن يكون في المستقبل');
+      }
+      updateData.deadlineDate = deadlineDate;
+    } else {
+      updateData.deadlineDate = null;
+    }
+
+    await this.campaignRepository.update(campaign.id, updateData);
 
     return this.campaignRepository.findOne({ where: { id: campaign.id } });
   }
@@ -142,36 +149,37 @@ export class CampaignCreationService {
   ): Promise<AdvertiserCampaignResult> {
     const campaign = await this.findDraftOrFail(campaignId, advertiserId);
 
+    if (!campaign.campaignVisibility) {
+      throw new BadRequestException('يجب إكمال خطوة المعلومات أولاً');
+    }
+
     await this.clearInvitations(campaign.id);
 
-    let nextStep = CampaignStep.BUDGET;
+    const isPrivate = campaign.campaignVisibility === CampaignVisibility.PRIVATE;
 
-    if (dto.campaignVisibility === CampaignVisibility.PRIVATE) {
+    if (isPrivate) {
       if (!dto.invitedInfluencers || dto.invitedInfluencers.length === 0) {
         throw new BadRequestException('يجب اختيار مؤثرين للحملة الخاصة');
       }
 
-      if (dto.invitedInfluencers.length < dto.requiredInfluencersCount) {
-        throw new BadRequestException(
-          'عدد المؤثرين المختارين يجب أن يكون أكبر من أو يساوي العدد المطلوب',
-        );
-      }
-
       await this.persistPrivateInvitations(campaign.id, dto.invitedInfluencers);
-
-      nextStep = CampaignStep.REVIEW;
+    } else {
+      if (!dto.requiredInfluencersCount || dto.requiredInfluencersCount < 1) {
+        throw new BadRequestException('عدد المؤثرين المطلوب مطلوب للحملات العامة');
+      }
     }
 
     const updateData: Partial<Campaign> = {
-      requiredInfluencersCount: dto.requiredInfluencersCount,
       influencerType: dto.influencerType,
-      campaignVisibility: dto.campaignVisibility,
-      currentStep: nextStep,
+      currentStep: isPrivate ? CampaignStep.REVIEW : CampaignStep.BUDGET,
     };
 
-    if (dto.campaignVisibility === CampaignVisibility.PRIVATE) {
+    if (isPrivate) {
+      updateData.requiredInfluencersCount = dto.invitedInfluencers.length;
       updateData.budget = null;
       updateData.influencerPrice = null;
+    } else {
+      updateData.requiredInfluencersCount = dto.requiredInfluencersCount;
     }
 
     await this.campaignRepository.update(campaign.id, updateData);

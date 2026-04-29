@@ -2,9 +2,9 @@ import { TargetPlatform, ContentTypeOffer, ImplementationType } from '../../../c
 import {
   InfluencerType,
   ApplicationStatus,
-  CampaignStatus,
   SubmissionStatus,
   InvitationStatus,
+  ResolvedCampaignStatus,
 } from '../enums';
 import { PaginatedResult } from '../../../common/interfaces';
 
@@ -13,43 +13,35 @@ export interface CampaignListItemBase {
   campaignNumber: number;
   name: string;
   description: string;
+  status: ResolvedCampaignStatus;
   relevantDeadline: Date | null;
   includedPlatforms: TargetPlatform[];
   contentTypes: ContentTypeOffer[];
   influencerPrice: number;
 }
 
-export interface InvitationCampaignListItemBase {
-  id: string;
-  campaignNumber: number;
-  name: string;
-  description: string;
-  relevantDeadline: Date | null;
-  includedPlatforms: TargetPlatform[];
-  contentTypes: ContentTypeOffer[];
-}
-
 export type NewCampaignListItem = CampaignListItemBase;
 
-export interface CurrentCampaignListItem extends CampaignListItemBase {
-  submissionStatus: SubmissionStatus | null;
+export type MyCampaignListItem = CampaignListItemBase;
+
+export interface InfluencerApplicationItem {
+  id: string;
+  status: ApplicationStatus;
+  createdAt: Date;
+  campaign: CampaignListItemBase;
 }
 
-export interface ApplicationCampaignListItem extends CampaignListItemBase {
-  application: { id: string; status: ApplicationStatus };
+export interface InfluencerInvitationItem {
+  id: string;
+  status: InvitationStatus;
+  createdAt: Date;
+  campaign: CampaignListItemBase;
 }
 
-export interface InvitationCampaignListItem extends InvitationCampaignListItemBase {
-  invitation: { id: string; status: InvitationStatus };
-}
-
-export type GetCampaignsItem =
-  | NewCampaignListItem
-  | CurrentCampaignListItem
-  | ApplicationCampaignListItem
-  | InvitationCampaignListItem;
-
-export type GetCampaignsResult = PaginatedResult<GetCampaignsItem>;
+export type GetNewCampaignsResult = PaginatedResult<NewCampaignListItem>;
+export type GetMyCampaignsResult = PaginatedResult<MyCampaignListItem>;
+export type GetInfluencerApplicationsResult = PaginatedResult<InfluencerApplicationItem>;
+export type GetInfluencerInvitationsResult = PaginatedResult<InfluencerInvitationItem>;
 
 export interface OrderedServiceDetail {
   id: string;
@@ -73,7 +65,7 @@ export interface ApplicationSubmissionDetail {
 export interface CampaignDetailResult {
   id: string;
   campaignNumber: number;
-  status: CampaignStatus;
+  status: ResolvedCampaignStatus;
   name: string;
   description: string;
   category: { id: string; name: string } | null;

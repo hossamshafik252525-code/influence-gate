@@ -21,7 +21,9 @@
     "seed:countries": "ts-node -r tsconfig-paths/register src/database/seeds/seed-countries.ts",
     "seed:admin": "ts-node -r tsconfig-paths/register src/database/seeds/seed-admin.ts",
     "seed:campaigns": "ts-node -r tsconfig-paths/register src/database/seeds/seed-campaigns.ts",
-    "seed:wallet-transactions": "ts-node -r tsconfig-paths/register src/database/seeds/seed-wallet-transactions.ts"
+    "seed:wallet-transactions": "ts-node -r tsconfig-paths/register src/database/seeds/seed-wallet-transactions.ts",
+    "seed:influencer-data": "ts-node -r tsconfig-paths/register src/database/seeds/seed-influencer-data.ts",
+    "seed:open-campaigns": "ts-node -r tsconfig-paths/register src/database/seeds/seed-open-campaigns.ts"
   },
   "dependencies": {
     "@nestjs/axios": "^4.0.1",

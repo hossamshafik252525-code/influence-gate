@@ -14,7 +14,6 @@ import {
 } from '../enums';
 import { NotificationsService } from '../../notifications/services/notifications.service';
 import { NotificationType } from '../../notifications/enums';
-import { PrivateCampaignLaunchService } from './private-campaign-launch.service';
 
 @Injectable()
 export class CampaignInvitationResponseService {
@@ -24,7 +23,6 @@ export class CampaignInvitationResponseService {
     @InjectRepository(CampaignInvitedInfluencer)
     private readonly invitationRepo: Repository<CampaignInvitedInfluencer>,
     private readonly notificationsService: NotificationsService,
-    private readonly privateCampaignLaunchService: PrivateCampaignLaunchService,
   ) {}
 
   async acceptInvitation(
@@ -32,14 +30,6 @@ export class CampaignInvitationResponseService {
     campaignId: string,
   ): Promise<{ message: string }> {
     const { campaign, invitation } = await this.loadPending(influencerId, campaignId);
-
-    const acceptedCount = await this.invitationRepo.count({
-      where: { campaignId: campaign.id, status: InvitationStatus.ACCEPTED },
-    });
-
-    if (acceptedCount >= campaign.requiredInfluencersCount) {
-      throw new BadRequestException('تم اكتمال عدد المؤثرين المطلوبين لهذه الحملة');
-    }
 
     invitation.status = InvitationStatus.ACCEPTED;
     await this.invitationRepo.save(invitation);
@@ -51,11 +41,6 @@ export class CampaignInvitationResponseService {
       NotificationType.NEW_CAMPAIGN_APPLICATION,
       { campaignId: campaign.id, invitationId: invitation.id },
     );
-
-    const newAcceptedCount = acceptedCount + 1;
-    if (newAcceptedCount >= campaign.requiredInfluencersCount) {
-      await this.privateCampaignLaunchService.autoLaunch(campaign);
-    }
 
     return { message: 'تم قبول الدعوة' };
   }
@@ -94,10 +79,7 @@ export class CampaignInvitationResponseService {
       throw new BadRequestException('هذه الحملة ليست حملة خاصة');
     }
 
-    if (
-      campaign.status !== CampaignStatus.APPROVED &&
-      campaign.status !== CampaignStatus.PENDING_MINIMUM
-    ) {
+    if (campaign.status !== CampaignStatus.IMPLEMENTATION) {
       throw new BadRequestException('لا يمكن الرد على الدعوة في هذه الحالة');
     }
 

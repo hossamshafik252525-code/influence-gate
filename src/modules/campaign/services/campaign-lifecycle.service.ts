@@ -17,9 +17,10 @@ import {
 import { ResolvePendingMinimumDto } from '../dto';
 import { NotificationsService } from '../../notifications/services/notifications.service';
 import { NotificationType } from '../../notifications/enums';
-import { PrivateCampaignLaunchService } from './private-campaign-launch.service';
 import { WalletTransactionService } from '../../wallet/services/wallet-transaction.service';
 import { TransactionStatus } from '../../wallet/enums';
+
+const STALE_INVITATION_THRESHOLD_RATIO = 0.75;
 
 @Injectable()
 export class CampaignLifecycleService {
@@ -33,7 +34,6 @@ export class CampaignLifecycleService {
     @InjectRepository(CampaignSubmission)
     private readonly submissionRepository: Repository<CampaignSubmission>,
     private readonly notificationsService: NotificationsService,
-    private readonly privateCampaignLaunchService: PrivateCampaignLaunchService,
     private readonly walletTransactionService: WalletTransactionService,
   ) {}
 
@@ -91,6 +91,39 @@ export class CampaignLifecycleService {
     }
   }
 
+  @Cron('0 2 * * *')
+  async cancelStalePrivateInvitations(): Promise<void> {
+    const campaigns = await this.campaignRepository.find({
+      where: {
+        status: CampaignStatus.IMPLEMENTATION,
+        campaignVisibility: CampaignVisibility.PRIVATE,
+      },
+    });
+
+    const now = Date.now();
+
+    for (const campaign of campaigns) {
+      if (!campaign.implementationStartDate || !campaign.implementationPeriodDays) {
+        continue;
+      }
+
+      const elapsedMs = now - new Date(campaign.implementationStartDate).getTime();
+      const thresholdMs =
+        campaign.implementationPeriodDays *
+        24 *
+        60 *
+        60 *
+        1000 *
+        STALE_INVITATION_THRESHOLD_RATIO;
+
+      if (elapsedMs < thresholdMs) {
+        continue;
+      }
+
+      await this.cancelPendingInvitationsForCampaign(campaign);
+    }
+  }
+
   @Cron('0 1 * * *')
   async processImplementationCompletion(): Promise<void> {
     const today = new Date();
@@ -142,21 +175,6 @@ export class CampaignLifecycleService {
       }
 
       case PendingMinimumAction.LAUNCH_ANYWAY: {
-        if (campaign.campaignVisibility === CampaignVisibility.PRIVATE) {
-          const acceptedInvitations = await this.invitationRepository.count({
-            where: { campaignId: campaign.id, status: InvitationStatus.ACCEPTED },
-          });
-
-          if (acceptedInvitations === 0) {
-            throw new BadRequestException(
-              'لا يمكن إطلاق الحملة بدون مؤثر مقبول واحد على الأقل',
-            );
-          }
-
-          await this.privateCampaignLaunchService.launch(campaign);
-          break;
-        }
-
         const acceptedCount = await this.applicationRepository.count({
           where: { campaignId: campaign.id, status: ApplicationStatus.ACCEPTED },
         });
@@ -247,6 +265,25 @@ export class CampaignLifecycleService {
     if (!invitation) return 0;
 
     return invitation.orderedServices.reduce((sum, s) => sum + Number(s.priceWithFee), 0);
+  }
+
+  private async cancelPendingInvitationsForCampaign(campaign: Campaign): Promise<void> {
+    const pending = await this.invitationRepository.find({
+      where: { campaignId: campaign.id, status: InvitationStatus.PENDING },
+    });
+
+    for (const invitation of pending) {
+      invitation.status = InvitationStatus.CANCELLED;
+      await this.invitationRepository.save(invitation);
+
+      await this.notificationsService.notify(
+        invitation.influencerId,
+        'تم إلغاء الدعوة',
+        `تم إلغاء دعوتك للمشاركة في حملة ${campaign.name}`,
+        NotificationType.APPLICATION_REJECTED,
+        { campaignId: campaign.id, invitationId: invitation.id },
+      );
+    }
   }
 
   private calculateEndDate(periodDays: number): Date {

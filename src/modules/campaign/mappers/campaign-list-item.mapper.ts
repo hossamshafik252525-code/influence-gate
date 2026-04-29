@@ -1,15 +1,13 @@
 import { Campaign } from '../entities/campaign.entity';
 import { CampaignApplication } from '../entities/campaign-application.entity';
 import { CampaignInvitedInfluencer } from '../entities/campaign-invited-influencer.entity';
-import { CampaignSubmission } from '../entities/campaign-submission.entity';
 import {
   NewCampaignListItem,
-  CurrentCampaignListItem,
-  ApplicationCampaignListItem,
-  InvitationCampaignListItem,
-  InvitationCampaignListItemBase,
+  MyCampaignListItem,
+  InfluencerApplicationItem,
+  InfluencerInvitationItem,
 } from '../interfaces/influencer-campaign.interface';
-import { resolveCampaignDeadline } from '../utils';
+import { resolveCampaignDeadline, resolveCampaignStatus } from '../utils';
 
 export class CampaignListItemMapper {
   private static toBase(campaign: Campaign): NewCampaignListItem {
@@ -18,6 +16,7 @@ export class CampaignListItemMapper {
       campaignNumber: campaign.campaignNumber,
       name: campaign.name,
       description: campaign.description,
+      status: resolveCampaignStatus(campaign.status),
       relevantDeadline: resolveCampaignDeadline(campaign),
       includedPlatforms: campaign.includedPlatforms,
       contentTypes: campaign.contentTypes,
@@ -25,49 +24,35 @@ export class CampaignListItemMapper {
     };
   }
 
-  private static toInvitationBase(campaign: Campaign): InvitationCampaignListItemBase {
-    return {
-      id: campaign.id,
-      campaignNumber: campaign.campaignNumber,
-      name: campaign.name,
-      description: campaign.description,
-      relevantDeadline: resolveCampaignDeadline(campaign),
-      includedPlatforms: campaign.includedPlatforms,
-      contentTypes: campaign.contentTypes,
-    };
-  }
-
   static toNew(campaign: Campaign): NewCampaignListItem {
     return CampaignListItemMapper.toBase(campaign);
   }
 
-  static toCurrent(
-    campaign: Campaign,
-    submission: CampaignSubmission | null,
-  ): CurrentCampaignListItem {
-    return {
-      ...CampaignListItemMapper.toBase(campaign),
-      submissionStatus: submission?.status ?? null,
-    };
+  static toMy(campaign: Campaign): MyCampaignListItem {
+    return CampaignListItemMapper.toBase(campaign);
   }
 
-  static toApplication(
-    campaign: Campaign,
+  static toApplicationItem(
     application: CampaignApplication,
-  ): ApplicationCampaignListItem {
+    campaign: Campaign,
+  ): InfluencerApplicationItem {
     return {
-      ...CampaignListItemMapper.toBase(campaign),
-      application: { id: application.id, status: application.status },
+      id: application.id,
+      status: application.status,
+      createdAt: application.createdAt,
+      campaign: CampaignListItemMapper.toBase(campaign),
     };
   }
 
-  static toInvitation(
-    campaign: Campaign,
+  static toInvitationItem(
     invitation: CampaignInvitedInfluencer,
-  ): InvitationCampaignListItem {
+    campaign: Campaign,
+  ): InfluencerInvitationItem {
     return {
-      ...CampaignListItemMapper.toInvitationBase(campaign),
-      invitation: { id: invitation.id, status: invitation.status },
+      id: invitation.id,
+      status: invitation.status,
+      createdAt: invitation.createdAt,
+      campaign: CampaignListItemMapper.toBase(campaign),
     };
   }
 }
