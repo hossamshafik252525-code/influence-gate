@@ -79,9 +79,10 @@ pagination has total 17, page 1, limit 10.
 
 Returns campaigns the influencer is part of, filtered by the resolved status.
 
-Required query is status, which is one of application_period, implementation, completed, discarded. Common filters are also supported.
+Required query is status, which is one of all, application_period, implementation, completed, discarded. Common filters are also supported.
 
-Membership rules.
+Membership rules. In every case, the user must have an accepted application or an accepted invitation on the campaign.
+When status is all, returns every such campaign regardless of its underlying state.
 When status is application_period, returns campaigns where the user CampaignApplication is accepted and the campaign is approved or pending_minimum. Public only. Private campaigns never enter this state.
 When status is implementation, returns campaigns where the campaign is implementation and the user has either an accepted application or an accepted invitation.
 When status is completed, returns campaigns where the campaign is completed and the user has an accepted application or invitation.
@@ -140,6 +141,7 @@ POST /campaigns/influencer/invitations/:campaignId/reject rejects a pending invi
 Quick UI mapping.
 
 The discover and apply feed maps to GET /new.
+My campaigns all maps to GET /my with status all.
 My campaigns application period maps to GET /my with status application_period.
 My campaigns in implementation maps to GET /my with status implementation.
 My campaigns completed maps to GET /my with status completed.

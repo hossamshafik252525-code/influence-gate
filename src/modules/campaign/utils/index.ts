@@ -3,3 +3,4 @@ export {
   resolveCampaignStatus,
   resolvedStatusToCampaignStatuses,
 } from './resolve-campaign-status.util';
+export { myCampaignsFilterToStatuses } from './my-campaigns-filter.util';

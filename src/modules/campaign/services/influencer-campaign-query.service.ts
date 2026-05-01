@@ -11,10 +11,10 @@ import {
   CampaignVisibility,
   ApplicationStatus,
   InvitationStatus,
-  ResolvedCampaignStatus,
+  MyCampaignsStatusFilter,
 } from '../enums';
 import { CampaignListItemMapper, CampaignDetailMapper } from '../mappers';
-import { resolvedStatusToCampaignStatuses } from '../utils';
+import { myCampaignsFilterToStatuses } from '../utils';
 import {
   GetNewCampaignsQueryDto,
   GetInfluencerMyCampaignsQueryDto,
@@ -92,7 +92,7 @@ export class InfluencerCampaignQueryService {
     userId: string,
     query: GetInfluencerMyCampaignsQueryDto,
   ): Promise<GetMyCampaignsResult> {
-    const campaignStatuses = resolvedStatusToCampaignStatuses(query.status);
+    const campaignStatuses = myCampaignsFilterToStatuses(query.status);
 
     const qb = this.campaignRepo
       .createQueryBuilder('campaign')
@@ -197,7 +197,7 @@ export class InfluencerCampaignQueryService {
   private applyMembershipFilter(
     qb: SelectQueryBuilder<Campaign>,
     userId: string,
-    status: ResolvedCampaignStatus,
+    status: MyCampaignsStatusFilter,
   ): void {
     qb.setParameter('userId', userId);
 
@@ -209,7 +209,7 @@ export class InfluencerCampaignQueryService {
     )`;
     qb.setParameter('acceptedAppStatus', ApplicationStatus.ACCEPTED);
 
-    if (status === ResolvedCampaignStatus.APPLICATION_PERIOD) {
+    if (status === MyCampaignsStatusFilter.APPLICATION_PERIOD) {
       qb.andWhere(acceptedApplicationExists);
       return;
     }

@@ -7,3 +7,4 @@ export { ApplicationStatus } from './application-status.enum';
 export { SubmissionStatus } from './submission-status.enum';
 export { InvitationStatus } from './invitation-status.enum';
 export { ResolvedCampaignStatus } from './resolved-campaign-status.enum';
+export { MyCampaignsStatusFilter } from './my-campaigns-status-filter.enum';
