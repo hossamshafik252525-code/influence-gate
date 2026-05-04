@@ -31,7 +31,9 @@ export default () => ({
   tiktok: {
     clientKey: process.env.TIKTOK_CLIENT_KEY || '',
     clientSecret: process.env.TIKTOK_CLIENT_SECRET || '',
-    callbackUrl: process.env.TIKTOK_CALLBACK_URL || 'http://localhost:3005/social/tiktok/callback',
+    callbackUrl:
+      process.env.TIKTOK_CALLBACK_URL || 'http://localhost:3005/api/social/tiktok/callback',
+    scopes: process.env.TIKTOK_SCOPES || 'user.info.basic',
   },
   cloudinary: {
     cloudName: process.env.CLOUDINARY_CLOUD_NAME || '',

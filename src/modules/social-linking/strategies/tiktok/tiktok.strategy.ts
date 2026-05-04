@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -17,12 +17,14 @@ import {
 
 @Injectable()
 export class TikTokStrategy implements SocialProviderStrategy {
+  private readonly logger: Logger = new Logger(TikTokStrategy.name);
   private readonly authUrl: string = 'https://www.tiktok.com/v2/auth/authorize/';
   private readonly tokenUrl: string = 'https://open.tiktokapis.com/v2/oauth/token/';
   private readonly userInfoUrl: string = 'https://open.tiktokapis.com/v2/user/info/';
   private readonly clientKey: string;
   private readonly clientSecret: string;
   private readonly callbackUrl: string;
+  private readonly scopes: string;
 
   private readonly basicFields: string = 'open_id,union_id,avatar_url,avatar_large_url,display_name';
   private readonly profileFields: string = 'bio_description,profile_deep_link,is_verified,username';
@@ -39,19 +41,29 @@ export class TikTokStrategy implements SocialProviderStrategy {
     this.clientKey = this.configService.get<string>('tiktok.clientKey');
     this.clientSecret = this.configService.get<string>('tiktok.clientSecret');
     this.callbackUrl = this.configService.get<string>('tiktok.callbackUrl');
+    this.scopes = this.configService.get<string>('tiktok.scopes') || 'user.info.basic';
   }
 
   getAuthUrl(): { url: string } {
-    const scopes = 'user.info.basic,user.info.profile,user.info.stats';
     const state = randomBytes(32).toString('base64url');
+    const redirectUriEncoded = encodeURIComponent(this.callbackUrl);
 
     const url =
       `${this.authUrl}` +
       `?client_key=${this.clientKey}` +
-      `&scope=${scopes}` +
+      `&scope=${this.scopes}` +
       `&response_type=code` +
-      `&redirect_uri=${encodeURIComponent(this.callbackUrl)}` +
+      `&redirect_uri=${redirectUriEncoded}` +
       `&state=${state}`;
+
+    this.logger.log(
+      JSON.stringify({
+        event: 'tiktok_oauth_auth_url_created',
+        callbackUrl: this.callbackUrl,
+        redirectUriEncoded,
+        scopes: this.scopes,
+      }),
+    );
 
     return { url };
   }
@@ -62,8 +74,9 @@ export class TikTokStrategy implements SocialProviderStrategy {
     const tokenData = await this.exchangeCodeForTokens(code);
     const tokenExpiresAt = this.calculateTokenExpiry(tokenData.expires_in);
     const refreshTokenExpiresAt = this.calculateTokenExpiry(tokenData.refresh_expires_in);
+    const grantedScopes = this.parseScopes(tokenData.scope);
 
-    const userInfo = await this.fetchUserInfo(tokenData.access_token);
+    const userInfo = await this.fetchUserInfo(tokenData.access_token, grantedScopes);
     const userData = userInfo.data.user;
     const statistics = this.extractStatistics(userData);
 
@@ -75,6 +88,7 @@ export class TikTokStrategy implements SocialProviderStrategy {
       tokenData.refresh_token,
       tokenExpiresAt,
       refreshTokenExpiresAt,
+      grantedScopes,
       userData,
       statistics,
     );
@@ -83,7 +97,9 @@ export class TikTokStrategy implements SocialProviderStrategy {
   }
 
   async refreshStats(record: SocialPlatform): Promise<Record<string, any>> {
-    const userInfo = await this.fetchUserInfo(record.accessToken);
+    const profileData = this.normalizeObject(record.profileData);
+    const scopes = this.resolveScopesFromProfileData(profileData);
+    const userInfo = await this.fetchUserInfo(record.accessToken, scopes);
     return this.extractStatistics(userInfo.data.user);
   }
 
@@ -125,8 +141,31 @@ export class TikTokStrategy implements SocialProviderStrategy {
           },
         ),
       );
+      if (!data?.access_token || !data?.open_id || !data?.refresh_token) {
+        this.logger.warn(
+          JSON.stringify({
+            event: 'tiktok_oauth_token_exchange_invalid_payload',
+            callbackUrl: this.callbackUrl,
+            response: this.normalizeObject(data),
+          }),
+        );
+        throw new BadRequestException('استجابة TikTok لا تحتوي على رمز وصول صالح');
+      }
       return data;
-    } catch {
+    } catch (error: unknown) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      const status = this.extractAxiosStatus(error);
+      const data = this.extractAxiosData(error);
+      this.logger.warn(
+        JSON.stringify({
+          event: 'tiktok_oauth_token_exchange_failed',
+          status,
+          callbackUrl: this.callbackUrl,
+          response: data,
+        }),
+      );
       throw new BadRequestException('فشل في تبادل رمز التفويض مع TikTok');
     }
   }
@@ -148,20 +187,29 @@ export class TikTokStrategy implements SocialProviderStrategy {
         ),
       );
       return data;
-    } catch {
+    } catch (error: unknown) {
+      const status = this.extractAxiosStatus(error);
+      const data = this.extractAxiosData(error);
+      this.logger.warn(
+        JSON.stringify({
+          event: 'tiktok_oauth_token_refresh_failed',
+          status,
+          response: data,
+        }),
+      );
       throw new BadRequestException('فشل في تجديد رمز الوصول لـ TikTok');
     }
   }
 
-  private async fetchUserInfo(accessToken: string): Promise<TikTokUserInfoResponse> {
-    const allFields = [this.basicFields, this.profileFields, this.statsFields].join(',');
+  private async fetchUserInfo(accessToken: string, grantedScopes: string[]): Promise<TikTokUserInfoResponse> {
+    const fields = this.resolveUserInfoFields(grantedScopes);
 
     try {
       const { data } = await firstValueFrom(
         this.httpService.get<TikTokUserInfoResponse>(
           this.userInfoUrl,
           {
-            params: { fields: allFields },
+            params: { fields },
             headers: { Authorization: `Bearer ${accessToken}` },
           },
         ),
@@ -172,7 +220,18 @@ export class TikTokStrategy implements SocialProviderStrategy {
       }
 
       return data;
-    } catch (error) {
+    } catch (error: unknown) {
+      const status = this.extractAxiosStatus(error);
+      const data = this.extractAxiosData(error);
+      this.logger.warn(
+        JSON.stringify({
+          event: 'tiktok_user_info_fetch_failed',
+          status,
+          fields,
+          grantedScopes,
+          response: data,
+        }),
+      );
       if (error instanceof BadRequestException) {
         throw error;
       }
@@ -199,6 +258,7 @@ export class TikTokStrategy implements SocialProviderStrategy {
     refreshToken: string,
     tokenExpiresAt: Date,
     refreshTokenExpiresAt: Date,
+    grantedScopes: string[],
     profileData: Record<string, any>,
     statistics: Record<string, any>,
   ): Promise<SocialPlatform> {
@@ -212,7 +272,10 @@ export class TikTokStrategy implements SocialProviderStrategy {
       accessToken,
       pageAccessToken: refreshToken,
       tokenExpiresAt,
-      profileData: Object.assign({}, profileData, { refreshTokenExpiresAt: refreshTokenExpiresAt.toISOString() }),
+      profileData: Object.assign({}, profileData, {
+        refreshTokenExpiresAt: refreshTokenExpiresAt.toISOString(),
+        grantedScopes,
+      }),
       statistics,
       lastSyncedAt: new Date(),
     };
@@ -264,5 +327,58 @@ export class TikTokStrategy implements SocialProviderStrategy {
     const hoursUntilExpiry =
       (tokenExpiresAt.getTime() - Date.now()) / (1000 * 60 * 60);
     return hoursUntilExpiry <= 2;
+  }
+
+  private extractAxiosStatus(error: unknown): number | null {
+    if (!error || typeof error !== 'object') return null;
+    const maybeResponse = (error as { response?: unknown }).response;
+    if (!maybeResponse || typeof maybeResponse !== 'object') return null;
+    const status = (maybeResponse as { status?: unknown }).status;
+    return typeof status === 'number' ? status : null;
+  }
+
+  private extractAxiosData(error: unknown): Record<string, unknown> | null {
+    if (!error || typeof error !== 'object') return null;
+    const maybeResponse = (error as { response?: unknown }).response;
+    if (!maybeResponse || typeof maybeResponse !== 'object') return null;
+    const data = (maybeResponse as { data?: unknown }).data;
+    if (!data || typeof data !== 'object') return null;
+    return data as Record<string, unknown>;
+  }
+
+  private parseScopes(rawScopes: string): string[] {
+    if (!rawScopes) {
+      return ['user.info.basic'];
+    }
+    return rawScopes.split(',').map((scope) => scope.trim()).filter((scope) => scope.length > 0);
+  }
+
+  private resolveUserInfoFields(grantedScopes: string[]): string {
+    const fields: string[] = [this.basicFields];
+    if (grantedScopes.includes('user.info.profile')) {
+      fields.push(this.profileFields);
+    }
+    if (grantedScopes.includes('user.info.stats')) {
+      fields.push(this.statsFields);
+    }
+    return fields.join(',');
+  }
+
+  private normalizeObject(value: unknown): Record<string, unknown> {
+    if (!value || typeof value !== 'object') {
+      return {};
+    }
+    return value as Record<string, unknown>;
+  }
+
+  private resolveScopesFromProfileData(profileData: Record<string, unknown>): string[] {
+    const storedScopes = profileData.grantedScopes;
+    if (Array.isArray(storedScopes)) {
+      return storedScopes
+        .filter((item) => typeof item === 'string')
+        .map((item) => item.trim())
+        .filter((item) => item.length > 0);
+    }
+    return this.parseScopes(this.scopes);
   }
 }
