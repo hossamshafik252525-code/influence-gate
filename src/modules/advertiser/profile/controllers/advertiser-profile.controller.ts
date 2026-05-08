@@ -3,10 +3,7 @@ import {
   Post,
   Body,
   UseGuards,
-  UseInterceptors,
-  UploadedFile,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
 import { AdvertiserProfileService } from '../services/advertiser-profile.service';
 import { ConfirmAdvertiserProfileDto } from '../dto';
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
@@ -23,12 +20,10 @@ export class AdvertiserProfileController {
 
   @Post('confirm')
   @Roles(Role.ADVERTISER)
-  @UseInterceptors(FileInterceptor('image'))
   confirmProfile(
     @AuthUser() user: User,
     @Body() dto: ConfirmAdvertiserProfileDto,
-    @UploadedFile() file?: Express.Multer.File,
   ) {
-    return this.advertiserProfileService.confirmProfile(user.id, dto, file);
+    return this.advertiserProfileService.confirmProfile(user.id, dto);
   }
 }

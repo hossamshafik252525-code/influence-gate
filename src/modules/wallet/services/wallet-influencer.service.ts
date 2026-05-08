@@ -31,20 +31,35 @@ export class WalletInfluencerService {
   ): Promise<TransactionListWithBalance> {
     const wallet = await this.ensureWalletExists(userId);
 
-    const where: Record<string, unknown> = { walletId: wallet.id };
+    const qb = this.transactionRepo
+      .createQueryBuilder('tx')
+      .where('tx.walletId = :walletId', { walletId: wallet.id });
+
     if (filter.status) {
-      where.status = filter.status;
-    }
-    if (filter.type) {
-      where.type = filter.type;
+      qb.andWhere('tx.status = :status', { status: filter.status });
     }
 
-    const [data, total] = await this.transactionRepo.findAndCount({
-      where,
-      order: { createdAt: 'DESC' },
-      skip: (filter.page - 1) * filter.limit,
-      take: filter.limit,
-    });
+    if (filter.type) {
+      qb.andWhere('tx.type = :type', { type: filter.type });
+    }
+
+    if (filter.startDate) {
+      const start = new Date(filter.startDate);
+      start.setHours(0, 0, 0, 0);
+      qb.andWhere('tx.createdAt >= :startDate', { startDate: start });
+    }
+
+    if (filter.endDate) {
+      const end = new Date(filter.endDate);
+      end.setHours(23, 59, 59, 999);
+      qb.andWhere('tx.createdAt <= :endDate', { endDate: end });
+    }
+
+    qb.orderBy('tx.createdAt', 'DESC')
+      .skip((filter.page - 1) * filter.limit)
+      .take(filter.limit);
+
+    const [data, total] = await qb.getManyAndCount();
 
     return {
       data: data as WalletTransactionListResult['data'],

@@ -6,13 +6,10 @@ import {
   Param,
   Query,
   UseGuards,
-  UseInterceptors,
-  UploadedFiles,
   ParseUUIDPipe,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { RolesStatusGuard } from '../../../common/guards/auth.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
@@ -111,14 +108,12 @@ export class InfluencerCampaignController {
   @Post(':id/submit')
   @Statuses(UserStatus.ACTIVE)
   @HttpCode(HttpStatus.CREATED)
-  @UseInterceptors(AnyFilesInterceptor({ limits: { fileSize: 10 * 1024 * 1024, files: 5 } }))
   submitContent(
     @AuthUser() user: User,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: SubmitContentDto,
-    @UploadedFiles() files: Express.Multer.File[],
   ) {
-    return this.campaignContentSubmissionService.submitContent(user.id, id, dto, files ?? []);
+    return this.campaignContentSubmissionService.submitContent(user.id, id, dto);
   }
 
   @Post(':id/exit')

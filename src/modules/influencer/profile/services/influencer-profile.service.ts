@@ -94,7 +94,6 @@ export class InfluencerProfileService {
   async updateProfile(
     userId: string,
     dto: UpdateInfluencerProfileDto,
-    file?: Express.Multer.File,
   ): Promise<InfluencerProfileData> {
     const profile = await this.influencerProfileRepo.findOne({ where: { userId } });
     if (!profile) {
@@ -123,13 +122,12 @@ export class InfluencerProfileService {
     if (dto.portfolioLink !== undefined) {
       profileUpdate.portfolioLink = dto.portfolioLink;
     }
-    if (file) {
+    if (dto.profileImageUrl && dto.profileImagePublicId) {
       if (profile.profileImagePublicId) {
         await this.cloudinaryService.deleteImage(profile.profileImagePublicId);
       }
-      const uploadResult = await this.uploadProfileImage(file);
-      profileUpdate.profileImageUrl = uploadResult.url;
-      profileUpdate.profileImagePublicId = uploadResult.publicId;
+      profileUpdate.profileImageUrl = dto.profileImageUrl;
+      profileUpdate.profileImagePublicId = dto.profileImagePublicId;
     }
     if (Object.keys(profileUpdate).length > 0) {
       await this.influencerProfileRepo.update(profile.id, profileUpdate);
@@ -177,11 +175,6 @@ export class InfluencerProfileService {
     });
 
     return { message: 'تم حذف الصورة بنجاح' };
-  }
-
-  private async uploadProfileImage(file: Express.Multer.File): Promise<{ url: string; publicId: string }> {
-    const uploadResult = await this.cloudinaryService.uploadImage(file, 'influencer_profiles');
-    return { url: uploadResult.secure_url, publicId: uploadResult.public_id };
   }
 
   private async calculateTotalFollowers(userId: string): Promise<number> {

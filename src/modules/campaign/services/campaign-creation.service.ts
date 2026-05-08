@@ -109,22 +109,8 @@ export class CampaignCreationService {
     campaignId: string,
     advertiserId: string,
     dto: SaveContentRequirementsDto,
-    file?: Express.Multer.File,
   ): Promise<Campaign> {
     const campaign = await this.findDraftOrFail(campaignId, advertiserId);
-
-    let contentPdfUrl: string | undefined;
-    let contentPdfPublicId: string | undefined;
-
-    if (file) {
-      if (campaign.contentPdfPublicId) {
-        await this.cloudinaryService.deleteFile(campaign.contentPdfPublicId);
-      }
-
-      const uploadResult = await this.cloudinaryService.uploadFile(file, 'campaign_pdfs');
-      contentPdfUrl = uploadResult.secure_url;
-      contentPdfPublicId = uploadResult.public_id;
-    }
 
     const updateData: Partial<Campaign> = {
       contentTypes: dto.contentTypes,
@@ -132,9 +118,12 @@ export class CampaignCreationService {
       currentStep: CampaignStep.INFLUENCERS,
     };
 
-    if (contentPdfUrl && contentPdfPublicId) {
-      updateData.contentPdfUrl = contentPdfUrl;
-      updateData.contentPdfPublicId = contentPdfPublicId;
+    if (dto.contentPdfUrl && dto.contentPdfPublicId) {
+      if (campaign.contentPdfPublicId) {
+        await this.cloudinaryService.deleteFile(campaign.contentPdfPublicId);
+      }
+      updateData.contentPdfUrl = dto.contentPdfUrl;
+      updateData.contentPdfPublicId = dto.contentPdfPublicId;
     }
 
     await this.campaignRepository.update(campaign.id, updateData);

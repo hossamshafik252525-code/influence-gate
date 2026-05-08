@@ -1,4 +1,5 @@
-import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsEnum, IsOptional, IsString, IsUrl } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { SubmissionStatus } from '../enums/submission-status.enum';
 
 export class ReviewSubmissionDto {
@@ -8,4 +9,16 @@ export class ReviewSubmissionDto {
   @IsOptional()
   @IsString()
   modificationDetails?: string;
+
+  @IsOptional()
+  @Transform(({ value }) => (Array.isArray(value) ? value : value ? [value] : []))
+  @IsArray()
+  @IsUrl({}, { each: true })
+  modificationFileUrls?: string[];
+
+  @IsOptional()
+  @Transform(({ value }) => (Array.isArray(value) ? value : value ? [value] : []))
+  @IsArray()
+  @IsString({ each: true })
+  modificationFilePublicIds?: string[];
 }

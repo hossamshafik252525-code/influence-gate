@@ -8,12 +8,8 @@ import {
   Body,
   Query,
   UseGuards,
-  UseInterceptors,
-  UploadedFile,
-  UploadedFiles,
   ParseUUIDPipe,
 } from '@nestjs/common';
-import { FileInterceptor, AnyFilesInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { RolesStatusGuard } from '../../../common/guards/auth.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
@@ -110,19 +106,12 @@ export class AdvertiserCampaignController {
   }
 
   @Patch(':id/step/content')
-  @UseInterceptors(FileInterceptor('contentPdf'))
   saveContentRequirements(
     @Param('id', ParseUUIDPipe) id: string,
     @AuthUser() user: User,
     @Body() dto: SaveContentRequirementsDto,
-    @UploadedFile() file?: Express.Multer.File,
   ): Promise<Campaign> {
-    return this.campaignCreationService.saveContentRequirements(
-      id,
-      user.id,
-      dto,
-      file,
-    );
+    return this.campaignCreationService.saveContentRequirements(id, user.id, dto);
   }
 
   @Patch(':id/step/influencers')
@@ -196,20 +185,11 @@ export class AdvertiserCampaignController {
   }
 
   @Patch('submissions/:submissionId/review')
-  @UseInterceptors(
-    AnyFilesInterceptor({ limits: { fileSize: 10 * 1024 * 1024, files: 5 } }),
-  )
   reviewSubmission(
     @Param('submissionId', ParseUUIDPipe) submissionId: string,
     @AuthUser() user: User,
     @Body() dto: ReviewSubmissionDto,
-    @UploadedFiles() files: Express.Multer.File[],
   ) {
-    return this.campaignSubmissionReviewService.reviewSubmission(
-      user.id,
-      submissionId,
-      dto,
-      files ?? [],
-    );
+    return this.campaignSubmissionReviewService.reviewSubmission(user.id, submissionId, dto);
   }
 }

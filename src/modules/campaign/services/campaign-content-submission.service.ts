@@ -18,7 +18,6 @@ import {
   InvitationStatus,
 } from '../enums';
 import { SubmitContentDto } from '../dto/submit-content.dto';
-import { CloudinaryService } from '../../cloudinary/cloudinary.service';
 import { NotificationsService } from '../../notifications/services/notifications.service';
 import { NotificationType } from '../../notifications/enums';
 
@@ -33,7 +32,6 @@ export class CampaignContentSubmissionService {
     private readonly invitationRepo: Repository<CampaignInvitedInfluencer>,
     @InjectRepository(CampaignSubmission)
     private readonly submissionRepo: Repository<CampaignSubmission>,
-    private readonly cloudinaryService: CloudinaryService,
     private readonly notificationsService: NotificationsService,
   ) {}
 
@@ -41,7 +39,6 @@ export class CampaignContentSubmissionService {
     influencerId: string,
     campaignId: string,
     dto: SubmitContentDto,
-    files: Express.Multer.File[],
   ): Promise<CampaignSubmission> {
     const campaign = await this.campaignRepo.findOne({ where: { id: campaignId } });
 
@@ -62,26 +59,16 @@ export class CampaignContentSubmissionService {
       where: { campaignId, influencerId },
     });
 
-    if (existing?.filePublicIds?.length) {
-      await Promise.all(
-        existing.filePublicIds.map((id) => this.cloudinaryService.deleteFile(id)),
-      );
-    }
-
-    const uploadedFiles = await Promise.all(
-      files.map((f) => this.cloudinaryService.uploadFile(f, 'submissions')),
-    );
-
-    const fileUrls = uploadedFiles.map((r) => r.secure_url);
-    const filePublicIds = uploadedFiles.map((r) => r.public_id);
+    const fileUrls = dto.fileUrls?.length ? dto.fileUrls : null;
+    const filePublicIds = dto.filePublicIds?.length ? dto.filePublicIds : null;
 
     let submission: CampaignSubmission;
 
     if (existing) {
       await this.submissionRepo.update(existing.id, {
         links: dto.links,
-        fileUrls: fileUrls.length ? fileUrls : null,
-        filePublicIds: filePublicIds.length ? filePublicIds : null,
+        fileUrls,
+        filePublicIds,
         status: SubmissionStatus.PENDING_REVIEW,
         modificationDetails: null,
         modificationFileUrls: null,
@@ -94,8 +81,8 @@ export class CampaignContentSubmissionService {
           campaignId,
           influencerId,
           links: dto.links,
-          fileUrls: fileUrls.length ? fileUrls : null,
-          filePublicIds: filePublicIds.length ? filePublicIds : null,
+          fileUrls,
+          filePublicIds,
         }),
       );
     }

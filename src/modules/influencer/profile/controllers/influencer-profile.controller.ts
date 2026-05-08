@@ -6,12 +6,9 @@ import {
   Delete,
   Body,
   UseGuards,
-  UseInterceptors,
-  UploadedFile,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
 import { InfluencerProfileService } from '../services/influencer-profile.service';
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import { RolesStatusGuard } from '../../../../common/guards/auth.guard';
@@ -40,13 +37,11 @@ export class InfluencerProfileController {
   }
 
   @Patch()
-  @UseInterceptors(FileInterceptor('profileImage'))
   updateProfile(
     @AuthUser() user: User,
     @Body() dto: UpdateInfluencerProfileDto,
-    @UploadedFile() file?: Express.Multer.File,
   ) {
-    return this.influencerProfileService.updateProfile(user.id, dto, file);
+    return this.influencerProfileService.updateProfile(user.id, dto);
   }
 
   @Delete('image')

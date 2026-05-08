@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, IsUrl, MaxLength, MinLength } from 'class-validator';
 
 export class CreateSupportTicketDto {
   @IsNotEmpty({ message: 'العنوان مطلوب' })
@@ -12,4 +12,12 @@ export class CreateSupportTicketDto {
   @MinLength(10)
   @MaxLength(2000)
   description: string;
+
+  @IsOptional()
+  @IsUrl({}, { message: 'رابط المرفق غير صالح' })
+  attachmentUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  attachmentPublicId?: string;
 }

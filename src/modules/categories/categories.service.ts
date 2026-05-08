@@ -19,25 +19,16 @@ export class CategoriesService {
     private readonly cloudinaryService: CloudinaryService,
   ) {}
 
-  async create(dto: CreateCategoryDto, file?: Express.Multer.File) {
+  async create(dto: CreateCategoryDto) {
     const existing = await this.categoriesRepo.findOne({ where: { name: dto.name } });
     if (existing) {
       throw new ConflictException('يوجد فئة بهذا الاسم مسبقاً');
     }
 
-    let iconUrl = null;
-    let iconPublicId = null;
-
-    if (file) {
-      const uploadResult = await this.cloudinaryService.uploadImage(file, 'categories');
-      iconUrl = uploadResult.secure_url;
-      iconPublicId = uploadResult.public_id;
-    }
-
     const category = this.categoriesRepo.create({
       name: dto.name,
-      iconUrl,
-      iconPublicId,
+      iconUrl: dto.iconUrl ?? null,
+      iconPublicId: dto.iconPublicId ?? null,
     });
 
     return this.categoriesRepo.save(category);
@@ -58,7 +49,7 @@ export class CategoriesService {
     return category;
   }
 
-  async update(id: string, dto: UpdateCategoryDto, file?: Express.Multer.File) {
+  async update(id: string, dto: UpdateCategoryDto) {
     const category = await this.findOne(id);
 
     if (dto.name && dto.name !== category.name) {
@@ -69,13 +60,12 @@ export class CategoriesService {
       category.name = dto.name;
     }
 
-    if (file) {
+    if (dto.iconUrl && dto.iconPublicId) {
       if (category.iconPublicId) {
         await this.cloudinaryService.deleteImage(category.iconPublicId);
       }
-      const uploadResult = await this.cloudinaryService.uploadImage(file, 'categories');
-      category.iconUrl = uploadResult.secure_url;
-      category.iconPublicId = uploadResult.public_id;
+      category.iconUrl = dto.iconUrl;
+      category.iconPublicId = dto.iconPublicId;
     }
 
     return this.categoriesRepo.save(category);

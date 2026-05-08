@@ -1,4 +1,4 @@
-import { IsArray, IsEnum, IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsArray, IsEnum, IsNotEmpty, IsOptional, IsString, IsUUID, IsUrl } from 'class-validator';
 import { ContentType, TargetPlatform, ExpectedBudget } from '../../../../common/enums';
 
 export class ConfirmAdvertiserProfileDto {
@@ -31,4 +31,12 @@ export class ConfirmAdvertiserProfileDto {
   @IsOptional()
   @IsEnum(ExpectedBudget)
   expectedBudget?: ExpectedBudget;
+
+  @IsOptional()
+  @IsUrl({}, { message: 'رابط الشعار غير صالح' })
+  logoUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  logoPublicId?: string;
 }

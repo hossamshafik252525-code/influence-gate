@@ -2,7 +2,6 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UsersService } from '../../../users/users.service';
-import { CloudinaryService } from '../../../cloudinary/cloudinary.service';
 import { CategoriesService } from '../../../categories/categories.service';
 import { CountriesService } from '../../../countries/countries.service';
 import { AdvertiserProfile } from '../../entities/advertiser-profile.entity';
@@ -15,7 +14,6 @@ export class AdvertiserProfileService {
     @InjectRepository(AdvertiserProfile)
     private readonly advertiserProfileRepository: Repository<AdvertiserProfile>,
     private readonly usersService: UsersService,
-    private readonly cloudinaryService: CloudinaryService,
     private readonly categoriesService: CategoriesService,
     private readonly countriesService: CountriesService,
   ) {}
@@ -23,7 +21,6 @@ export class AdvertiserProfileService {
   async confirmProfile(
     userId: string,
     dto: ConfirmAdvertiserProfileDto,
-    file?: Express.Multer.File,
   ): Promise<AdvertiserProfile> {
     const profile = await this.advertiserProfileRepository.findOne({
       where: { userId },
@@ -36,18 +33,6 @@ export class AdvertiserProfileService {
     await this.categoriesService.findOne(dto.categoryId);
     await this.countriesService.findOne(dto.countryId);
 
-    let logoUrl: string | undefined;
-    let logoPublicId: string | undefined;
-
-    if (file) {
-      const uploadResult = await this.cloudinaryService.uploadImage(
-        file,
-        'advertiser_logos',
-      );
-      logoUrl = uploadResult.secure_url;
-      logoPublicId = uploadResult.public_id;
-    }
-
     const updateData: Partial<AdvertiserProfile> = {
       companyName: dto.companyName,
       categoryId: dto.categoryId,
@@ -57,9 +42,9 @@ export class AdvertiserProfileService {
       expectedBudget: dto.expectedBudget,
     };
 
-    if (logoUrl && logoPublicId) {
-      updateData.logoUrl = logoUrl;
-      updateData.logoPublicId = logoPublicId;
+    if (dto.logoUrl && dto.logoPublicId) {
+      updateData.logoUrl = dto.logoUrl;
+      updateData.logoPublicId = dto.logoPublicId;
     }
 
     await this.advertiserProfileRepository.update(profile.id, updateData);

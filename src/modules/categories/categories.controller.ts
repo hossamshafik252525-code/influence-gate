@@ -7,13 +7,7 @@ import {
   Param,
   Delete,
   UseGuards,
-  UseInterceptors,
-  UploadedFile,
-  ParseFilePipe,
-  MaxFileSizeValidator,
-  FileTypeValidator,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto, UpdateCategoryDto, SelectCategoriesDto } from './dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -30,21 +24,8 @@ export class CategoriesController {
   @Post()
   @UseGuards(JwtAuthGuard, RolesStatusGuard)
   @Roles(Role.ADMIN, Role.OWNER)
-  @UseInterceptors(FileInterceptor('icon'))
-  create(
-    @Body() createCategoryDto: CreateCategoryDto,
-    @UploadedFile(
-      new ParseFilePipe({
-        validators: [
-          new MaxFileSizeValidator({ maxSize: 5000000 }),
-          new FileTypeValidator({ fileType: '.(png|jpeg|jpg|webp|svg)' }),
-        ],
-        fileIsRequired: false,
-      }),
-    )
-    file?: Express.Multer.File,
-  ) {
-    return this.categoriesService.create(createCategoryDto, file);
+  create(@Body() createCategoryDto: CreateCategoryDto) {
+    return this.categoriesService.create(createCategoryDto);
   }
 
   @Get()
@@ -62,22 +43,8 @@ export class CategoriesController {
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesStatusGuard)
   @Roles(Role.ADMIN, Role.OWNER)
-  @UseInterceptors(FileInterceptor('icon'))
-  update(
-    @Param('id') id: string,
-    @Body() updateCategoryDto: UpdateCategoryDto,
-    @UploadedFile(
-      new ParseFilePipe({
-        validators: [
-          new MaxFileSizeValidator({ maxSize: 5000000 }),
-          new FileTypeValidator({ fileType: '.(png|jpeg|jpg|webp|svg)' }),
-        ],
-        fileIsRequired: false,
-      }),
-    )
-    file?: Express.Multer.File,
-  ) {
-    return this.categoriesService.update(id, updateCategoryDto, file);
+  update(@Param('id') id: string, @Body() updateCategoryDto: UpdateCategoryDto) {
+    return this.categoriesService.update(id, updateCategoryDto);
   }
 
   @Delete(':id')

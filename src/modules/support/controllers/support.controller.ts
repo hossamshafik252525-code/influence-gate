@@ -6,11 +6,8 @@ import {
   Param,
   Query,
   UseGuards,
-  UseInterceptors,
-  UploadedFile,
   ParseUUIDPipe,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { AuthUser } from '../../../common/decorators/auth-user.decorator';
 import { User } from '../../users/entities/user.entity';
@@ -25,13 +22,11 @@ export class SupportController {
   constructor(private readonly supportService: SupportService) {}
 
   @Post()
-  @UseInterceptors(FileInterceptor('attachment'))
   createTicket(
     @AuthUser() user: User,
     @Body() dto: CreateSupportTicketDto,
-    @UploadedFile() file?: Express.Multer.File,
   ): Promise<SupportTicket> {
-    return this.supportService.createTicket(user.id, dto, file);
+    return this.supportService.createTicket(user.id, dto);
   }
 
   @Get()

@@ -18,6 +18,7 @@ import { PlatformSettingsModule } from './modules/platform-settings/platform-set
 import { LandingPageModule } from './modules/landing-page/landing-page.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { SupportModule } from './modules/support/support.module';
+import { UploadModule } from './modules/upload/upload.module';
 
 @Module({
   imports: [
@@ -61,6 +62,7 @@ import { SupportModule } from './modules/support/support.module';
     LandingPageModule,
     AdminModule,
     SupportModule,
+    UploadModule,
   ],
 })
 export class AppModule {}

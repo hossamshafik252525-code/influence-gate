@@ -1,4 +1,4 @@
-import { IsArray, ArrayMinSize, IsUrl } from 'class-validator';
+import { IsArray, ArrayMinSize, IsUrl, IsOptional, IsString } from 'class-validator';
 import { Transform } from 'class-transformer';
 
 export class SubmitContentDto {
@@ -7,4 +7,16 @@ export class SubmitContentDto {
   @ArrayMinSize(1)
   @IsUrl({}, { each: true })
   links: string[];
+
+  @IsOptional()
+  @Transform(({ value }) => (Array.isArray(value) ? value : value ? [value] : []))
+  @IsArray()
+  @IsUrl({}, { each: true })
+  fileUrls?: string[];
+
+  @IsOptional()
+  @Transform(({ value }) => (Array.isArray(value) ? value : value ? [value] : []))
+  @IsArray()
+  @IsString({ each: true })
+  filePublicIds?: string[];
 }

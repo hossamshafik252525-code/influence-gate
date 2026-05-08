@@ -1,9 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { SupportTicket } from '../entities/support-ticket.entity';
 import { SupportTicketStatus } from '../enums/support-ticket-status.enum';
-import { CloudinaryService } from '../../cloudinary/cloudinary.service';
 import { PaginatedResult } from '../../../common/interfaces';
 import {
   CreateSupportTicketDto,
@@ -16,29 +15,18 @@ export class SupportService {
   constructor(
     @InjectRepository(SupportTicket)
     private readonly supportTicketRepo: Repository<SupportTicket>,
-    private readonly cloudinaryService: CloudinaryService,
   ) {}
 
   async createTicket(
     userId: string,
     dto: CreateSupportTicketDto,
-    file?: Express.Multer.File,
   ): Promise<SupportTicket> {
-    let attachmentUrl: string | undefined;
-    let attachmentPublicId: string | undefined;
-
-    if (file) {
-      const upload = await this.uploadAttachment(file);
-      attachmentUrl = upload.url;
-      attachmentPublicId = upload.publicId;
-    }
-
     const ticket = this.supportTicketRepo.create({
       userId,
       title: dto.title,
       description: dto.description,
-      attachmentUrl,
-      attachmentPublicId,
+      attachmentUrl: dto.attachmentUrl,
+      attachmentPublicId: dto.attachmentPublicId,
       status: SupportTicketStatus.OPEN,
     });
 
@@ -107,20 +95,4 @@ export class SupportService {
     return this.supportTicketRepo.save(ticket);
   }
 
-  private async uploadAttachment(
-    file: Express.Multer.File,
-  ): Promise<{ url: string; publicId: string }> {
-    const isImage = file.mimetype.startsWith('image/');
-    const isPdf = file.mimetype === 'application/pdf';
-
-    if (!isImage && !isPdf) {
-      throw new BadRequestException('نوع الملف غير مدعوم');
-    }
-
-    const result = isImage
-      ? await this.cloudinaryService.uploadImage(file, 'support_tickets')
-      : await this.cloudinaryService.uploadFile(file, 'support_tickets');
-
-    return { url: result.secure_url, publicId: result.public_id };
-  }
 }

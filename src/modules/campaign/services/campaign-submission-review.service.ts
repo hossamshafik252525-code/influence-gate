@@ -17,7 +17,6 @@ import {
   SubmissionStatus,
 } from '../enums';
 import { ReviewSubmissionDto } from '../dto/review-submission.dto';
-import { CloudinaryService } from '../../cloudinary/cloudinary.service';
 import { NotificationsService } from '../../notifications/services/notifications.service';
 import { NotificationType } from '../../notifications/enums';
 import { WalletTransactionService } from '../../wallet/services/wallet-transaction.service';
@@ -34,7 +33,6 @@ export class CampaignSubmissionReviewService {
     private readonly submissionRepo: Repository<CampaignSubmission>,
     @InjectRepository(CampaignInvitedInfluencer)
     private readonly invitedInfluencerRepo: Repository<CampaignInvitedInfluencer>,
-    private readonly cloudinaryService: CloudinaryService,
     private readonly notificationsService: NotificationsService,
     private readonly walletTransactionService: WalletTransactionService,
   ) {}
@@ -43,7 +41,6 @@ export class CampaignSubmissionReviewService {
     advertiserId: string,
     submissionId: string,
     dto: ReviewSubmissionDto,
-    files: Express.Multer.File[],
   ): Promise<void> {
     const submission = await this.submissionRepo.findOne({
       where: { id: submissionId },
@@ -69,23 +66,11 @@ export class CampaignSubmissionReviewService {
       throw new BadRequestException('يجب إدخال تفاصيل التعديل');
     }
 
-    if (submission.modificationFilePublicIds?.length) {
-      await Promise.all(
-        submission.modificationFilePublicIds.map((id) =>
-          this.cloudinaryService.deleteFile(id),
-        ),
-      );
-    }
-
-    const uploadedFiles = await Promise.all(
-      files.map((f) => this.cloudinaryService.uploadFile(f, 'submission_reviews')),
-    );
-
-    const modificationFileUrls = uploadedFiles.length
-      ? uploadedFiles.map((r) => r.secure_url)
+    const modificationFileUrls = dto.modificationFileUrls?.length
+      ? dto.modificationFileUrls
       : null;
-    const modificationFilePublicIds = uploadedFiles.length
-      ? uploadedFiles.map((r) => r.public_id)
+    const modificationFilePublicIds = dto.modificationFilePublicIds?.length
+      ? dto.modificationFilePublicIds
       : null;
 
     await this.submissionRepo.update(submissionId, {

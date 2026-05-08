@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsUUID, MaxLength, MinLength } from 'class-validator';
+import { IsOptional, IsString, IsUUID, IsUrl, MaxLength, MinLength } from 'class-validator';
 
 export class UpdateInfluencerProfileDto {
   @IsOptional()
@@ -21,4 +21,12 @@ export class UpdateInfluencerProfileDto {
   @IsString()
   @MaxLength(500)
   portfolioLink?: string;
+
+  @IsOptional()
+  @IsUrl({}, { message: 'رابط الصورة غير صالح' })
+  profileImageUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  profileImagePublicId?: string;
 }
