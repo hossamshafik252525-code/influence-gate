@@ -7,6 +7,7 @@ import {
   ManyToOne,
   OneToMany,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Category } from '../../categories/entities/category.entity';
@@ -17,6 +18,8 @@ import { CampaignStatus, CampaignStep, InfluencerType, CampaignVisibility } from
 import { TargetPlatform } from '../../../common/enums';
 
 @Entity('campaigns')
+@Index('idx_campaign_status', ['status'])
+@Index('idx_campaign_advertiser_status', ['advertiserId', 'status'])
 export class Campaign {
   @PrimaryGeneratedColumn('uuid')
   id: string;

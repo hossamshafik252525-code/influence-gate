@@ -40,6 +40,9 @@ export class InfluencerService {
   @Column({ type: 'jsonb' })
   includedPlatforms: TargetPlatform[];
 
+  @Column({ type: 'text', nullable: true })
+  previousWorkLink: string;
+
   @CreateDateColumn()
   createdAt: Date;
 

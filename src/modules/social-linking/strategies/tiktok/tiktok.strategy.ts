@@ -142,14 +142,16 @@ export class TikTokStrategy implements SocialProviderStrategy {
         ),
       );
       if (!data?.access_token || !data?.open_id || !data?.refresh_token) {
+        const responseData = this.normalizeObject(data);
+        const errorMessage = this.extractTikTokOAuthError(responseData);
         this.logger.warn(
           JSON.stringify({
             event: 'tiktok_oauth_token_exchange_invalid_payload',
             callbackUrl: this.callbackUrl,
-            response: this.normalizeObject(data),
+            response: responseData,
           }),
         );
-        throw new BadRequestException('استجابة TikTok لا تحتوي على رمز وصول صالح');
+        throw new BadRequestException(errorMessage);
       }
       return data;
     } catch (error: unknown) {
@@ -380,5 +382,17 @@ export class TikTokStrategy implements SocialProviderStrategy {
         .filter((item) => item.length > 0);
     }
     return this.parseScopes(this.scopes);
+  }
+
+  private extractTikTokOAuthError(responseData: Record<string, unknown>): string {
+    const error = responseData.error;
+    const errorDescription = responseData.error_description;
+    if (typeof errorDescription === 'string' && errorDescription.trim().length > 0) {
+      return errorDescription;
+    }
+    if (typeof error === 'string' && error.trim().length > 0) {
+      return error;
+    }
+    return 'استجابة TikTok لا تحتوي على رمز وصول صالح';
   }
 }

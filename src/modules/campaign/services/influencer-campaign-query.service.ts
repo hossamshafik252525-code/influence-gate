@@ -145,7 +145,8 @@ export class InfluencerCampaignQueryService {
       .createQueryBuilder('inv')
       .innerJoinAndSelect('inv.campaign', 'campaign')
       .where('inv.influencerId = :userId', { userId })
-      .andWhere('inv.status = :status', { status: InvitationStatus.PENDING });
+      .andWhere('inv.status = :invStatus', { invStatus: InvitationStatus.PENDING })
+      .andWhere('campaign.status = :campaignStatus', { campaignStatus: CampaignStatus.IMPLEMENTATION });
 
     this.applyCommonFiltersOnAlias(qb, query);
 

@@ -1,4 +1,4 @@
-import { IsEnum, IsString, MinLength, MaxLength, IsNumber, Min, IsInt, Max, IsArray, ArrayMinSize, IsOptional } from 'class-validator';
+import { IsEnum, IsString, MinLength, MaxLength, IsNumber, Min, IsInt, Max, IsArray, ArrayMinSize, IsOptional, IsUrl } from 'class-validator';
 import { ImplementationType, ContentTypeOffer, TargetPlatform } from '../../../../common/enums';
 
 export class UpdateInfluencerServiceDto {
@@ -32,4 +32,8 @@ export class UpdateInfluencerServiceDto {
   @ArrayMinSize(1, { message: 'يجب اختيار منصة واحدة على الأقل' })
   @IsEnum(TargetPlatform, { each: true, message: 'منصة غير صالحة' })
   includedPlatforms?: TargetPlatform[];
+
+  @IsOptional()
+  @IsUrl({}, { message: 'يجب أن يكون رابطاً صالحاً' })
+  previousWorkLink?: string;
 }

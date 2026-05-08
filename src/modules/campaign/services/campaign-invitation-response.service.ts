@@ -83,6 +83,16 @@ export class CampaignInvitationResponseService {
       throw new BadRequestException('لا يمكن الرد على الدعوة في هذه الحالة');
     }
 
+    const now = new Date();
+    const start = new Date(campaign.implementationStartDate);
+    const end = new Date(campaign.implementationEndDate);
+    const totalMs = end.getTime() - start.getTime();
+    const elapsedMs = now.getTime() - start.getTime();
+
+    if (elapsedMs >= totalMs * 0.75) {
+      throw new BadRequestException('انتهت فترة قبول الدعوات لهذه الحملة');
+    }
+
     const invitation = await this.invitationRepo.findOne({
       where: { campaignId, influencerId },
     });
