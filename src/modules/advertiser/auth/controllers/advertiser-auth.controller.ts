@@ -9,6 +9,7 @@ import {
   AdvertiserResetPasswordDto,
   AdvertiserVerifyResetCodeDto,
 } from '../dto';
+import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import { JwtRefreshGuard } from '../../../../common/guards/jwt-refresh.guard';
 import { AuthUser } from '../../../../common/decorators/auth-user.decorator';
 import { User } from '../../../users/entities/user.entity';
@@ -35,6 +36,12 @@ export class AdvertiserAuthController {
   @Post('login')
   login(@Body() dto: AdvertiserLoginDto) {
     return this.advertiserAuthService.login(dto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('logout')
+  logout(@AuthUser() user: User) {
+    return this.advertiserAuthService.logout(user.id);
   }
 
   @UseGuards(JwtRefreshGuard)

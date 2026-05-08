@@ -41,6 +41,12 @@ export class InfluencerAuthController {
     return this.influencerAuthService.login(dto);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Post('logout')
+  logout(@AuthUser() user: User) {
+    return this.influencerAuthService.logout(user.id);
+  }
+
   @UseGuards(JwtRefreshGuard)
   @Post('refresh')
   refresh(@AuthUser() user: User, @Body() _dto: RefreshTokenDto) {

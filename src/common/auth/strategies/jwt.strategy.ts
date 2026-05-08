@@ -24,6 +24,10 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       throw new UnauthorizedException('المستخدم غير موجود');
     }
 
+    if (!user.isLoggedIn) {
+      throw new UnauthorizedException('يجب تسجيل الدخول أولاً');
+    }
+
     return user;
   }
 }

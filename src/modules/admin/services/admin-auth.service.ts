@@ -26,9 +26,15 @@ export class AdminAuthService {
       throw new UnauthorizedException('البريد الإلكتروني أو كلمة المرور غير صحيحة');
     }
 
+    await this.usersService.update(user.id, { isLoggedIn: true });
     const tokens = this.tokenService.generateTokens(user.id);
     const { password, ...sanitizedUser } = user;
 
     return { ...tokens, user: sanitizedUser };
+  }
+
+  async logout(userId: string): Promise<{ message: string }> {
+    await this.usersService.update(userId, { isLoggedIn: false });
+    return { message: 'تم تسجيل الخروج بنجاح' };
   }
 }

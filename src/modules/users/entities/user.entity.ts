@@ -48,7 +48,8 @@ export class User {
   @Column({ type: 'enum', enum: UserStatus, default: UserStatus.CONFIRMED })
   status: UserStatus;
 
-
+  @Column({ default: false })
+  isLoggedIn: boolean;
 
   @OneToOne(() => AdvertiserProfile, (ap) => ap.user)
   advertiserProfile: AdvertiserProfile;

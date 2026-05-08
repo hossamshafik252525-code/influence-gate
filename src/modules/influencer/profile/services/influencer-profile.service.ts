@@ -158,7 +158,7 @@ export class InfluencerProfileService {
     }
 
     const hashedPassword = await bcrypt.hash(dto.newPassword, this.SALT_ROUNDS);
-    await this.usersService.update(userId, { password: hashedPassword });
+    await this.usersService.update(userId, { password: hashedPassword, isLoggedIn: false });
   }
 
   async deleteProfileImage(userId: string): Promise<{ message: string }> {

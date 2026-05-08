@@ -112,6 +112,7 @@ export class AdvertiserAuthService {
 
     await this.redisService.del(`advertiser-signup:${dto.email}`);
 
+    await this.usersService.update(user.id, { isLoggedIn: true });
     const tokens = this.tokenService.generateTokens(user.id);
 
     return {
@@ -158,12 +159,18 @@ export class AdvertiserAuthService {
       throw new UnauthorizedException('البريد الإلكتروني أو كلمة المرور غير صحيحة');
     }
 
+    await this.usersService.update(user.id, { isLoggedIn: true });
     const tokens = this.tokenService.generateTokens(user.id);
 
     return {
       ...tokens,
       user: this.sanitizeUser(user),
     };
+  }
+
+  async logout(userId: string): Promise<{ message: string }> {
+    await this.usersService.update(userId, { isLoggedIn: false });
+    return { message: 'تم تسجيل الخروج بنجاح' };
   }
 
   async refreshTokens(user: User) {
@@ -228,7 +235,7 @@ export class AdvertiserAuthService {
 
     const hashedPassword = await bcrypt.hash(dto.password, this.SALT_ROUNDS);
 
-    await this.usersService.update(user.id, { password: hashedPassword });
+    await this.usersService.update(user.id, { password: hashedPassword, isLoggedIn: false });
     await this.redisService.del(`advertiser-reset-verified:${dto.email}`);
 
     return { message: 'تم إعادة تعيين كلمة المرور بنجاح' };

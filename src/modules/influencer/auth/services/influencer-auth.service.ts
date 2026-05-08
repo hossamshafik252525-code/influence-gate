@@ -123,6 +123,7 @@ export class InfluencerAuthService {
       { influencerId: user.id },
     );
 
+    await this.usersService.update(user.id, { isLoggedIn: true });
     const tokens = this.tokenService.generateTokens(user.id);
 
     return {
@@ -174,12 +175,18 @@ export class InfluencerAuthService {
       throw new UnauthorizedException('البريد الإلكتروني أو كلمة المرور غير صحيحة');
     }
 
+    await this.usersService.update(user.id, { isLoggedIn: true });
     const tokens = this.tokenService.generateTokens(user.id);
 
     return {
       ...tokens,
       user: this.sanitizeUser(user),
     };
+  }
+
+  async logout(userId: string): Promise<{ message: string }> {
+    await this.usersService.update(userId, { isLoggedIn: false });
+    return { message: 'تم تسجيل الخروج بنجاح' };
   }
 
   async refreshTokens(user: User) {
@@ -244,7 +251,7 @@ export class InfluencerAuthService {
 
     const hashedPassword = await bcrypt.hash(dto.password, this.SALT_ROUNDS);
 
-    await this.usersService.update(user.id, { password: hashedPassword });
+    await this.usersService.update(user.id, { password: hashedPassword, isLoggedIn: false });
     await this.redisService.del(`reset-verified:${dto.email}`);
 
     return { message: 'تم إعادة تعيين كلمة المرور بنجاح' };
@@ -255,6 +262,7 @@ export class InfluencerAuthService {
     const existingUser = await this.usersService.findByGoogleId(googleProfile.id);
 
     if (existingUser && existingUser.status !== UserStatus.NOT_CONFIRMED) {
+      await this.usersService.update(existingUser.id, { isLoggedIn: true });
       const tokens = this.tokenService.generateTokens(existingUser.id);
       return {
         ...tokens,
@@ -316,6 +324,7 @@ export class InfluencerAuthService {
       countryId: dto.countryId,
       password: hashedPassword,
       status: UserStatus.PENDING,
+      isLoggedIn: true,
     });
 
     await this.ensureProfileExists(updatedUser.id);
