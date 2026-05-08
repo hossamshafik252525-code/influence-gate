@@ -54,6 +54,9 @@ export class CampaignApplicationService {
     });
 
     if (existingApplication) {
+      if (existingApplication.status === ApplicationStatus.WITHDRAWN) {
+        throw new ConflictException('لقد خرجت من هذه الحملة مسبقاً');
+      }
       throw new ConflictException('لقد تقدمت بالفعل على هذه الحملة');
     }
 

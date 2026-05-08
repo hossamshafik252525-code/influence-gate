@@ -24,6 +24,7 @@ import { InfluencerCampaignQueryService } from '../services/influencer-campaign-
 import { CampaignApplicationService } from '../services/campaign-application.service';
 import { CampaignContentSubmissionService } from '../services/campaign-content-submission.service';
 import { CampaignInvitationResponseService } from '../services/campaign-invitation-response.service';
+import { CampaignApplicationWithdrawalService } from '../services/campaign-application-withdrawal.service';
 import {
   GetNewCampaignsQueryDto,
   GetInfluencerMyCampaignsQueryDto,
@@ -42,6 +43,7 @@ export class InfluencerCampaignController {
     private readonly campaignApplicationService: CampaignApplicationService,
     private readonly campaignContentSubmissionService: CampaignContentSubmissionService,
     private readonly campaignInvitationResponseService: CampaignInvitationResponseService,
+    private readonly campaignApplicationWithdrawalService: CampaignApplicationWithdrawalService,
   ) {}
 
   @Get('new')
@@ -117,6 +119,16 @@ export class InfluencerCampaignController {
     @UploadedFiles() files: Express.Multer.File[],
   ) {
     return this.campaignContentSubmissionService.submitContent(user.id, id, dto, files ?? []);
+  }
+
+  @Post(':id/exit')
+  @Statuses(UserStatus.ACTIVE)
+  @HttpCode(HttpStatus.OK)
+  exitCampaign(
+    @AuthUser() user: User,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.campaignApplicationWithdrawalService.withdrawApplication(user.id, id);
   }
 
   @Get(':id')
