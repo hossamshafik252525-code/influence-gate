@@ -22,6 +22,7 @@ import { CampaignSubmissionQueryService } from './services/campaign-submission-q
 import { CampaignInvitationResponseService } from './services/campaign-invitation-response.service';
 import { CampaignApplicationWithdrawalService } from './services/campaign-application-withdrawal.service';
 import { PrivateCampaignLaunchService } from './services/private-campaign-launch.service';
+import { CampaignSubmissionDataService } from './services/campaign-submission-data.service';
 import { InfluencerProfile } from '../influencer/entities/influencer-profile.entity';
 import { InfluencerService as InfluencerServiceEntity } from '../influencer/entities/influencer-service.entity';
 import { NotificationsModule } from '../notifications/notifications.module';
@@ -65,7 +66,8 @@ import { WalletModule } from '../wallet/wallet.module';
     CampaignInvitationResponseService,
     CampaignApplicationWithdrawalService,
     PrivateCampaignLaunchService,
+    CampaignSubmissionDataService,
   ],
-  exports: [CampaignCreationService, CampaignQueryService, TypeOrmModule],
+  exports: [CampaignCreationService, CampaignQueryService, CampaignSubmissionDataService, TypeOrmModule],
 })
 export class CampaignModule {}

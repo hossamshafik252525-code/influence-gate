@@ -9,6 +9,7 @@ import { UsersService } from '../../users/users.service';
 import { NotificationType } from '../enums';
 import { Role } from '../../../common/enums';
 import { PaginatedResult } from '../../../common/interfaces';
+import { GetNotificationsQueryDto } from '../dto';
 
 @Injectable()
 export class NotificationsService {
@@ -71,10 +72,9 @@ export class NotificationsService {
 
   async getMyNotifications(
     userId: string,
-    page: number,
-    limit: number,
-    type?: NotificationType,
+    query: GetNotificationsQueryDto,
   ): Promise<PaginatedResult<Notification>> {
+    const { page, limit, type } = query;
     const [data, total] = await this.notificationRepository.findAndCount({
       where: { recipientId: userId, isRead: false, ...(type && { type }) },
       order: { createdAt: 'DESC' },

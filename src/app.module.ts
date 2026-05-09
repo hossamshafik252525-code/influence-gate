@@ -19,6 +19,8 @@ import { LandingPageModule } from './modules/landing-page/landing-page.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { SupportModule } from './modules/support/support.module';
 import { UploadModule } from './modules/upload/upload.module';
+import { RatingModule } from './modules/rating/rating.module';
+import { ContactUsModule } from './modules/contact-us/contact-us.module';
 
 @Module({
   imports: [
@@ -63,6 +65,8 @@ import { UploadModule } from './modules/upload/upload.module';
     AdminModule,
     SupportModule,
     UploadModule,
+    RatingModule,
+    ContactUsModule,
   ],
 })
 export class AppModule {}

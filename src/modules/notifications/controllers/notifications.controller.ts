@@ -12,6 +12,8 @@ import {
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { AuthUser } from '../../../common/decorators/auth-user.decorator';
 import { User } from '../../users/entities/user.entity';
+import { Notification } from '../entities/notification.entity';
+import { PaginatedResult } from '../../../common/interfaces';
 import { NotificationsService } from '../services/notifications.service';
 import { FcmTokenService } from '../services/fcm-token.service';
 import {
@@ -51,13 +53,8 @@ export class NotificationsController {
   getMyNotifications(
     @AuthUser() user: User,
     @Query() query: GetNotificationsQueryDto,
-  ) {
-    return this.notificationsService.getMyNotifications(
-      user.id,
-      query.page,
-      query.limit,
-      query.type,
-    );
+  ): Promise<PaginatedResult<Notification>> {
+    return this.notificationsService.getMyNotifications(user.id, query);
   }
 
   @Patch(':id/read')
