@@ -15,6 +15,7 @@ import { CampaignStatus } from '../../../campaign/enums/campaign-status.enum';
 import { UsersService } from '../../../users/users.service';
 import { CountriesService } from '../../../countries/countries.service';
 import { CloudinaryService } from '../../../cloudinary/cloudinary.service';
+import { CategoriesService } from '../../../categories/categories.service';
 import { InfluencerProfileData, InfluencerNumbers } from '../../interfaces';
 import { UpdateInfluencerProfileDto, ChangePasswordDto } from '../dto';
 
@@ -31,6 +32,7 @@ export class InfluencerProfileService {
     private readonly usersService: UsersService,
     private readonly countriesService: CountriesService,
     private readonly cloudinaryService: CloudinaryService,
+    private readonly categoriesService: CategoriesService,
   ) {}
 
   async ensureProfileExists(userId: string): Promise<InfluencerProfile> {
@@ -131,6 +133,10 @@ export class InfluencerProfileService {
     }
     if (Object.keys(profileUpdate).length > 0) {
       await this.influencerProfileRepo.update(profile.id, profileUpdate);
+    }
+
+    if (dto.categories) {
+      await this.categoriesService.selectCategories(userId, dto.categories);
     }
 
     return this.getProfile(userId);

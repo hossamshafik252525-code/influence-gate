@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsUUID, IsUrl, MaxLength, MinLength } from 'class-validator';
+import { IsOptional, IsString, IsUUID, IsUrl, MaxLength, MinLength, IsArray } from 'class-validator';
 
 export class UpdateInfluencerProfileDto {
   @IsOptional()
@@ -29,4 +29,9 @@ export class UpdateInfluencerProfileDto {
   @IsOptional()
   @IsString()
   profileImagePublicId?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
+  categories?: string[];
 }

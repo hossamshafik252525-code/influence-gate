@@ -29,6 +29,7 @@ import { CountriesModule } from '../countries/countries.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
 import { CloudinaryModule } from '../cloudinary/cloudinary.module';
+import { CategoriesModule } from '../categories/categories.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { CloudinaryModule } from '../cloudinary/cloudinary.module';
     NotificationsModule,
     PlatformSettingsModule,
     CloudinaryModule,
+    CategoriesModule,
   ],
   controllers: [
     InfluencerAuthController,
