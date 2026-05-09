@@ -13,3 +13,5 @@ export { GetInfluencerInvitationsQueryDto } from './get-influencer-invitations-q
 export { ReviewApplicationDto } from './review-application.dto';
 export { SubmitContentDto } from './submit-content.dto';
 export { ReviewSubmissionDto } from './review-submission.dto';
+export { ApplyToCampaignDto } from './apply-to-campaign.dto';
+export { ReviewOfferDto } from './review-offer.dto';

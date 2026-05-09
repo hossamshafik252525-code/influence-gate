@@ -1,6 +1,6 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { Category } from './entities/category.entity';
 import { InfluencerCategory } from '../influencer/entities/influencer-category.entity';
 import { InfluencerProfile } from '../influencer/entities/influencer-profile.entity';
@@ -92,13 +92,21 @@ export class CategoriesService {
       throw new NotFoundException('الملف الشخصي غير موجود');
     }
 
-    await this.influencerCategoryRepo.delete({ influencerProfile: { id: profile.id } });
+    await this.influencerCategoryRepo.delete({ influencerProfileId: profile.id });
 
     if (categoryIds.length > 0) {
+      const validCategoriesCount = await this.categoriesRepo.count({
+        where: { id: In(categoryIds) },
+      });
+
+      if (validCategoriesCount !== categoryIds.length) {
+        throw new BadRequestException('إحدى الفئات المحددة غير موجودة');
+      }
+
       const influencerCategories = categoryIds.map((categoryId) =>
         this.influencerCategoryRepo.create({
-          influencerProfile: { id: profile.id },
-          category: { id: categoryId },
+          influencerProfileId: profile.id,
+          categoryId: categoryId,
         }),
       );
       await this.influencerCategoryRepo.save(influencerCategories);

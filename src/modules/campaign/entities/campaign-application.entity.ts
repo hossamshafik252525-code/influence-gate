@@ -38,6 +38,9 @@ export class CampaignApplication {
   @Column({ type: 'enum', enum: ApplicationStatus, default: ApplicationStatus.PENDING })
   status: ApplicationStatus;
 
+  @Column({ type: 'decimal', precision: 12, scale: 2, nullable: true })
+  offerPrice: number | null;
+
   @CreateDateColumn()
   createdAt: Date;
 

@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Not } from 'typeorm';
 import { Campaign } from '../entities/campaign.entity';
 import { CampaignApplication } from '../entities/campaign-application.entity';
 import { CampaignStatus, ApplicationStatus } from '../enums';
@@ -154,7 +154,10 @@ export class CampaignQueryService {
     }
 
     const [applications, total] = await this.applicationRepository.findAndCount({
-      where: { campaignId },
+      where: {
+        campaignId,
+        status: Not(ApplicationStatus.PENDING_ADMIN_APPROVAL),
+      },
       order: { createdAt: 'DESC' },
       skip: (page - 1) * limit,
       take: limit,

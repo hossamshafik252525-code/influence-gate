@@ -7,6 +7,7 @@ import { CampaignApplication } from './entities/campaign-application.entity';
 import { CampaignSubmission } from './entities/campaign-submission.entity';
 import { AdvertiserCampaignController } from './controllers/advertiser-campaign.controller';
 import { AdminCampaignController } from './controllers/admin-campaign.controller';
+import { AdminOfferController } from './controllers/admin-offer.controller';
 import { InfluencerCampaignController } from './controllers/influencer-campaign.controller';
 import { CampaignCreationService } from './services/campaign-creation.service';
 import { CampaignSubmissionService } from './services/campaign-submission.service';
@@ -21,6 +22,8 @@ import { CampaignSubmissionReviewService } from './services/campaign-submission-
 import { CampaignSubmissionQueryService } from './services/campaign-submission-query.service';
 import { CampaignInvitationResponseService } from './services/campaign-invitation-response.service';
 import { CampaignApplicationWithdrawalService } from './services/campaign-application-withdrawal.service';
+import { AdminOfferQueryService } from './services/admin-offer-query.service';
+import { AdminOfferReviewService } from './services/admin-offer-review.service';
 import { PrivateCampaignLaunchService } from './services/private-campaign-launch.service';
 import { CampaignSubmissionDataService } from './services/campaign-submission-data.service';
 import { InfluencerProfile } from '../influencer/entities/influencer-profile.entity';
@@ -50,7 +53,12 @@ import { WalletModule } from '../wallet/wallet.module';
     PlatformSettingsModule,
     WalletModule,
   ],
-  controllers: [AdvertiserCampaignController, AdminCampaignController, InfluencerCampaignController],
+  controllers: [
+    AdvertiserCampaignController,
+    AdminCampaignController,
+    AdminOfferController,
+    InfluencerCampaignController,
+  ],
   providers: [
     CampaignCreationService,
     CampaignSubmissionService,
@@ -65,6 +73,8 @@ import { WalletModule } from '../wallet/wallet.module';
     CampaignSubmissionQueryService,
     CampaignInvitationResponseService,
     CampaignApplicationWithdrawalService,
+    AdminOfferQueryService,
+    AdminOfferReviewService,
     PrivateCampaignLaunchService,
     CampaignSubmissionDataService,
   ],

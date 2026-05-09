@@ -13,6 +13,7 @@ import {
   ApplicationStatus,
   CampaignVisibility,
 } from '../enums';
+import { Role } from '../../../common/enums';
 import { NotificationsService } from '../../notifications/services/notifications.service';
 import { NotificationType } from '../../notifications/enums';
 
@@ -29,6 +30,7 @@ export class CampaignApplicationService {
   async applyToCampaign(
     influencerId: string,
     campaignId: string,
+    offer?: number,
   ): Promise<CampaignApplication> {
     const campaign = await this.campaignRepo.findOne({
       where: { id: campaignId },
@@ -70,21 +72,47 @@ export class CampaignApplicationService {
       );
     }
 
+    const hasOffer = offer !== undefined && offer !== null;
+
+    if (hasOffer) {
+      if (campaign.influencerPrice === null || campaign.influencerPrice === undefined) {
+        throw new BadRequestException('لا يمكن تقديم عرض على هذه الحملة');
+      }
+      if (offer >= Number(campaign.influencerPrice)) {
+        throw new BadRequestException(
+          'قيمة العرض يجب أن تكون أقل من السعر المحدد للمؤثر',
+        );
+      }
+    }
+
     const application = this.applicationRepo.create({
       campaignId,
       influencerId,
-      status: ApplicationStatus.PENDING,
+      status: hasOffer
+        ? ApplicationStatus.PENDING_ADMIN_APPROVAL
+        : ApplicationStatus.PENDING,
+      offerPrice: hasOffer ? offer : null,
     });
 
     const savedApplication = await this.applicationRepo.save(application);
 
-    await this.notificationsService.notify(
-      campaign.advertiserId,
-      'طلب تقديم جديد',
-      `تقدم مؤثر جديد على حملة ${campaign.name}`,
-      NotificationType.NEW_CAMPAIGN_APPLICATION,
-      { campaignId, applicationId: savedApplication.id },
-    );
+    if (hasOffer) {
+      await this.notificationsService.notifyByRole(
+        Role.ADMIN,
+        'عرض مؤثر بانتظار المراجعة',
+        `تم تقديم عرض جديد على حملة ${campaign.name}`,
+        NotificationType.NEW_APPLICATION_OFFER,
+        { campaignId, applicationId: savedApplication.id },
+      );
+    } else {
+      await this.notificationsService.notify(
+        campaign.advertiserId,
+        'طلب تقديم جديد',
+        `تقدم مؤثر جديد على حملة ${campaign.name}`,
+        NotificationType.NEW_CAMPAIGN_APPLICATION,
+        { campaignId, applicationId: savedApplication.id },
+      );
+    }
 
     return savedApplication;
   }

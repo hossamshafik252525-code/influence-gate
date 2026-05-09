@@ -33,5 +33,5 @@ export class UpdateInfluencerProfileDto {
   @IsOptional()
   @IsArray()
   @IsUUID('4', { each: true })
-  categories?: string[];
+  categoryIds?: string[];
 }

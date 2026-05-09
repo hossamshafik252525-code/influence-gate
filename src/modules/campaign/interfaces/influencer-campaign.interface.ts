@@ -27,6 +27,7 @@ export type MyCampaignListItem = CampaignListItemBase;
 export interface InfluencerApplicationItem {
   id: string;
   status: ApplicationStatus;
+  offerPrice: number | null;
   createdAt: Date;
   campaign: CampaignListItemBase;
 }
@@ -80,7 +81,7 @@ export interface CampaignDetailResult {
   orderedServicesPrice?: number;
   requiredInfluencersCount: number;
   influencerType: InfluencerType;
-  application?: { id: string; status: ApplicationStatus };
+  application?: { id: string; status: ApplicationStatus; offerPrice: number | null };
   submission?: ApplicationSubmissionDetail;
   invitation?: { id: string; status: InvitationStatus; orderedServices: OrderedServiceDetail[] };
 }

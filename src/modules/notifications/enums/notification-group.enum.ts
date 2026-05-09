@@ -16,6 +16,8 @@ export function getNotificationGroup(type: NotificationType): NotificationGroup 
     case NotificationType.CAMPAIGN_PENDING_MINIMUM:
     case NotificationType.CAMPAIGN_AUTO_DISCARDED:
     case NotificationType.NEW_CAMPAIGN_APPLICATION:
+    case NotificationType.NEW_APPLICATION_OFFER:
+    case NotificationType.APPLICATION_OFFER_REJECTED:
     case NotificationType.APPLICATION_ACCEPTED:
     case NotificationType.APPLICATION_REJECTED:
     case NotificationType.CAMPAIGN_STARTED:

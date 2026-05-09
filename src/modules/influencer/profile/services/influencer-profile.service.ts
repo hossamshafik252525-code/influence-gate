@@ -135,8 +135,8 @@ export class InfluencerProfileService {
       await this.influencerProfileRepo.update(profile.id, profileUpdate);
     }
 
-    if (dto.categories) {
-      await this.categoriesService.selectCategories(userId, dto.categories);
+    if (dto.categoryIds) {
+      await this.categoriesService.selectCategories(userId, dto.categoryIds);
     }
 
     return this.getProfile(userId);

@@ -28,6 +28,7 @@ import {
   GetInfluencerApplicationsQueryDto,
   GetInfluencerInvitationsQueryDto,
   SubmitContentDto,
+  ApplyToCampaignDto,
 } from '../dto';
 
 @Controller('campaigns/influencer')
@@ -101,8 +102,9 @@ export class InfluencerCampaignController {
   applyToCampaign(
     @AuthUser() user: User,
     @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: ApplyToCampaignDto,
   ) {
-    return this.campaignApplicationService.applyToCampaign(user.id, id);
+    return this.campaignApplicationService.applyToCampaign(user.id, id, dto.offer);
   }
 
   @Post(':id/submit')

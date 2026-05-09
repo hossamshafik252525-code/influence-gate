@@ -2,7 +2,7 @@ import { Campaign } from '../entities/campaign.entity';
 import { CampaignApplication } from '../entities/campaign-application.entity';
 import { CampaignInvitedInfluencer } from '../entities/campaign-invited-influencer.entity';
 import { CampaignSubmission } from '../entities/campaign-submission.entity';
-import { CampaignVisibility } from '../enums';
+import { ApplicationStatus, CampaignVisibility } from '../enums';
 import {
   CampaignDetailResult,
   ApplicationSubmissionDetail,
@@ -39,7 +39,17 @@ export class CampaignDetailMapper {
     };
 
     if (application) {
-      result.application = { id: application.id, status: application.status };
+      result.application = {
+        id: application.id,
+        status:
+          application.status === ApplicationStatus.PENDING_ADMIN_APPROVAL
+            ? ApplicationStatus.PENDING
+            : application.status,
+        offerPrice:
+          application.offerPrice === null || application.offerPrice === undefined
+            ? null
+            : Number(application.offerPrice),
+      };
     }
 
     if (submission) {

@@ -1,6 +1,7 @@
 import { Campaign } from '../entities/campaign.entity';
 import { CampaignApplication } from '../entities/campaign-application.entity';
 import { CampaignInvitedInfluencer } from '../entities/campaign-invited-influencer.entity';
+import { ApplicationStatus } from '../enums';
 import {
   NewCampaignListItem,
   MyCampaignListItem,
@@ -38,7 +39,14 @@ export class CampaignListItemMapper {
   ): InfluencerApplicationItem {
     return {
       id: application.id,
-      status: application.status,
+      status:
+        application.status === ApplicationStatus.PENDING_ADMIN_APPROVAL
+          ? ApplicationStatus.PENDING
+          : application.status,
+      offerPrice:
+        application.offerPrice === null || application.offerPrice === undefined
+          ? null
+          : Number(application.offerPrice),
       createdAt: application.createdAt,
       campaign: CampaignListItemMapper.toBase(campaign),
     };
