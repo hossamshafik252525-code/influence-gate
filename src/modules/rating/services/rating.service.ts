@@ -7,8 +7,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { InfluencerRating } from '../entities/influencer-rating.entity';
 import { InfluencerProfile } from '../../influencer/entities/influencer-profile.entity';
-import { CampaignSubmissionDataService } from '../../campaign/services/campaign-submission-data.service';
-import { SubmissionStatus } from '../../campaign/enums';
+import { CampaignSubmissionDataService } from '../../campaign/submissions/services/campaign-submission-data.service';
+import { SubmissionStatus } from '../../campaign/submissions/enums';
 import { CreateRatingDto } from '../dto/create-rating.dto';
 import { PaginationQueryDto } from '../../../common/dto';
 

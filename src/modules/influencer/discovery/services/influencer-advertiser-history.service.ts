@@ -1,9 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { CampaignApplication } from '../../../campaign/entities/campaign-application.entity';
-import { CampaignInvitedInfluencer } from '../../../campaign/entities/campaign-invited-influencer.entity';
-import { ApplicationStatus, InvitationStatus, CampaignStatus } from '../../../campaign/enums';
+import { CampaignApplication } from '../../../campaign/applications/entities/campaign-application.entity';
+import { CampaignInvitedInfluencer } from '../../../campaign/invitations/entities/campaign-invited-influencer.entity';
+import { CampaignStatus } from '../../../campaign/enums';
+import { ApplicationStatus } from '../../../campaign/applications/enums';
+import { InvitationStatus } from '../../../campaign/invitations/enums';
 
 @Injectable()
 export class InfluencerAdvertiserHistoryService {

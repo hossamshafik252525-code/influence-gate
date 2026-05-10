@@ -10,7 +10,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { InfluencerType } from '../enums';
-import { InvitedInfluencerWithServicesDto } from './invited-influencer-with-services.dto';
+import { InvitedInfluencerWithServicesDto } from '../invitations/dto/invited-influencer-with-services.dto';
 
 export class SaveInfluencerRequirementsDto {
   @IsOptional()

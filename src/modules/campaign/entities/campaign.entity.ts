@@ -11,8 +11,8 @@ import {
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Category } from '../../categories/entities/category.entity';
-import { CampaignInvitedInfluencer } from './campaign-invited-influencer.entity';
-import { CampaignApplication } from './campaign-application.entity';
+import { CampaignInvitedInfluencer } from '../invitations/entities/campaign-invited-influencer.entity';
+import { CampaignApplication } from '../applications/entities/campaign-application.entity';
 import { ImplementationType, ContentTypeOffer } from '../../../common/enums';
 import { CampaignStatus, CampaignStep, InfluencerType, CampaignVisibility } from '../enums';
 import { TargetPlatform } from '../../../common/enums';

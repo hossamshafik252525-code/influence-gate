@@ -2,32 +2,32 @@ import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/commo
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
 import { Campaign } from '../entities/campaign.entity';
-import { CampaignApplication } from '../entities/campaign-application.entity';
-import { CampaignInvitedInfluencer } from '../entities/campaign-invited-influencer.entity';
-import { CampaignSubmission } from '../entities/campaign-submission.entity';
+import { CampaignApplication } from '../applications/entities/campaign-application.entity';
+import { CampaignInvitedInfluencer } from '../invitations/entities/campaign-invited-influencer.entity';
+import { CampaignSubmission } from '../submissions/entities/campaign-submission.entity';
 import { InfluencerProfile } from '../../influencer/entities/influencer-profile.entity';
 import {
   CampaignStatus,
   CampaignVisibility,
-  ApplicationStatus,
-  InvitationStatus,
   MyCampaignsStatusFilter,
 } from '../enums';
+import { ApplicationStatus } from '../applications/enums';
+import { InvitationStatus } from '../invitations/enums';
 import { CampaignListItemMapper, CampaignDetailMapper } from '../mappers';
 import { myCampaignsFilterToStatuses } from '../utils';
 import {
   GetNewCampaignsQueryDto,
   GetInfluencerMyCampaignsQueryDto,
-  GetInfluencerApplicationsQueryDto,
-  GetInfluencerInvitationsQueryDto,
 } from '../dto';
+import { GetInfluencerApplicationsQueryDto } from '../applications/dto';
+import { GetInfluencerInvitationsQueryDto } from '../invitations/dto';
 import {
   GetNewCampaignsResult,
   GetMyCampaignsResult,
-  GetInfluencerApplicationsResult,
-  GetInfluencerInvitationsResult,
   CampaignDetailResult,
 } from '../interfaces/influencer-campaign.interface';
+import { GetInfluencerApplicationsResult } from '../applications/interfaces';
+import { GetInfluencerInvitationsResult } from '../invitations/interfaces';
 
 @Injectable()
 export class InfluencerCampaignQueryService {
@@ -141,11 +141,15 @@ export class InfluencerCampaignQueryService {
     userId: string,
     query: GetInfluencerInvitationsQueryDto,
   ): Promise<GetInfluencerInvitationsResult> {
+    await this.cancelExpiredInvitationsForInfluencer(userId);
+
     const qb = this.invitationRepo
       .createQueryBuilder('inv')
       .innerJoinAndSelect('inv.campaign', 'campaign')
       .where('inv.influencerId = :userId', { userId })
-      .andWhere('inv.status = :invStatus', { invStatus: InvitationStatus.PENDING })
+      .andWhere('inv.status IN (:...invStatuses)', {
+        invStatuses: [InvitationStatus.PENDING, InvitationStatus.CANCELLED],
+      })
       .andWhere('campaign.status = :campaignStatus', { campaignStatus: CampaignStatus.IMPLEMENTATION });
 
     this.applyCommonFiltersOnAlias(qb, query);
@@ -162,6 +166,28 @@ export class InfluencerCampaignQueryService {
       ),
       pagination: { total, page: query.page, limit: query.limit },
     };
+  }
+
+  async cancelExpiredInvitationsForInfluencer(userId: string): Promise<void> {
+    await this.invitationRepo.query(
+      `UPDATE campaign_invited_influencers AS inv
+       SET status = $2, "updatedAt" = NOW()
+       FROM campaigns AS c
+       WHERE inv."campaignId" = c.id
+         AND inv."influencerId" = $1
+         AND inv.status = $3
+         AND c.status = $4
+         AND c."implementationStartDate" IS NOT NULL
+         AND c."implementationEndDate" IS NOT NULL
+         AND EXTRACT(EPOCH FROM (NOW() - c."implementationStartDate"::timestamp))
+             >= 0.75 * EXTRACT(EPOCH FROM (c."implementationEndDate"::timestamp - c."implementationStartDate"::timestamp))`,
+      [
+        userId,
+        InvitationStatus.CANCELLED,
+        InvitationStatus.PENDING,
+        CampaignStatus.IMPLEMENTATION,
+      ],
+    );
   }
 
   async getCampaignDetail(campaignId: string, userId: string): Promise<CampaignDetailResult> {

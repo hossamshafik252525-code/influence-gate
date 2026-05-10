@@ -1,13 +1,13 @@
 import { Campaign } from '../entities/campaign.entity';
-import { CampaignApplication } from '../entities/campaign-application.entity';
-import { CampaignInvitedInfluencer } from '../entities/campaign-invited-influencer.entity';
-import { ApplicationStatus } from '../enums';
+import { CampaignApplication } from '../applications/entities/campaign-application.entity';
+import { CampaignInvitedInfluencer } from '../invitations/entities/campaign-invited-influencer.entity';
+import { ApplicationStatus } from '../applications/enums';
 import {
   NewCampaignListItem,
   MyCampaignListItem,
-  InfluencerApplicationItem,
-  InfluencerInvitationItem,
 } from '../interfaces/influencer-campaign.interface';
+import { InfluencerApplicationItem } from '../applications/interfaces';
+import { InfluencerInvitationItem } from '../invitations/interfaces';
 import { resolveCampaignDeadline, resolveCampaignStatus } from '../utils';
 
 export class CampaignListItemMapper {

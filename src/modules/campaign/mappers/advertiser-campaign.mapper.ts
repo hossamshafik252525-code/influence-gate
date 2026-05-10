@@ -4,8 +4,8 @@ import {
   AdvertiserInvitedInfluencerItem,
   AdvertiserOrderedServiceItem,
 } from '../interfaces/advertiser-campaign.interface';
-import { CampaignInvitedInfluencer } from '../entities/campaign-invited-influencer.entity';
-import { CampaignInvitationService } from '../entities/campaign-invitation-service.entity';
+import { CampaignInvitedInfluencer } from '../invitations/entities/campaign-invited-influencer.entity';
+import { CampaignInvitationService } from '../invitations/entities/campaign-invitation-service.entity';
 
 export class AdvertiserCampaignMapper {
   static toResult(campaign: Campaign): AdvertiserCampaignResult {

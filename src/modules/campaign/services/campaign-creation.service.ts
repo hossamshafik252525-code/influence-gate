@@ -2,22 +2,18 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { Campaign } from '../entities/campaign.entity';
-import { CampaignInvitedInfluencer } from '../entities/campaign-invited-influencer.entity';
-import { CampaignInvitationService } from '../entities/campaign-invitation-service.entity';
+import { CampaignInvitedInfluencer } from '../invitations/entities/campaign-invited-influencer.entity';
+import { CampaignInvitationService } from '../invitations/entities/campaign-invitation-service.entity';
 import { InfluencerService as InfluencerServiceEntity } from '../../influencer/entities/influencer-service.entity';
 import { InfluencerProfile } from '../../influencer/entities/influencer-profile.entity';
-import {
-  CampaignStatus,
-  CampaignStep,
-  CampaignVisibility,
-  InvitationStatus,
-} from '../enums';
+import { CampaignStatus, CampaignStep, CampaignVisibility } from '../enums';
+import { InvitationStatus } from '../invitations/enums';
+import { InvitedInfluencerWithServicesDto } from '../invitations/dto';
 import {
   SaveCampaignInformationDto,
   SaveContentRequirementsDto,
   SaveInfluencerRequirementsDto,
   SaveCampaignBudgetDto,
-  InvitedInfluencerWithServicesDto,
 } from '../dto';
 import { CategoriesService } from '../../categories/categories.service';
 import { CloudinaryService } from '../../cloudinary/cloudinary.service';

@@ -1,8 +1,9 @@
 import { Campaign } from '../entities/campaign.entity';
-import { CampaignApplication } from '../entities/campaign-application.entity';
-import { CampaignInvitedInfluencer } from '../entities/campaign-invited-influencer.entity';
-import { CampaignSubmission } from '../entities/campaign-submission.entity';
-import { ApplicationStatus, CampaignVisibility } from '../enums';
+import { CampaignApplication } from '../applications/entities/campaign-application.entity';
+import { CampaignInvitedInfluencer } from '../invitations/entities/campaign-invited-influencer.entity';
+import { CampaignSubmission } from '../submissions/entities/campaign-submission.entity';
+import { CampaignVisibility } from '../enums';
+import { ApplicationStatus } from '../applications/enums';
 import {
   CampaignDetailResult,
   ApplicationSubmissionDetail,

@@ -2,12 +2,13 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Not } from 'typeorm';
 import { Campaign } from '../entities/campaign.entity';
-import { CampaignApplication } from '../entities/campaign-application.entity';
-import { CampaignStatus, ApplicationStatus } from '../enums';
+import { CampaignApplication } from '../applications/entities/campaign-application.entity';
+import { CampaignStatus } from '../enums';
+import { ApplicationStatus } from '../applications/enums';
 import { GetMyCampaignsQueryDto } from '../dto/get-my-campaigns-query.dto';
 import { PaginatedResult } from '../../../common/interfaces';
 import { InfluencerProfile } from '../../influencer/entities/influencer-profile.entity';
-import { GetApplicationsResult, CampaignApplicationItem } from '../interfaces/influencer-campaign.interface';
+import { GetApplicationsResult, CampaignApplicationItem } from '../applications/interfaces';
 
 export interface CampaignStatistics {
   totalCampaigns: number;

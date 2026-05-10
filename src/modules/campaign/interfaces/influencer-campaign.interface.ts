@@ -1,11 +1,11 @@
 import { TargetPlatform, ContentTypeOffer, ImplementationType } from '../../../common/enums';
 import {
   InfluencerType,
-  ApplicationStatus,
-  SubmissionStatus,
-  InvitationStatus,
   ResolvedCampaignStatus,
 } from '../enums';
+import { ApplicationStatus } from '../applications/enums';
+import { SubmissionStatus } from '../submissions/enums';
+import { InvitationStatus } from '../invitations/enums';
 import { PaginatedResult } from '../../../common/interfaces';
 
 export interface CampaignListItemBase {
@@ -24,25 +24,8 @@ export type NewCampaignListItem = CampaignListItemBase;
 
 export type MyCampaignListItem = CampaignListItemBase;
 
-export interface InfluencerApplicationItem {
-  id: string;
-  status: ApplicationStatus;
-  offerPrice: number | null;
-  createdAt: Date;
-  campaign: CampaignListItemBase;
-}
-
-export interface InfluencerInvitationItem {
-  id: string;
-  status: InvitationStatus;
-  createdAt: Date;
-  campaign: CampaignListItemBase;
-}
-
 export type GetNewCampaignsResult = PaginatedResult<NewCampaignListItem>;
 export type GetMyCampaignsResult = PaginatedResult<MyCampaignListItem>;
-export type GetInfluencerApplicationsResult = PaginatedResult<InfluencerApplicationItem>;
-export type GetInfluencerInvitationsResult = PaginatedResult<InfluencerInvitationItem>;
 
 export interface OrderedServiceDetail {
   id: string;
@@ -85,22 +68,3 @@ export interface CampaignDetailResult {
   submission?: ApplicationSubmissionDetail;
   invitation?: { id: string; status: InvitationStatus; orderedServices: OrderedServiceDetail[] };
 }
-
-export interface ApplicationInfluencerSummary {
-  fullName: string;
-  rating: number;
-  ratingCount: number;
-  completedCampaignsCount: number;
-}
-
-export interface CampaignApplicationItem {
-  id: string;
-  campaignId: string;
-  influencerId: string;
-  status: string;
-  createdAt: Date;
-  updatedAt: Date;
-  influencer: ApplicationInfluencerSummary;
-}
-
-export type GetApplicationsResult = PaginatedResult<CampaignApplicationItem>;

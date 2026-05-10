@@ -2,9 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { Campaign } from '../entities/campaign.entity';
-import { CampaignInvitedInfluencer } from '../entities/campaign-invited-influencer.entity';
-import { CampaignInvitationService } from '../entities/campaign-invitation-service.entity';
-import { CampaignStatus, InvitationStatus } from '../enums';
+import { CampaignInvitedInfluencer } from '../invitations/entities/campaign-invited-influencer.entity';
+import { CampaignInvitationService } from '../invitations/entities/campaign-invitation-service.entity';
+import { CampaignStatus } from '../enums';
+import { InvitationStatus } from '../invitations/enums';
 import { NotificationsService } from '../../notifications/services/notifications.service';
 import { NotificationType } from '../../notifications/enums';
 

@@ -3,9 +3,10 @@ import { AppModule } from './app.module';
 import { DataSource } from 'typeorm';
 import { User } from './modules/users/entities/user.entity';
 import { Campaign } from './modules/campaign/entities/campaign.entity';
-import { CampaignSubmission } from './modules/campaign/entities/campaign-submission.entity';
+import { CampaignSubmission } from './modules/campaign/submissions/entities/campaign-submission.entity';
 import { RatingService } from './modules/rating/services/rating.service';
-import { SubmissionStatus, CampaignStatus, CampaignStep } from './modules/campaign/enums';
+import { CampaignStatus, CampaignStep } from './modules/campaign/enums';
+import { SubmissionStatus } from './modules/campaign/submissions/enums';
 import { TargetPlatform } from './common/enums';
 import { Role } from './common/enums';
 

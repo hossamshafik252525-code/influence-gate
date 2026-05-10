@@ -1,13 +1,12 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Campaign } from './entities/campaign.entity';
-import { CampaignInvitedInfluencer } from './entities/campaign-invited-influencer.entity';
-import { CampaignInvitationService } from './entities/campaign-invitation-service.entity';
-import { CampaignApplication } from './entities/campaign-application.entity';
-import { CampaignSubmission } from './entities/campaign-submission.entity';
+import { CampaignInvitedInfluencer } from './invitations/entities/campaign-invited-influencer.entity';
+import { CampaignInvitationService } from './invitations/entities/campaign-invitation-service.entity';
+import { CampaignApplication } from './applications/entities/campaign-application.entity';
+import { CampaignSubmission } from './submissions/entities/campaign-submission.entity';
 import { AdvertiserCampaignController } from './controllers/advertiser-campaign.controller';
 import { AdminCampaignController } from './controllers/admin-campaign.controller';
-import { AdminOfferController } from './controllers/admin-offer.controller';
 import { InfluencerCampaignController } from './controllers/influencer-campaign.controller';
 import { CampaignCreationService } from './services/campaign-creation.service';
 import { CampaignSubmissionService } from './services/campaign-submission.service';
@@ -15,17 +14,7 @@ import { CampaignReviewService } from './services/campaign-review.service';
 import { CampaignLifecycleService } from './services/campaign-lifecycle.service';
 import { CampaignQueryService } from './services/campaign-query.service';
 import { InfluencerCampaignQueryService } from './services/influencer-campaign-query.service';
-import { CampaignApplicationService } from './services/campaign-application.service';
-import { CampaignApplicationReviewService } from './services/campaign-application-review.service';
-import { CampaignContentSubmissionService } from './services/campaign-content-submission.service';
-import { CampaignSubmissionReviewService } from './services/campaign-submission-review.service';
-import { CampaignSubmissionQueryService } from './services/campaign-submission-query.service';
-import { CampaignInvitationResponseService } from './services/campaign-invitation-response.service';
-import { CampaignApplicationWithdrawalService } from './services/campaign-application-withdrawal.service';
-import { AdminOfferQueryService } from './services/admin-offer-query.service';
-import { AdminOfferReviewService } from './services/admin-offer-review.service';
 import { PrivateCampaignLaunchService } from './services/private-campaign-launch.service';
-import { CampaignSubmissionDataService } from './services/campaign-submission-data.service';
 import { InfluencerProfile } from '../influencer/entities/influencer-profile.entity';
 import { InfluencerService as InfluencerServiceEntity } from '../influencer/entities/influencer-service.entity';
 import { NotificationsModule } from '../notifications/notifications.module';
@@ -34,6 +23,9 @@ import { CategoriesModule } from '../categories/categories.module';
 import { UsersModule } from '../users/users.module';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
 import { WalletModule } from '../wallet/wallet.module';
+import { InvitationsModule } from './invitations/invitations.module';
+import { ApplicationsModule } from './applications/applications.module';
+import { SubmissionsModule } from './submissions/submissions.module';
 
 @Module({
   imports: [
@@ -46,6 +38,9 @@ import { WalletModule } from '../wallet/wallet.module';
       InfluencerProfile,
       InfluencerServiceEntity,
     ]),
+    forwardRef(() => InvitationsModule),
+    forwardRef(() => ApplicationsModule),
+    forwardRef(() => SubmissionsModule),
     NotificationsModule,
     CloudinaryModule,
     CategoriesModule,
@@ -56,7 +51,6 @@ import { WalletModule } from '../wallet/wallet.module';
   controllers: [
     AdvertiserCampaignController,
     AdminCampaignController,
-    AdminOfferController,
     InfluencerCampaignController,
   ],
   providers: [
@@ -66,18 +60,15 @@ import { WalletModule } from '../wallet/wallet.module';
     CampaignLifecycleService,
     CampaignQueryService,
     InfluencerCampaignQueryService,
-    CampaignApplicationService,
-    CampaignApplicationReviewService,
-    CampaignContentSubmissionService,
-    CampaignSubmissionReviewService,
-    CampaignSubmissionQueryService,
-    CampaignInvitationResponseService,
-    CampaignApplicationWithdrawalService,
-    AdminOfferQueryService,
-    AdminOfferReviewService,
     PrivateCampaignLaunchService,
-    CampaignSubmissionDataService,
   ],
-  exports: [CampaignCreationService, CampaignQueryService, CampaignSubmissionDataService, TypeOrmModule],
+  exports: [
+    CampaignCreationService,
+    CampaignQueryService,
+    InfluencerCampaignQueryService,
+    ApplicationsModule,
+    SubmissionsModule,
+    TypeOrmModule,
+  ],
 })
 export class CampaignModule {}

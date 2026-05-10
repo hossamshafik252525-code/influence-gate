@@ -3,17 +3,17 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThanOrEqual } from 'typeorm';
 import { Cron } from '@nestjs/schedule';
 import { Campaign } from '../entities/campaign.entity';
-import { CampaignApplication } from '../entities/campaign-application.entity';
-import { CampaignInvitedInfluencer } from '../entities/campaign-invited-influencer.entity';
-import { CampaignSubmission } from '../entities/campaign-submission.entity';
+import { CampaignApplication } from '../applications/entities/campaign-application.entity';
+import { CampaignInvitedInfluencer } from '../invitations/entities/campaign-invited-influencer.entity';
+import { CampaignSubmission } from '../submissions/entities/campaign-submission.entity';
 import {
   CampaignStatus,
   PendingMinimumAction,
-  ApplicationStatus,
   CampaignVisibility,
-  InvitationStatus,
-  SubmissionStatus,
 } from '../enums';
+import { ApplicationStatus } from '../applications/enums';
+import { SubmissionStatus } from '../submissions/enums';
+import { InvitationStatus } from '../invitations/enums';
 import { ResolvePendingMinimumDto } from '../dto';
 import { NotificationsService } from '../../notifications/services/notifications.service';
 import { NotificationType } from '../../notifications/enums';

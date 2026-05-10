@@ -1,0 +1,43 @@
+import { Module, forwardRef } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Campaign } from '../entities/campaign.entity';
+import { CampaignApplication } from './entities/campaign-application.entity';
+import { CampaignInvitedInfluencer } from '../invitations/entities/campaign-invited-influencer.entity';
+import { AdminOfferController } from './controllers/admin-offer.controller';
+import { AdvertiserApplicationController } from './controllers/advertiser-application.controller';
+import { InfluencerApplicationController } from './controllers/influencer-application.controller';
+import { CampaignApplicationService } from './services/campaign-application.service';
+import { CampaignApplicationReviewService } from './services/campaign-application-review.service';
+import { CampaignApplicationWithdrawalService } from './services/campaign-application-withdrawal.service';
+import { AdminOfferQueryService } from './services/admin-offer-query.service';
+import { AdminOfferReviewService } from './services/admin-offer-review.service';
+import { NotificationsModule } from '../../notifications/notifications.module';
+import { WalletModule } from '../../wallet/wallet.module';
+import { CampaignModule } from '../campaign.module';
+
+@Module({
+  imports: [
+    TypeOrmModule.forFeature([
+      Campaign,
+      CampaignApplication,
+      CampaignInvitedInfluencer,
+    ]),
+    NotificationsModule,
+    WalletModule,
+    forwardRef(() => CampaignModule),
+  ],
+  controllers: [
+    AdminOfferController,
+    AdvertiserApplicationController,
+    InfluencerApplicationController,
+  ],
+  providers: [
+    CampaignApplicationService,
+    CampaignApplicationReviewService,
+    CampaignApplicationWithdrawalService,
+    AdminOfferQueryService,
+    AdminOfferReviewService,
+  ],
+  exports: [TypeOrmModule],
+})
+export class ApplicationsModule {}

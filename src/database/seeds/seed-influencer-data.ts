@@ -2,10 +2,10 @@ import { DataSource } from 'typeorm';
 import * as dotenv from 'dotenv';
 import { User } from '../../modules/users/entities/user.entity';
 import { Campaign } from '../../modules/campaign/entities/campaign.entity';
-import { CampaignApplication } from '../../modules/campaign/entities/campaign-application.entity';
-import { CampaignInvitedInfluencer } from '../../modules/campaign/entities/campaign-invited-influencer.entity';
-import { CampaignInvitationService } from '../../modules/campaign/entities/campaign-invitation-service.entity';
-import { CampaignSubmission } from '../../modules/campaign/entities/campaign-submission.entity';
+import { CampaignApplication } from '../../modules/campaign/applications/entities/campaign-application.entity';
+import { CampaignInvitedInfluencer } from '../../modules/campaign/invitations/entities/campaign-invited-influencer.entity';
+import { CampaignInvitationService } from '../../modules/campaign/invitations/entities/campaign-invitation-service.entity';
+import { CampaignSubmission } from '../../modules/campaign/submissions/entities/campaign-submission.entity';
 import { Wallet } from '../../modules/wallet/entities/wallet.entity';
 import { WalletTransaction } from '../../modules/wallet/entities/wallet-transaction.entity';
 import { Notification } from '../../modules/notifications/entities/notification.entity';
@@ -24,10 +24,10 @@ import {
   CampaignStep,
   CampaignVisibility,
   InfluencerType,
-  ApplicationStatus,
-  InvitationStatus,
-  SubmissionStatus,
 } from '../../modules/campaign/enums';
+import { ApplicationStatus } from '../../modules/campaign/applications/enums';
+import { SubmissionStatus } from '../../modules/campaign/submissions/enums';
+import { InvitationStatus } from '../../modules/campaign/invitations/enums';
 import { TransactionType, TransactionStatus } from '../../modules/wallet/enums';
 import { NotificationType } from '../../modules/notifications/enums';
 

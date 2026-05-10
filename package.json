@@ -26,7 +26,14 @@
     "seed:open-campaigns": "ts-node -r tsconfig-paths/register src/database/seeds/seed-open-campaigns.ts",
     "seed:partial-indexes": "ts-node -r tsconfig-paths/register src/database/seeds/seed-partial-indexes.ts",
     "seed:contact-us": "ts-node -r tsconfig-paths/register src/database/seeds/seed-contact-us.ts",
-    "seed:application-status-enum": "ts-node -r tsconfig-paths/register src/database/seeds/seed-application-status-enum.ts"
+    "seed:application-status-enum": "ts-node -r tsconfig-paths/register src/database/seeds/seed-application-status-enum.ts",
+    "seed:hossam-campaigns": "ts-node -r tsconfig-paths/register src/database/seeds/seed-hossam-campaigns.ts",
+    "seed:hossam-invitations": "ts-node -r tsconfig-paths/register src/database/seeds/seed-hossam-invitations.ts",
+    "seed:hossam-private-invitations": "ts-node -r tsconfig-paths/register src/database/seeds/seed-hossam-private-invitations.ts",
+    "seed:reset-hossam-pending-invitations": "ts-node -r tsconfig-paths/register src/database/seeds/reset-hossam-pending-invitations.ts",
+    "seed:hossam-mixed-campaigns": "ts-node -r tsconfig-paths/register src/database/seeds/seed-hossam-mixed-campaigns.ts",
+    "seed:hossam-public-campaigns": "ts-node -r tsconfig-paths/register src/database/seeds/seed-hossam-public-campaigns.ts",
+    "seed:professional-campaigns": "ts-node -r tsconfig-paths/register src/database/seeds/seed-professional-campaigns.ts"
   },
   "dependencies": {
     "@nestjs/axios": "^4.0.1",

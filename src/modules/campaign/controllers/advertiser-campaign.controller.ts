@@ -21,9 +21,6 @@ import { CampaignCreationService } from '../services/campaign-creation.service';
 import { CampaignSubmissionService } from '../services/campaign-submission.service';
 import { CampaignLifecycleService } from '../services/campaign-lifecycle.service';
 import { CampaignQueryService } from '../services/campaign-query.service';
-import { CampaignApplicationReviewService } from '../services/campaign-application-review.service';
-import { CampaignSubmissionQueryService } from '../services/campaign-submission-query.service';
-import { CampaignSubmissionReviewService } from '../services/campaign-submission-review.service';
 import {
   SaveCampaignInformationDto,
   SaveContentRequirementsDto,
@@ -31,12 +28,9 @@ import {
   SaveCampaignBudgetDto,
   ResolvePendingMinimumDto,
   GetMyCampaignsQueryDto,
-  ReviewApplicationDto,
-  ReviewSubmissionDto,
 } from '../dto';
 import { Campaign } from '../entities/campaign.entity';
 import { AdvertiserCampaignResult } from '../interfaces/advertiser-campaign.interface';
-import { PaginationDto } from '../../notifications/dto/pagination.dto';
 
 @Controller('campaigns/advertiser')
 @UseGuards(JwtAuthGuard, RolesStatusGuard)
@@ -48,9 +42,6 @@ export class AdvertiserCampaignController {
     private readonly campaignSubmissionService: CampaignSubmissionService,
     private readonly campaignLifecycleService: CampaignLifecycleService,
     private readonly campaignQueryService: CampaignQueryService,
-    private readonly campaignApplicationReviewService: CampaignApplicationReviewService,
-    private readonly campaignSubmissionQueryService: CampaignSubmissionQueryService,
-    private readonly campaignSubmissionReviewService: CampaignSubmissionReviewService,
   ) {}
 
   @Post('draft')
@@ -80,20 +71,6 @@ export class AdvertiserCampaignController {
     @AuthUser() user: User,
   ): Promise<Campaign> {
     return this.campaignQueryService.getCampaignById(id, user.id);
-  }
-
-  @Get(':id/applications')
-  getCampaignApplications(
-    @Param('id', ParseUUIDPipe) id: string,
-    @AuthUser() user: User,
-    @Query() query: PaginationDto,
-  ) {
-    return this.campaignQueryService.getCampaignApplications(
-      id,
-      user.id,
-      query.page,
-      query.limit,
-    );
   }
 
   @Patch(':id/step/information')
@@ -155,41 +132,5 @@ export class AdvertiserCampaignController {
       user.id,
       dto,
     );
-  }
-
-  @Patch('applications/:applicationId/review')
-  reviewApplication(
-    @Param('applicationId', ParseUUIDPipe) applicationId: string,
-    @AuthUser() user: User,
-    @Body() dto: ReviewApplicationDto,
-  ) {
-    return this.campaignApplicationReviewService.reviewApplication(
-      user.id,
-      applicationId,
-      dto,
-    );
-  }
-
-  @Get(':id/submissions')
-  getCampaignSubmissions(
-    @Param('id', ParseUUIDPipe) id: string,
-    @AuthUser() user: User,
-    @Query() query: PaginationDto,
-  ) {
-    return this.campaignSubmissionQueryService.getSubmissions(
-      user.id,
-      id,
-      query.page,
-      query.limit,
-    );
-  }
-
-  @Patch('submissions/:submissionId/review')
-  reviewSubmission(
-    @Param('submissionId', ParseUUIDPipe) submissionId: string,
-    @AuthUser() user: User,
-    @Body() dto: ReviewSubmissionDto,
-  ) {
-    return this.campaignSubmissionReviewService.reviewSubmission(user.id, submissionId, dto);
   }
 }
