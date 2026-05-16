@@ -10,6 +10,13 @@ export interface InfluencerProfileData {
   profileImageUrl: string | null;
   portfolioLink: string | null;
   categories: { id: string; name: string }[];
+  implementationType?: string | null;
+  contentType?: string | null;
+  description?: string | null;
+  price?: number | null;
+  implementationPeriodDays?: number | null;
+  includedPlatforms?: string[] | null;
+  previousWorkLink?: string | null;
   joiningDate: Date;
   createdAt: Date;
   updatedAt: Date;

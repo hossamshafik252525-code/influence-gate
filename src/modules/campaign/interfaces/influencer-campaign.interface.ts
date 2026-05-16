@@ -27,15 +27,6 @@ export type MyCampaignListItem = CampaignListItemBase;
 export type GetNewCampaignsResult = PaginatedResult<NewCampaignListItem>;
 export type GetMyCampaignsResult = PaginatedResult<MyCampaignListItem>;
 
-export interface OrderedServiceDetail {
-  id: string;
-  price: number;
-  implementationType: ImplementationType;
-  contentType: ContentTypeOffer;
-  description: string;
-  implementationPeriodDays: number;
-  includedPlatforms: TargetPlatform[];
-}
 
 export interface ApplicationSubmissionDetail {
   id: string;
@@ -66,5 +57,14 @@ export interface CampaignDetailResult {
   influencerType: InfluencerType;
   application?: { id: string; status: ApplicationStatus; offerPrice: number | null };
   submission?: ApplicationSubmissionDetail;
-  invitation?: { id: string; status: InvitationStatus; orderedServices: OrderedServiceDetail[] };
+  invitation?: {
+    id: string;
+    status: InvitationStatus;
+    price: number;
+    implementationType?: ImplementationType;
+    contentType?: ContentTypeOffer;
+    description?: string;
+    implementationPeriodDays?: number;
+    includedPlatforms?: TargetPlatform[];
+  };
 }

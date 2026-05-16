@@ -3,10 +3,8 @@ import * as dotenv from 'dotenv';
 import { User } from '../../modules/users/entities/user.entity';
 import { Campaign } from '../../modules/campaign/entities/campaign.entity';
 import { CampaignInvitedInfluencer } from '../../modules/campaign/invitations/entities/campaign-invited-influencer.entity';
-import { CampaignInvitationService } from '../../modules/campaign/invitations/entities/campaign-invitation-service.entity';
-import { Category } from '../../modules/categories/entities/category.entity';
 import { PlatformSetting } from '../../modules/platform-settings/entities/platform-setting.entity';
-import { InfluencerService } from '../../modules/influencer/entities/influencer-service.entity';
+import { Category } from '../../modules/categories/entities/category.entity';
 import {
   Role,
   UserStatus,
@@ -167,14 +165,9 @@ async function loadFeeMultiplier(): Promise<number> {
 }
 
 async function loadServicePrices(): Promise<Map<string, number>> {
-  const serviceRepo = dataSource.getRepository(InfluencerService);
   const map = new Map<string, number>();
   for (const id of SERVICE_IDS) {
-    const service = await serviceRepo.findOne({ where: { id } });
-    if (!service) {
-      throw new Error(`Influencer service ${id} not found in database`);
-    }
-    map.set(id, Number(service.price));
+    map.set(id, 2500);
   }
   return map;
 }
@@ -289,25 +282,18 @@ async function attachInvitation(
   servicePrices: Map<string, number>,
 ): Promise<void> {
   const invitationRepo = dataSource.getRepository(CampaignInvitedInfluencer);
-  const invitationServiceRepo = dataSource.getRepository(CampaignInvitationService);
+
+  const basePrice = serviceIds.reduce((sum, id) => sum + (servicePrices.get(id) ?? 0), 0);
+  const priceWithFee = Math.round(basePrice * feeMultiplier * 100) / 100;
 
   const invitation = invitationRepo.create({
     campaignId: campaign.id,
     influencerId,
+    basePrice,
+    priceWithFee,
   });
   const savedInvitation = await invitationRepo.save(invitation);
 
-  for (const serviceId of serviceIds) {
-    const basePrice = servicePrices.get(serviceId) ?? 0;
-    const priceWithFee = Math.round(basePrice * feeMultiplier * 100) / 100;
-    const row = invitationServiceRepo.create({
-      invitationId: savedInvitation.id,
-      serviceId,
-      basePrice,
-      priceWithFee,
-    });
-    await invitationServiceRepo.save(row);
-  }
 
   console.log(
     `    -> Invitation ${savedInvitation.id} attached for ${INFLUENCER_EMAIL} (${serviceIds.length} services)`,

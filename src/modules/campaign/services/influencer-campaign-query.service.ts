@@ -213,7 +213,7 @@ export class InfluencerCampaignQueryService {
       campaign.campaignVisibility === CampaignVisibility.PRIVATE
         ? this.invitationRepo.findOne({
             where: { campaignId, influencerId: userId },
-            relations: ['orderedServices', 'orderedServices.service'],
+            relations: ['influencer', 'influencer.influencerProfile'],
           })
         : Promise.resolve(null),
     ]);
@@ -274,15 +274,14 @@ export class InfluencerCampaignQueryService {
   ): Promise<{ contentTypes: string[]; platforms: string[]; categoryIds: string[] }> {
     const profile = await this.influencerProfileRepo.findOne({
       where: { userId },
-      relations: ['services', 'categories'],
+      relations: ['categories'],
     });
 
-    const services = profile?.services ?? [];
     const categories = profile?.categories ?? [];
 
     return {
-      contentTypes: [...new Set(services.map((s) => s.contentType as string))],
-      platforms: [...new Set(services.flatMap((s) => s.includedPlatforms as string[]))],
+      contentTypes: profile?.contentType ? [profile.contentType as string] : [],
+      platforms: profile?.includedPlatforms ? (profile.includedPlatforms as string[]) : [],
       categoryIds: [...new Set(categories.map((c) => c.categoryId))],
     };
   }

@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { Campaign } from '../entities/campaign.entity';
 import { CampaignInvitedInfluencer } from '../invitations/entities/campaign-invited-influencer.entity';
-import { CampaignInvitationService } from '../invitations/entities/campaign-invitation-service.entity';
+
 import { CampaignStatus } from '../enums';
 import { InvitationStatus } from '../invitations/enums';
 import { NotificationsService } from '../../notifications/services/notifications.service';
@@ -16,8 +16,7 @@ export class PrivateCampaignLaunchService {
     private readonly campaignRepo: Repository<Campaign>,
     @InjectRepository(CampaignInvitedInfluencer)
     private readonly invitationRepo: Repository<CampaignInvitedInfluencer>,
-    @InjectRepository(CampaignInvitationService)
-    private readonly invitationServiceRepo: Repository<CampaignInvitationService>,
+
     private readonly notificationsService: NotificationsService,
   ) {}
 
@@ -53,12 +52,7 @@ export class PrivateCampaignLaunchService {
       return { budget: 0, influencerPrice: 0 };
     }
 
-    const invitationIds = invitations.map((i) => i.id);
-    const rows = await this.invitationServiceRepo.find({
-      where: { invitationId: In(invitationIds) },
-    });
-
-    const total = rows.reduce((sum, row) => sum + Number(row.priceWithFee), 0);
+    const total = invitations.reduce((sum, inv) => sum + Number(inv.priceWithFee), 0);
     const budget = Math.round(total * 100) / 100;
     const influencerPrice =
       Math.round((budget / invitations.length) * 100) / 100;

@@ -3,7 +3,6 @@ import * as dotenv from 'dotenv';
 import { User } from '../../modules/users/entities/user.entity';
 import { Campaign } from '../../modules/campaign/entities/campaign.entity';
 import { CampaignInvitedInfluencer } from '../../modules/campaign/invitations/entities/campaign-invited-influencer.entity';
-import { CampaignInvitationService } from '../../modules/campaign/invitations/entities/campaign-invitation-service.entity';
 import { Category } from '../../modules/categories/entities/category.entity';
 import { PlatformSetting } from '../../modules/platform-settings/entities/platform-setting.entity';
 import {
@@ -187,7 +186,6 @@ async function attachInvitation(
   feeMultiplier: number,
 ): Promise<void> {
   const invitationRepo = dataSource.getRepository(CampaignInvitedInfluencer);
-  const invitationServiceRepo = dataSource.getRepository(CampaignInvitationService);
 
   const existing = await invitationRepo.findOne({
     where: { campaignId: campaign.id, influencerId },
@@ -198,24 +196,17 @@ async function attachInvitation(
     return;
   }
 
+  const selected = INFLUENCER_SERVICES.filter((s) => serviceIds.includes(s.id));
+  const basePrice = selected.reduce((sum, s) => sum + s.price, 0);
+  const priceWithFee = Math.round(basePrice * feeMultiplier * 100) / 100;
+
   const invitation = invitationRepo.create({
     campaignId: campaign.id,
     influencerId,
+    basePrice,
+    priceWithFee,
   });
-  const savedInvitation = await invitationRepo.save(invitation);
-
-  const selected = INFLUENCER_SERVICES.filter((s) => serviceIds.includes(s.id));
-
-  for (const service of selected) {
-    const priceWithFee = Math.round(service.price * feeMultiplier * 100) / 100;
-    const row = invitationServiceRepo.create({
-      invitationId: savedInvitation.id,
-      serviceId: service.id,
-      basePrice: service.price,
-      priceWithFee,
-    });
-    await invitationServiceRepo.save(row);
-  }
+  await invitationRepo.save(invitation);
 
   console.log(
     `  + Invitation attached to: ${campaign.name} (${selected.length} services)`,

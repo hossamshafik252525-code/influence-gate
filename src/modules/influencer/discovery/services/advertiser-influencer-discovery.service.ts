@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../../../users/entities/user.entity';
 import { InfluencerProfile } from '../../entities/influencer-profile.entity';
-import { InfluencerService } from '../../entities/influencer-service.entity';
+
 import { SocialPlatform } from '../../../social-linking/entities/social-platform.entity';
 import { CampaignApplication } from '../../../campaign/applications/entities/campaign-application.entity';
 import { CampaignInvitedInfluencer } from '../../../campaign/invitations/entities/campaign-invited-influencer.entity';
@@ -29,8 +29,7 @@ export class AdvertiserInfluencerDiscoveryService {
     private readonly userRepo: Repository<User>,
     @InjectRepository(InfluencerProfile)
     private readonly influencerProfileRepo: Repository<InfluencerProfile>,
-    @InjectRepository(InfluencerService)
-    private readonly influencerServiceRepo: Repository<InfluencerService>,
+
     @InjectRepository(SocialPlatform)
     private readonly socialPlatformRepo: Repository<SocialPlatform>,
     @InjectRepository(CampaignApplication)
@@ -51,17 +50,12 @@ export class AdvertiserInfluencerDiscoveryService {
     const qb = this.userRepo
       .createQueryBuilder('user')
       .innerJoinAndSelect('user.influencerProfile', 'profile')
-      .leftJoinAndSelect('profile.services', 'service')
+
       .leftJoinAndSelect('user.country', 'country')
       .leftJoinAndSelect('profile.categories', 'influencerCategory')
       .leftJoinAndSelect('influencerCategory.category', 'category')
       .where('user.role = :role', { role: Role.INFLUENCER })
-      .andWhere(
-        `EXISTS (
-          SELECT 1 FROM influencer_services s
-          WHERE s."influencerProfileId" = profile.id
-        )`,
-      )
+      .andWhere('profile.price IS NOT NULL')
       // .andWhere(   only on development and later i will delete this comments
       //   `EXISTS (
       //     SELECT 1 FROM social_platforms sp
@@ -89,7 +83,7 @@ export class AdvertiserInfluencerDiscoveryService {
     const user = await this.userRepo
       .createQueryBuilder('user')
       .innerJoinAndSelect('user.influencerProfile', 'profile')
-      .leftJoinAndSelect('profile.services', 'service')
+
       .leftJoinAndSelect('user.country', 'country')
       .leftJoinAndSelect('profile.categories', 'influencerCategory')
       .leftJoinAndSelect('influencerCategory.category', 'category')
@@ -125,7 +119,7 @@ export class AdvertiserInfluencerDiscoveryService {
     const source: InfluencerCardSource = {
       user,
       profile: user.influencerProfile,
-      services: user.influencerProfile.services ?? [],
+
       totalFollowers,
       completedCampaignsCount,
       feeMultiplier,
@@ -214,19 +208,14 @@ export class AdvertiserInfluencerDiscoveryService {
     }
 
     if (query.priceAverageFrom !== undefined || query.priceAverageTo !== undefined) {
-      const subQuery = `(
-        SELECT COALESCE(AVG(s.price * :feeMultiplier), 0)
-        FROM influencer_services s
-        WHERE s."influencerProfileId" = profile.id
-      )`;
       qb.setParameter('feeMultiplier', feeMultiplier);
       if (query.priceAverageFrom !== undefined) {
-        qb.andWhere(`${subQuery} >= :priceAverageFrom`, {
+        qb.andWhere(`(profile.price * :feeMultiplier) >= :priceAverageFrom`, {
           priceAverageFrom: query.priceAverageFrom,
         });
       }
       if (query.priceAverageTo !== undefined) {
-        qb.andWhere(`${subQuery} <= :priceAverageTo`, {
+        qb.andWhere(`(profile.price * :feeMultiplier) <= :priceAverageTo`, {
           priceAverageTo: query.priceAverageTo,
         });
       }

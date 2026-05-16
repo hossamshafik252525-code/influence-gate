@@ -4,12 +4,10 @@ import { User } from '../../modules/users/entities/user.entity';
 import { Campaign } from '../../modules/campaign/entities/campaign.entity';
 import { CampaignApplication } from '../../modules/campaign/applications/entities/campaign-application.entity';
 import { CampaignInvitedInfluencer } from '../../modules/campaign/invitations/entities/campaign-invited-influencer.entity';
-import { CampaignInvitationService } from '../../modules/campaign/invitations/entities/campaign-invitation-service.entity';
 import { CampaignSubmission } from '../../modules/campaign/submissions/entities/campaign-submission.entity';
 import { Wallet } from '../../modules/wallet/entities/wallet.entity';
 import { WalletTransaction } from '../../modules/wallet/entities/wallet-transaction.entity';
 import { Notification } from '../../modules/notifications/entities/notification.entity';
-import { InfluencerService } from '../../modules/influencer/entities/influencer-service.entity';
 import { InfluencerProfile } from '../../modules/influencer/entities/influencer-profile.entity';
 import { Category } from '../../modules/categories/entities/category.entity';
 import {
@@ -269,12 +267,10 @@ async function seed(): Promise<void> {
   const campaignRepo = dataSource.getRepository(Campaign);
   const applicationRepo = dataSource.getRepository(CampaignApplication);
   const invitationRepo = dataSource.getRepository(CampaignInvitedInfluencer);
-  const invitationServiceRepo = dataSource.getRepository(CampaignInvitationService);
+  const notificationRepo = dataSource.getRepository(Notification);
   const submissionRepo = dataSource.getRepository(CampaignSubmission);
   const walletRepo = dataSource.getRepository(Wallet);
   const transactionRepo = dataSource.getRepository(WalletTransaction);
-  const notificationRepo = dataSource.getRepository(Notification);
-  const influencerServiceRepo = dataSource.getRepository(InfluencerService);
   const influencerProfileRepo = dataSource.getRepository(InfluencerProfile);
   const categoryRepo = dataSource.getRepository(Category);
 
@@ -305,15 +301,7 @@ async function seed(): Promise<void> {
     where: { userId: influencer.id },
   });
 
-  const influencerServices = influencerProfile
-    ? await influencerServiceRepo.find({
-        where: { influencerProfileId: influencerProfile.id },
-      })
-    : [];
 
-  console.log(`✓ Influencer found: ${influencer.email} (id=${influencer.id})`);
-  console.log(`✓ Advertiser: ${advertiser.email}`);
-  console.log(`✓ Influencer services available: ${influencerServices.length}`);
 
   const createdPublicCampaigns: Campaign[] = [];
   for (const variant of publicCampaignSeeds) {
@@ -367,27 +355,18 @@ async function seed(): Promise<void> {
   for (let i = 0; i < createdPrivateCampaigns.length; i += 1) {
     const campaign = createdPrivateCampaigns[i];
     const status = invitationStatuses[i % invitationStatuses.length];
+    const basePrice = influencerProfile?.price ? Number(influencerProfile.price) : 500;
+    const priceWithFee = Math.round(basePrice * 1.1 * 100) / 100;
+    
     const invitation = invitationRepo.create({
       campaignId: campaign.id,
       influencerId: influencer.id,
       status,
+      basePrice,
+      priceWithFee,
     });
-    const savedInvitation = await invitationRepo.save(invitation);
+    await invitationRepo.save(invitation);
 
-    if (influencerServices.length > 0) {
-      const servicesToAttach = influencerServices.slice(0, 2);
-      for (const svc of servicesToAttach) {
-        const basePrice = Number(svc.price);
-        const priceWithFee = Math.round(basePrice * 1.1 * 100) / 100;
-        const invSvc = invitationServiceRepo.create({
-          invitationId: savedInvitation.id,
-          serviceId: svc.id,
-          basePrice,
-          priceWithFee,
-        });
-        await invitationServiceRepo.save(invSvc);
-      }
-    }
     console.log(`  + Invitation: ${campaign.name} → ${status}`);
   }
 
@@ -395,24 +374,17 @@ async function seed(): Promise<void> {
 
   if (createdImplementationCampaigns.length > 0) {
     const impCampaign = createdImplementationCampaigns[0];
+    const basePrice = influencerProfile?.price ? Number(influencerProfile.price) : 500;
+    const priceWithFee = Math.round(basePrice * 1.1 * 100) / 100;
+
     const impInvitation = invitationRepo.create({
       campaignId: impCampaign.id,
       influencerId: influencer.id,
       status: InvitationStatus.ACCEPTED,
+      basePrice,
+      priceWithFee,
     });
-    const savedImpInvitation = await invitationRepo.save(impInvitation);
-
-    if (influencerServices.length > 0) {
-      const svc = influencerServices[0];
-      const basePrice = Number(svc.price);
-      const invSvc = invitationServiceRepo.create({
-        invitationId: savedImpInvitation.id,
-        serviceId: svc.id,
-        basePrice,
-        priceWithFee: Math.round(basePrice * 1.1 * 100) / 100,
-      });
-      await invitationServiceRepo.save(invSvc);
-    }
+    await invitationRepo.save(impInvitation);
 
     const submissionAccepted = submissionRepo.create({
       campaignId: impCampaign.id,

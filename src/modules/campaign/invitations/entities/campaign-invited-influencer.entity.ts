@@ -12,7 +12,6 @@ import {
 } from 'typeorm';
 import { Campaign } from '../../entities/campaign.entity';
 import { User } from '../../../users/entities/user.entity';
-import { CampaignInvitationService } from './campaign-invitation-service.entity';
 import { InvitationStatus } from '../enums/invitation-status.enum';
 
 @Entity('campaign_invited_influencers')
@@ -39,12 +38,11 @@ export class CampaignInvitedInfluencer {
   @Column({ type: 'enum', enum: InvitationStatus, default: InvitationStatus.PENDING })
   status: InvitationStatus;
 
-  @OneToMany(
-    () => CampaignInvitationService,
-    (invitationService) => invitationService.invitation,
-    { cascade: true },
-  )
-  orderedServices: CampaignInvitationService[];
+  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
+  basePrice: number;
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
+  priceWithFee: number;
 
   @CreateDateColumn()
   createdAt: Date;

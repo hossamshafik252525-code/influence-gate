@@ -4,7 +4,7 @@ import { User } from '../../modules/users/entities/user.entity';
 import { Campaign } from '../../modules/campaign/entities/campaign.entity';
 import { CampaignApplication } from '../../modules/campaign/applications/entities/campaign-application.entity';
 import { CampaignInvitedInfluencer } from '../../modules/campaign/invitations/entities/campaign-invited-influencer.entity';
-import { CampaignInvitationService } from '../../modules/campaign/invitations/entities/campaign-invitation-service.entity';
+
 import { Category } from '../../modules/categories/entities/category.entity';
 import { PlatformSetting } from '../../modules/platform-settings/entities/platform-setting.entity';
 import {
@@ -184,7 +184,6 @@ async function loadFeeMultiplier(): Promise<number> {
 async function clearInfluencerData(influencerId: string): Promise<void> {
   const applicationRepo = dataSource.getRepository(CampaignApplication);
   const invitationRepo = dataSource.getRepository(CampaignInvitedInfluencer);
-  const invitationServiceRepo = dataSource.getRepository(CampaignInvitationService);
   const campaignRepo = dataSource.getRepository(Campaign);
 
   await applicationRepo.delete({ influencerId });
@@ -193,11 +192,6 @@ async function clearInfluencerData(influencerId: string): Promise<void> {
   const invitedCampaignIds = invitations.map((inv) => inv.campaignId);
 
   if (invitations.length > 0) {
-    await invitationServiceRepo
-      .createQueryBuilder()
-      .delete()
-      .where('invitationId IN (:...ids)', { ids: invitations.map((i) => i.id) })
-      .execute();
     await invitationRepo.delete({ influencerId });
   }
 
@@ -262,7 +256,6 @@ async function createPrivateCampaignsWithInvitations(
 ): Promise<void> {
   const campaignRepo = dataSource.getRepository(Campaign);
   const invitationRepo = dataSource.getRepository(CampaignInvitedInfluencer);
-  const invitationServiceRepo = dataSource.getRepository(CampaignInvitationService);
   const today = new Date();
 
   for (const seed of privateCampaignSeeds) {
@@ -300,23 +293,16 @@ async function createPrivateCampaignsWithInvitations(
     });
     const savedCampaign = await campaignRepo.save(campaign);
 
+    const basePrice = totalBase;
+    const priceWithFee = totalWithFee;
+
     const invitation = invitationRepo.create({
       campaignId: savedCampaign.id,
       influencerId,
+      basePrice,
+      priceWithFee,
     });
     const savedInvitation = await invitationRepo.save(invitation);
-
-    for (const service of selectedServices) {
-      const priceWithFee =
-        Math.round(service.price * feeMultiplier * 100) / 100;
-      const row = invitationServiceRepo.create({
-        invitationId: savedInvitation.id,
-        serviceId: service.id,
-        basePrice: service.price,
-        priceWithFee,
-      });
-      await invitationServiceRepo.save(row);
-    }
 
     console.log(
       `  + Private campaign + invitation created: ${seed.name} (${selectedServices.length} services)`,

@@ -259,12 +259,11 @@ export class CampaignLifecycleService {
   ): Promise<number> {
     const invitation = await this.invitationRepository.findOne({
       where: { campaignId, influencerId, status: InvitationStatus.ACCEPTED },
-      relations: ['orderedServices'],
     });
 
     if (!invitation) return 0;
 
-    return invitation.orderedServices.reduce((sum, s) => sum + Number(s.priceWithFee), 0);
+    return Number(invitation.priceWithFee);
   }
 
   private async cancelPendingInvitationsForCampaign(campaign: Campaign): Promise<void> {

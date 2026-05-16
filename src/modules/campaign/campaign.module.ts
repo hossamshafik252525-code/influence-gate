@@ -2,7 +2,6 @@ import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Campaign } from './entities/campaign.entity';
 import { CampaignInvitedInfluencer } from './invitations/entities/campaign-invited-influencer.entity';
-import { CampaignInvitationService } from './invitations/entities/campaign-invitation-service.entity';
 import { CampaignApplication } from './applications/entities/campaign-application.entity';
 import { CampaignSubmission } from './submissions/entities/campaign-submission.entity';
 import { AdvertiserCampaignController } from './controllers/advertiser-campaign.controller';
@@ -16,7 +15,6 @@ import { CampaignQueryService } from './services/campaign-query.service';
 import { InfluencerCampaignQueryService } from './services/influencer-campaign-query.service';
 import { PrivateCampaignLaunchService } from './services/private-campaign-launch.service';
 import { InfluencerProfile } from '../influencer/entities/influencer-profile.entity';
-import { InfluencerService as InfluencerServiceEntity } from '../influencer/entities/influencer-service.entity';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { CloudinaryModule } from '../cloudinary/cloudinary.module';
 import { CategoriesModule } from '../categories/categories.module';
@@ -32,11 +30,8 @@ import { SubmissionsModule } from './submissions/submissions.module';
     TypeOrmModule.forFeature([
       Campaign,
       CampaignInvitedInfluencer,
-      CampaignInvitationService,
-      CampaignApplication,
       CampaignSubmission,
       InfluencerProfile,
-      InfluencerServiceEntity,
     ]),
     forwardRef(() => InvitationsModule),
     forwardRef(() => ApplicationsModule),

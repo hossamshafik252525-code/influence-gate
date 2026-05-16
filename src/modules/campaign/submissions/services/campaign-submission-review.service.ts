@@ -117,11 +117,8 @@ export class CampaignSubmissionReviewService {
     } else {
       const invitation = await this.invitedInfluencerRepo.findOne({
         where: { campaignId: campaign.id, influencerId: submission.influencerId },
-        relations: ['orderedServices'],
       });
-      amount = invitation
-        ? invitation.orderedServices.reduce((sum, s) => sum + Number(s.priceWithFee), 0)
-        : 0;
+      amount = invitation ? Number(invitation.priceWithFee) : 0;
     }
 
     await this.walletTransactionService.createRevenueTransaction({

@@ -9,9 +9,10 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
-import { InfluencerService } from './influencer-service.entity';
+
 import { SocialPlatform } from '../../social-linking/entities/social-platform.entity';
 import { InfluencerCategory } from './influencer-category.entity';
+import { ImplementationType, ContentTypeOffer, TargetPlatform } from '../../../common/enums';
 
 @Entity('influencer_profiles')
 export class InfluencerProfile {
@@ -43,8 +44,26 @@ export class InfluencerProfile {
   @Column({ type: 'int', default: 0 })
   ratingCount: number;
 
-  @OneToMany(() => InfluencerService, (service) => service.influencerProfile)
-  services: InfluencerService[];
+  @Column({ type: 'enum', enum: ImplementationType, nullable: true })
+  implementationType: ImplementationType;
+
+  @Column({ type: 'enum', enum: ContentTypeOffer, nullable: true })
+  contentType: ContentTypeOffer;
+
+  @Column({ type: 'text', nullable: true })
+  description: string;
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  price: number;
+
+  @Column({ type: 'int', nullable: true })
+  implementationPeriodDays: number;
+
+  @Column({ type: 'jsonb', nullable: true })
+  includedPlatforms: TargetPlatform[];
+
+  @Column({ type: 'text', nullable: true })
+  previousWorkLink: string;
 
   @OneToMany(() => SocialPlatform, (sp) => sp.influencerProfile)
   socialPlatforms: SocialPlatform[];

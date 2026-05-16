@@ -1,4 +1,5 @@
-import { IsOptional, IsString, IsUUID, IsUrl, MaxLength, MinLength, IsArray } from 'class-validator';
+import { IsOptional, IsString, IsUUID, IsUrl, MaxLength, MinLength, IsArray, IsEnum, IsNumber, Min } from 'class-validator';
+import { ImplementationType, ContentTypeOffer, TargetPlatform } from '../../../../common/enums';
 
 export class UpdateInfluencerProfileDto {
   @IsOptional()
@@ -34,4 +35,35 @@ export class UpdateInfluencerProfileDto {
   @IsArray()
   @IsUUID('4', { each: true })
   categoryIds?: string[];
+
+  @IsOptional()
+  @IsEnum(ImplementationType)
+  implementationType?: ImplementationType;
+
+  @IsOptional()
+  @IsEnum(ContentTypeOffer)
+  contentType?: ContentTypeOffer;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  price?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  implementationPeriodDays?: number;
+
+  @IsOptional()
+  @IsArray()
+  @IsEnum(TargetPlatform, { each: true })
+  includedPlatforms?: TargetPlatform[];
+
+  @IsOptional()
+  @IsUrl({}, { message: 'رابط العمل السابق غير صالح' })
+  previousWorkLink?: string;
 }

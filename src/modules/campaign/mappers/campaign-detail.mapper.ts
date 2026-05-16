@@ -7,7 +7,6 @@ import { ApplicationStatus } from '../applications/enums';
 import {
   CampaignDetailResult,
   ApplicationSubmissionDetail,
-  OrderedServiceDetail,
 } from '../interfaces/influencer-campaign.interface';
 import { resolveCampaignDeadline, resolveCampaignStatus } from '../utils';
 
@@ -58,20 +57,16 @@ export class CampaignDetailMapper {
     }
 
     if (invitation) {
+      const profile = invitation.influencer?.influencerProfile;
       result.invitation = {
         id: invitation.id,
         status: invitation.status,
-        orderedServices: (invitation.orderedServices ?? []).map(
-          (os): OrderedServiceDetail => ({
-            id: os.id,
-            price: Number(os.basePrice),
-            implementationType: os.service?.implementationType,
-            contentType: os.service?.contentType,
-            description: os.service?.description,
-            implementationPeriodDays: os.service?.implementationPeriodDays,
-            includedPlatforms: os.service?.includedPlatforms,
-          }),
-        ),
+        price: Number(invitation.priceWithFee),
+        implementationType: profile?.implementationType,
+        contentType: profile?.contentType,
+        description: profile?.description,
+        implementationPeriodDays: profile?.implementationPeriodDays,
+        includedPlatforms: profile?.includedPlatforms,
       };
     }
 
@@ -84,13 +79,9 @@ export class CampaignDetailMapper {
   ): { influencerPrice: number } | { orderedServicesPrice: number } {
     if (
       campaign.campaignVisibility === CampaignVisibility.PRIVATE &&
-      invitation?.orderedServices?.length
+      invitation
     ) {
-      const total = invitation.orderedServices.reduce(
-        (sum, os) => sum + Number(os.basePrice),
-        0,
-      );
-      return { orderedServicesPrice: Math.round(total * 100) / 100 };
+      return { orderedServicesPrice: Number(invitation.priceWithFee) };
     }
     return { influencerPrice: Number(campaign.influencerPrice) };
   }

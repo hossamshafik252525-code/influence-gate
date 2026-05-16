@@ -4,7 +4,7 @@ import { Role, UserStatus } from '../enums';
 import { ROLES_KEY } from '../decorators/roles.decorator';
 import { STATUSES_KEY } from '../decorators/statuses.decorator';
 import { SocialLinkingService } from '../../modules/social-linking/social-linking.service';
-import { InfluencerServiceService } from '../../modules/influencer/services/services/influencer-service.service';
+import { InfluencerProfileService } from '../../modules/influencer/profile/services/influencer-profile.service';
 
 @Injectable()
 export class RolesStatusGuard implements CanActivate {
@@ -72,13 +72,13 @@ export class RolesStatusGuard implements CanActivate {
       throw new ForbiddenException('يجب ربط منصة واحدة على الأقل');
     }
 
-    const influencerServiceService = this.moduleRef.get(InfluencerServiceService, {
+    const profileService = this.moduleRef.get(InfluencerProfileService, {
       strict: false,
     });
-    const services = await influencerServiceService.findAllByUser(userId);
+    const profile = await profileService.getProfile(userId);
 
-    if (!services.length) {
-      throw new ForbiddenException('يجب إضافة خدمة واحدة على الأقل');
+    if (!profile.implementationType || !profile.price) {
+      throw new ForbiddenException('يجب إكمال الملف الشخصي وإضافة تفاصيل الخدمة أولاً');
     }
   }
 }

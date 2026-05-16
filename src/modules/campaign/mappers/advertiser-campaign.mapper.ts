@@ -2,10 +2,9 @@ import { Campaign } from '../entities/campaign.entity';
 import {
   AdvertiserCampaignResult,
   AdvertiserInvitedInfluencerItem,
-  AdvertiserOrderedServiceItem,
 } from '../interfaces/advertiser-campaign.interface';
 import { CampaignInvitedInfluencer } from '../invitations/entities/campaign-invited-influencer.entity';
-import { CampaignInvitationService } from '../invitations/entities/campaign-invitation-service.entity';
+
 
 export class AdvertiserCampaignMapper {
   static toResult(campaign: Campaign): AdvertiserCampaignResult {
@@ -28,27 +27,17 @@ export class AdvertiserCampaignMapper {
   private static toInvitedInfluencer(
     inv: CampaignInvitedInfluencer,
   ): AdvertiserInvitedInfluencerItem {
+    const profile = inv.influencer?.influencerProfile;
     return {
       id: inv.id,
       influencerId: inv.influencerId,
       status: inv.status,
-      orderedServices: (inv.orderedServices ?? []).map(
-        (os) => AdvertiserCampaignMapper.toOrderedService(os),
-      ),
-    };
-  }
-
-  private static toOrderedService(
-    os: CampaignInvitationService,
-  ): AdvertiserOrderedServiceItem {
-    return {
-      id: os.id,
-      price: Number(os.priceWithFee),
-      implementationType: os.service?.implementationType,
-      contentType: os.service?.contentType,
-      description: os.service?.description,
-      implementationPeriodDays: os.service?.implementationPeriodDays,
-      includedPlatforms: os.service?.includedPlatforms,
+      price: Number(inv.priceWithFee),
+      implementationType: profile?.implementationType,
+      contentType: profile?.contentType,
+      description: profile?.description,
+      implementationPeriodDays: profile?.implementationPeriodDays,
+      includedPlatforms: profile?.includedPlatforms,
     };
   }
 }

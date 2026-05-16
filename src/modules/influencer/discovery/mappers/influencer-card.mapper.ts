@@ -1,6 +1,5 @@
 import { User } from '../../../users/entities/user.entity';
 import { InfluencerProfile } from '../../entities/influencer-profile.entity';
-import { InfluencerService } from '../../entities/influencer-service.entity';
 import {
   InfluencerCard,
   InfluencerServiceCardItem,
@@ -9,7 +8,7 @@ import {
 export interface InfluencerCardSource {
   user: User;
   profile: InfluencerProfile;
-  services: InfluencerService[];
+
   totalFollowers: number;
   completedCampaignsCount: number;
   feeMultiplier: number;
@@ -17,13 +16,11 @@ export interface InfluencerCardSource {
 
 export class InfluencerCardMapper {
   static toCard(source: InfluencerCardSource): InfluencerCard {
-    const services = source.services.map((s) => this.toServiceItem(s, source.feeMultiplier));
-    const priceAverage =
-      services.length > 0
-        ? Math.round(
-            (services.reduce((sum, s) => sum + s.price, 0) / services.length) * 100,
-          ) / 100
-        : 0;
+    const services: InfluencerServiceCardItem[] = [];
+    if (source.profile.price != null) {
+      services.push(this.toServiceItem(source.profile, source.feeMultiplier));
+    }
+    const priceAverage = services.length > 0 ? services[0].price : 0;
 
     return {
       id: source.user.id,
@@ -45,19 +42,19 @@ export class InfluencerCardMapper {
   }
 
   private static toServiceItem(
-    service: InfluencerService,
+    profile: InfluencerProfile,
     feeMultiplier: number,
   ): InfluencerServiceCardItem {
-    const basePrice = Number(service.price);
+    const basePrice = Number(profile.price);
     const priceWithFee = Math.round(basePrice * feeMultiplier * 100) / 100;
     return {
-      id: service.id,
-      implementationType: service.implementationType,
-      contentType: service.contentType,
-      description: service.description,
-      price:priceWithFee,
-      implementationPeriodDays: service.implementationPeriodDays,
-      includedPlatforms: service.includedPlatforms,
+      id: profile.id,
+      implementationType: profile.implementationType,
+      contentType: profile.contentType,
+      description: profile.description,
+      price: priceWithFee,
+      implementationPeriodDays: profile.implementationPeriodDays,
+      includedPlatforms: profile.includedPlatforms,
     };
   }
 }

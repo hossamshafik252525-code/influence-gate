@@ -69,6 +69,13 @@ export class InfluencerProfileService {
         ?.map((ic) => ic.category)
         ?.filter(Boolean)
         ?.map((c) => ({ id: c.id, name: c.name })) ?? [],
+      implementationType: profile.implementationType ?? null,
+      contentType: profile.contentType ?? null,
+      description: profile.description ?? null,
+      price: profile.price ? Number(profile.price) : null,
+      implementationPeriodDays: profile.implementationPeriodDays ?? null,
+      includedPlatforms: profile.includedPlatforms ?? null,
+      previousWorkLink: profile.previousWorkLink ?? null,
       joiningDate: profile.user.createdAt,
       createdAt: profile.createdAt,
       updatedAt: profile.updatedAt,
@@ -131,6 +138,15 @@ export class InfluencerProfileService {
       profileUpdate.profileImageUrl = dto.profileImageUrl;
       profileUpdate.profileImagePublicId = dto.profileImagePublicId;
     }
+    
+    if (dto.implementationType !== undefined) profileUpdate.implementationType = dto.implementationType;
+    if (dto.contentType !== undefined) profileUpdate.contentType = dto.contentType;
+    if (dto.description !== undefined) profileUpdate.description = dto.description;
+    if (dto.price !== undefined) profileUpdate.price = dto.price;
+    if (dto.implementationPeriodDays !== undefined) profileUpdate.implementationPeriodDays = dto.implementationPeriodDays;
+    if (dto.includedPlatforms !== undefined) profileUpdate.includedPlatforms = dto.includedPlatforms;
+    if (dto.previousWorkLink !== undefined) profileUpdate.previousWorkLink = dto.previousWorkLink;
+
     if (Object.keys(profileUpdate).length > 0) {
       await this.influencerProfileRepo.update(profile.id, profileUpdate);
     }

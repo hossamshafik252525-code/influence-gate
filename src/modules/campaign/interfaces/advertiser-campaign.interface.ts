@@ -2,21 +2,18 @@ import { ImplementationType, ContentTypeOffer, TargetPlatform } from '../../../c
 import { CampaignStatus, CampaignStep, InfluencerType, CampaignVisibility } from '../enums';
 import { InvitationStatus } from '../invitations/enums';
 
-export interface AdvertiserOrderedServiceItem {
-  id: string;
-  price: number;
-  implementationType: ImplementationType;
-  contentType: ContentTypeOffer;
-  description: string;
-  implementationPeriodDays: number;
-  includedPlatforms: TargetPlatform[];
-}
+
 
 export interface AdvertiserInvitedInfluencerItem {
   id: string;
   influencerId: string;
   status: InvitationStatus;
-  orderedServices: AdvertiserOrderedServiceItem[];
+  price: number;
+  implementationType?: ImplementationType;
+  contentType?: ContentTypeOffer;
+  description?: string;
+  implementationPeriodDays?: number;
+  includedPlatforms?: TargetPlatform[];
 }
 
 export interface AdvertiserCampaignResult {
