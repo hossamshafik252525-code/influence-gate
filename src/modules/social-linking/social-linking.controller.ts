@@ -10,7 +10,7 @@ import { SocialLinkingService } from './social-linking.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { AuthUser } from '../../common/decorators/auth-user.decorator';
 import { User } from '../users/entities/user.entity';
-import { Platform } from '../../common/enums';
+
 
 @Controller('social')
 @UseGuards(JwtAuthGuard)
@@ -22,19 +22,19 @@ export class SocialLinkingController {
     return this.socialLinkingService.getLinkedPlatforms(user.id);
   }
 
-  @Post(':platform/refresh')
+  @Post(':id/refresh')
   refreshStats(
     @AuthUser() user: User,
-    @Param('platform') platform: Platform,
+    @Param('id') id: string,
   ) {
-    return this.socialLinkingService.refreshPlatformStats(user.id, platform);
+    return this.socialLinkingService.refreshPlatformStats(user.id, id);
   }
 
-  @Delete(':platform')
+  @Delete(':id')
   unlinkPlatform(
     @AuthUser() user: User,
-    @Param('platform') platform: Platform,
+    @Param('id') id: string,
   ) {
-    return this.socialLinkingService.unlinkPlatform(user.id, platform);
+    return this.socialLinkingService.unlinkPlatform(user.id, id);
   }
 }

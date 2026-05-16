@@ -59,10 +59,10 @@ export class SocialLinkingService {
     return this.socialPlatformRepo.count({ where: { influencerProfileId } });
   }
 
-  async refreshPlatformStats(userId: string, platform: Platform) {
+  async refreshPlatformStats(userId: string, socialPlatformId: string) {
     const influencerProfileId = await this.resolveProfileId(userId);
-    const record = await this.findPlatformOrFail(influencerProfileId, platform);
-    const strategy = this.resolveStrategy(platform);
+    const record = await this.findPlatformOrFail(influencerProfileId, socialPlatformId);
+    const strategy = this.resolveStrategy(record.platform);
 
     const refreshedToken = await strategy.refreshToken(record);
     record.accessToken = refreshedToken;
@@ -77,9 +77,9 @@ export class SocialLinkingService {
     return this.getLinkedPlatforms(userId);
   }
 
-  async unlinkPlatform(userId: string, platform: Platform) {
+  async unlinkPlatform(userId: string, socialPlatformId: string) {
     const influencerProfileId = await this.resolveProfileId(userId);
-    const record = await this.findPlatformOrFail(influencerProfileId, platform);
+    const record = await this.findPlatformOrFail(influencerProfileId, socialPlatformId);
     await this.socialPlatformRepo.remove(record);
     return { message: 'تم إلغاء ربط المنصة بنجاح' };
   }
@@ -134,10 +134,10 @@ export class SocialLinkingService {
 
   private async findPlatformOrFail(
     influencerProfileId: string,
-    platform: Platform,
+    socialPlatformId: string,
   ): Promise<SocialPlatform> {
     const record = await this.socialPlatformRepo.findOne({
-      where: { influencerProfileId, platform },
+      where: { id: socialPlatformId, influencerProfileId },
     });
 
     if (!record) {
