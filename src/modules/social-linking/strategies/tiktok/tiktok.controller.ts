@@ -1,82 +1,91 @@
-import { Controller, Get, Post, Body, Query, Res, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Query,
+  Res,
+  UseGuards,
+  UsePipes,
+  ValidationPipe,
+  Logger,
+} from '@nestjs/common';
 import type { Response } from 'express';
 import { TikTokStrategy } from './tiktok.strategy';
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import { AuthUser } from '../../../../common/decorators/auth-user.decorator';
 import { User } from '../../../users/entities/user.entity';
-import { TikTokCallbackDto } from '../../dto/tiktok-callback.dto';
 import { TikTokOAuthRedirectQueryDto } from '../../dto/tiktok-oauth-redirect-query.dto';
 
 @Controller('social/tiktok')
 export class TikTokController {
-  constructor(private readonly tiktokStrategy: TikTokStrategy) {}
+  private readonly logger = new Logger(TikTokController.name);
 
-  // @Get('callback')
-  // oauthRedirect(@Query() query: TikTokOAuthRedirectQueryDto, @Res() res: Response): void {
-  //   const html = TikTokController.buildOAuthResultPage(query);
-  //   res.type('html').charset('utf-8').send(html);
-  // }
+  constructor(private readonly tiktokStrategy: TikTokStrategy) {}
 
   @Get('auth-url')
   @UseGuards(JwtAuthGuard)
-  getAuthUrl(): { url: string } {
-    return this.tiktokStrategy.getAuthUrl();
+  getAuthUrl(@AuthUser() user: User): { url: string } {
+    return this.tiktokStrategy.getAuthUrl(user.id);
   }
 
-  @Post('link')
-  @UseGuards(JwtAuthGuard)
-  handleLink(@Body() dto: TikTokCallbackDto, @AuthUser() user: User): Promise<import('../../entities/social-platform.entity').SocialPlatform[]> {
-    return this.tiktokStrategy.handleCallback(dto.code, user.id);
+
+  @Get('callback')
+  @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
+  async handleCallback(
+    @Query() query: TikTokOAuthRedirectQueryDto,
+    @Res() res: Response,
+  ): Promise<void> {
+    if (query.error) {
+      this.logger.warn(
+        JSON.stringify({
+          event: 'tiktok_oauth_callback_denied',
+          error: query.error,
+          errorDescription: query.error_description,
+          state: query.state,
+        }),
+      );
+      return res.redirect(
+        this.tiktokStrategy.buildErrorDeepLink(
+          query.error_description ?? query.error ?? 'تم رفض الإذن',
+        ),
+      );
+    }
+
+    if (!query.code || !query.state) {
+      this.logger.warn(
+        JSON.stringify({
+          event: 'tiktok_oauth_callback_missing_params',
+          query,
+        }),
+      );
+      return res.redirect(
+        this.tiktokStrategy.buildErrorDeepLink('معاملات OAuth مفقودة'),
+      );
+    }
+
+    try {
+      await this.tiktokStrategy.handleCallback(query.code, query.state);
+
+      this.logger.log(
+        JSON.stringify({
+          event: 'tiktok_oauth_callback_success',
+          userId: query.state,
+        }),
+      );
+
+      return res.redirect(this.tiktokStrategy.buildSuccessDeepLink());
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : 'فشل في ربط حساب TikTok';
+
+      this.logger.error(
+        JSON.stringify({
+          event: 'tiktok_oauth_callback_error',
+          userId: query.state,
+          error: message,
+        }),
+      );
+
+      return res.redirect(this.tiktokStrategy.buildErrorDeepLink(message));
+    }
   }
-
-  private static buildOAuthResultPage(query: TikTokOAuthRedirectQueryDto): string {
-    const hasError = Boolean(query.error);
-    const hasCode = Boolean(query.code);
-    const title = hasError ? 'TikTok authorization' : hasCode ? 'TikTok connected' : 'TikTok authorization';
-    const headline = hasError
-      ? 'Authorization could not be completed'
-      : hasCode
-        ? 'Authorization succeeded'
-        : 'Return to the app';
-    const detail = hasError
-      ? escapeHtml(query.error_description ?? query.error ?? 'Unknown error')
-      : hasCode
-        ? 'You can close this window and return to the app to finish linking your account.'
-        : 'If your app does not update automatically, close this window and try again.';
-
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>${escapeHtml(title)}</title>
-  <style>
-    body { font-family: system-ui, sans-serif; margin: 2rem; line-height: 1.5; color: #111; }
-    h1 { font-size: 1.25rem; }
-    p { max-width: 36rem; }
-  </style>
-</head>
-<body>
-  <h1>${escapeHtml(headline)}</h1>
-  <p>${detail}</p>
-  <script>
-    (function () {
-      try {
-        if (window.flutter_inappwebview && window.flutter_inappwebview.callHandler) {
-          window.flutter_inappwebview.callHandler('tiktokOAuthFinished', ${hasError ? '{ ok: false }' : hasCode ? '{ ok: true }' : '{ ok: false }'});
-        }
-      } catch (e) {}
-    })();
-  </script>
-</body>
-</html>`;
-  }
-}
-
-function escapeHtml(raw: string): string {
-  return raw
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
 }

@@ -4,7 +4,6 @@ import { HttpService } from '@nestjs/axios';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { firstValueFrom } from 'rxjs';
-import { randomBytes } from 'crypto';
 import { SocialProviderStrategy } from '../../interfaces/social-provider.interface';
 import { SocialPlatform } from '../../entities/social-platform.entity';
 import { Platform } from '../../../../common/enums';
@@ -25,6 +24,7 @@ export class TikTokStrategy implements SocialProviderStrategy {
   private readonly clientSecret: string;
   private readonly callbackUrl: string;
   private readonly scopes: string;
+  private readonly deepLinkBase: string;
 
   private readonly basicFields: string = 'open_id,union_id,avatar_url,avatar_large_url,display_name';
   private readonly profileFields: string = 'bio_description,profile_deep_link,is_verified,username';
@@ -42,10 +42,10 @@ export class TikTokStrategy implements SocialProviderStrategy {
     this.clientSecret = this.configService.get<string>('tiktok.clientSecret');
     this.callbackUrl = this.configService.get<string>('tiktok.callbackUrl');
     this.scopes = this.configService.get<string>('tiktok.scopes') || 'user.info.basic';
+    this.deepLinkBase = this.configService.get<string>('tiktok.deepLinkBase') || 'influencegate://tiktok-success';
   }
 
-  getAuthUrl(): { url: string } {
-    const state = randomBytes(32).toString('base64url');
+  getAuthUrl(userId: string): { url: string } {
     const redirectUriEncoded = encodeURIComponent(this.callbackUrl);
 
     const url =
@@ -54,11 +54,12 @@ export class TikTokStrategy implements SocialProviderStrategy {
       `&scope=${this.scopes}` +
       `&response_type=code` +
       `&redirect_uri=${redirectUriEncoded}` +
-      `&state=${state}`;
+      `&state=${userId}`;
 
     this.logger.log(
       JSON.stringify({
         event: 'tiktok_oauth_auth_url_created',
+        userId,
         callbackUrl: this.callbackUrl,
         redirectUriEncoded,
         scopes: this.scopes,
@@ -66,6 +67,14 @@ export class TikTokStrategy implements SocialProviderStrategy {
     );
 
     return { url };
+  }
+
+  buildSuccessDeepLink(): string {
+    return `${this.deepLinkBase}?status=success`;
+  }
+
+  buildErrorDeepLink(message: string): string {
+    return `${this.deepLinkBase}?status=error&message=${encodeURIComponent(message)}`;
   }
 
   async handleCallback(code: string, userId: string): Promise<SocialPlatform[]> {

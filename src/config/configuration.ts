@@ -34,6 +34,7 @@ export default () => ({
     callbackUrl:
       process.env.TIKTOK_CALLBACK_URL || 'http://localhost:3005/api/social/tiktok/callback',
     scopes: process.env.TIKTOK_SCOPES || 'user.info.basic',
+    deepLinkBase: process.env.TIKTOK_DEEP_LINK_BASE || 'influencegate://tiktok-success',
   },
   cloudinary: {
     cloudName: process.env.CLOUDINARY_CLOUD_NAME || '',
