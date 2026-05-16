@@ -14,6 +14,7 @@ import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import { AuthUser } from '../../../../common/decorators/auth-user.decorator';
 import { User } from '../../../users/entities/user.entity';
 import { TikTokOAuthRedirectQueryDto } from '../../dto/tiktok-oauth-redirect-query.dto';
+import { buildRedirectHtml } from '../../utils/html-bridge.util';
 
 @Controller('social/tiktok')
 export class TikTokController {
@@ -43,11 +44,16 @@ export class TikTokController {
           state: query.state,
         }),
       );
-      return res.redirect(
-        this.tiktokStrategy.buildErrorDeepLink(
+      res.type('html').send(
+        buildRedirectHtml(
+          this.tiktokStrategy.buildErrorDeepLink(
+            query.error_description ?? query.error ?? 'تم رفض الإذن',
+          ),
+          true,
           query.error_description ?? query.error ?? 'تم رفض الإذن',
         ),
       );
+      return;
     }
 
     if (!query.code || !query.state) {
@@ -57,9 +63,14 @@ export class TikTokController {
           query,
         }),
       );
-      return res.redirect(
-        this.tiktokStrategy.buildErrorDeepLink('معاملات OAuth مفقودة'),
+      res.type('html').send(
+        buildRedirectHtml(
+          this.tiktokStrategy.buildErrorDeepLink('معاملات OAuth مفقودة'),
+          true,
+          'معاملات OAuth مفقودة',
+        ),
       );
+      return;
     }
 
     try {
@@ -72,7 +83,10 @@ export class TikTokController {
         }),
       );
 
-      return res.redirect(this.tiktokStrategy.buildSuccessDeepLink());
+      res.type('html').send(
+        buildRedirectHtml(this.tiktokStrategy.buildSuccessDeepLink(), false),
+      );
+      return;
     } catch (error: unknown) {
       const message =
         error instanceof Error ? error.message : 'فشل في ربط حساب TikTok';
@@ -85,7 +99,14 @@ export class TikTokController {
         }),
       );
 
-      return res.redirect(this.tiktokStrategy.buildErrorDeepLink(message));
+      res.type('html').send(
+        buildRedirectHtml(
+          this.tiktokStrategy.buildErrorDeepLink(message),
+          true,
+          message,
+        ),
+      );
+      return;
     }
   }
 }
