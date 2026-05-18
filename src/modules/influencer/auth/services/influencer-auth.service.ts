@@ -4,8 +4,6 @@ import {
   UnauthorizedException,
   ConflictException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import * as bcrypt from 'bcrypt';
@@ -26,7 +24,7 @@ import {
 import { Role, UserStatus } from '../../../../common/enums';
 import { NotificationType } from '../../../notifications/enums';
 import { User } from '../../../users/entities/user.entity';
-import { InfluencerProfile } from '../../entities/influencer-profile.entity';
+import { InfluencerProfileValidationService } from '../../profile/services/influencer-profile-validation.service';
 
 @Injectable()
 export class InfluencerAuthService {
@@ -35,8 +33,6 @@ export class InfluencerAuthService {
   private readonly SALT_ROUNDS = 10;
 
   constructor(
-    @InjectRepository(InfluencerProfile)
-    private readonly influencerProfileRepo: Repository<InfluencerProfile>,
     private readonly usersService: UsersService,
     private readonly redisService: RedisService,
     private readonly mailService: MailService,
@@ -44,6 +40,7 @@ export class InfluencerAuthService {
     private readonly httpService: HttpService,
     private readonly countriesService: CountriesService,
     private readonly notificationsService: NotificationsService,
+    private readonly influencerProfileValidationService: InfluencerProfileValidationService,
   ) {}
 
   async signup(dto: SignupDto): Promise<{ message: string }> {
@@ -113,7 +110,7 @@ export class InfluencerAuthService {
     });
 
     await this.redisService.del(`signup:${dto.email}`);
-    await this.ensureProfileExists(user.id);
+    await this.influencerProfileValidationService.ensureProfileExists(user.id);
 
     await this.notificationsService.notifyByRole(
       Role.ADMIN,
@@ -290,7 +287,7 @@ export class InfluencerAuthService {
       status: UserStatus.NOT_CONFIRMED,
     });
 
-    await this.ensureProfileExists(user.id);
+    await this.influencerProfileValidationService.ensureProfileExists(user.id);
 
     return {
       confirmed: false,
@@ -327,7 +324,7 @@ export class InfluencerAuthService {
       isLoggedIn: true,
     });
 
-    await this.ensureProfileExists(updatedUser.id);
+    await this.influencerProfileValidationService.ensureProfileExists(updatedUser.id);
 
     await this.notificationsService.notifyByRole(
       Role.ADMIN,
@@ -344,13 +341,6 @@ export class InfluencerAuthService {
       ...tokens,
       user: this.sanitizeUser(updatedUser),
     };
-  }
-
-  private async ensureProfileExists(userId: string): Promise<void> {
-    const existing = await this.influencerProfileRepo.findOne({ where: { userId } });
-    if (!existing) {
-      await this.influencerProfileRepo.save(this.influencerProfileRepo.create({ userId }));
-    }
   }
 
   private async fetchGoogleProfile(

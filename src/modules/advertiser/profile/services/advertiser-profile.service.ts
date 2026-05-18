@@ -2,7 +2,7 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UsersService } from '../../../users/users.service';
-import { CategoriesService } from '../../../categories/categories.service';
+import { CategoriesValidationService } from '../../../categories/categories-validation.service';
 import { CountriesService } from '../../../countries/countries.service';
 import { AdvertiserProfile } from '../../entities/advertiser-profile.entity';
 import { ConfirmAdvertiserProfileDto } from '../dto';
@@ -14,7 +14,7 @@ export class AdvertiserProfileService {
     @InjectRepository(AdvertiserProfile)
     private readonly advertiserProfileRepository: Repository<AdvertiserProfile>,
     private readonly usersService: UsersService,
-    private readonly categoriesService: CategoriesService,
+    private readonly categoriesValidationService: CategoriesValidationService,
     private readonly countriesService: CountriesService,
   ) {}
 
@@ -30,12 +30,15 @@ export class AdvertiserProfileService {
       throw new BadRequestException('الملف الشخصي غير موجود');
     }
 
-    await this.categoriesService.findOne(dto.categoryId);
+    const valid = await this.categoriesValidationService.allExist(dto.categoryIds);
+    if (!valid) {
+      throw new BadRequestException('إحدى الفئات المحددة غير موجودة');
+    }
     await this.countriesService.findOne(dto.countryId);
 
     const updateData: Partial<AdvertiserProfile> = {
       companyName: dto.companyName,
-      categoryId: dto.categoryId,
+      categoryIds: dto.categoryIds,
       companyWebsite: dto.companyWebsite,
       contentTypes: dto.contentTypes,
       targetPlatforms: dto.targetPlatforms,

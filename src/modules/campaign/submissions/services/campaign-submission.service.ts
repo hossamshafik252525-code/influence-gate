@@ -5,11 +5,11 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Campaign } from '../entities/campaign.entity';
-import { CampaignStatus, CampaignVisibility } from '../enums';
-import { NotificationsService } from '../../notifications/services/notifications.service';
-import { NotificationType } from '../../notifications/enums';
-import { Role } from '../../../common/enums';
+import { Campaign } from '../../entities/campaign.entity';
+import { CampaignStatus, CampaignVisibility } from '../../enums';
+import { NotificationsService } from '../../../notifications/services/notifications.service';
+import { NotificationType } from '../../../notifications/enums';
+import { Role } from '../../../../common/enums';
 
 @Injectable()
 export class CampaignSubmissionService {
@@ -51,7 +51,7 @@ export class CampaignSubmissionService {
   }
 
   private validateAllStepsCompleted(campaign: Campaign): void {
-    if (!campaign.name || !campaign.description || !campaign.categoryId) {
+    if (!campaign.name || !campaign.description || !campaign.categoryIds?.length) {
       throw new BadRequestException('يجب إكمال معلومات الحملة');
     }
 

@@ -7,6 +7,7 @@ import { ReviewCampaignDto } from '../dto';
 import { NotificationsService } from '../../notifications/services/notifications.service';
 import { NotificationType } from '../../notifications/enums';
 import { PrivateCampaignLaunchService } from './private-campaign-launch.service';
+import { InvitationsManagementService } from '../invitations/services/invitations-management.service';
 
 @Injectable()
 export class CampaignReviewService {
@@ -15,6 +16,7 @@ export class CampaignReviewService {
     private readonly campaignRepository: Repository<Campaign>,
     private readonly notificationsService: NotificationsService,
     private readonly privateCampaignLaunchService: PrivateCampaignLaunchService,
+    private readonly invitationsManagementService: InvitationsManagementService,
   ) {}
 
   async reviewCampaign(campaignId: string, dto: ReviewCampaignDto): Promise<Campaign> {
@@ -41,7 +43,7 @@ export class CampaignReviewService {
   async getPendingCampaigns(): Promise<Campaign[]> {
     return this.campaignRepository.find({
       where: { status: CampaignStatus.PENDING_REVIEW },
-      relations: ['advertiser', 'category'],
+      relations: ['advertiser'],
       order: { submittedAt: 'ASC' },
     });
   }
@@ -52,6 +54,7 @@ export class CampaignReviewService {
     });
 
     if (campaign.campaignVisibility === CampaignVisibility.PRIVATE) {
+      await this.invitationsManagementService.activateInvitations(campaign.id, campaign.name);
       await this.privateCampaignLaunchService.launchOnApproval(campaign);
 
       await this.notificationsService.notify(

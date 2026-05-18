@@ -13,7 +13,8 @@ import { Statuses } from '../../../common/decorators/statuses.decorator';
 import { AuthUser } from '../../../common/decorators/auth-user.decorator';
 import { Role, UserStatus } from '../../../common/enums';
 import { User } from '../../users/entities/user.entity';
-import { InfluencerCampaignQueryService } from '../services/influencer-campaign-query.service';
+import { CampaignQueryService } from '../services/campaign-query.service';
+import { InfluencerCampaignMapper } from '../mappers';
 import {
   GetNewCampaignsQueryDto,
   GetInfluencerMyCampaignsQueryDto,
@@ -25,30 +26,39 @@ import {
 @Statuses(UserStatus.PENDING, UserStatus.CONFIRMED)
 export class InfluencerCampaignController {
   constructor(
-    private readonly influencerCampaignQueryService: InfluencerCampaignQueryService,
+    private readonly campaignQueryService: CampaignQueryService,
   ) {}
 
   @Get('new')
-  getNewCampaigns(
+  async getNewCampaigns(
     @AuthUser() user: User,
     @Query() query: GetNewCampaignsQueryDto,
   ) {
-    return this.influencerCampaignQueryService.getNewCampaigns(user.id, query);
+    const result = await this.campaignQueryService.getNewCampaigns(user.id, query);
+    return {
+      data: result.data.map((c) => InfluencerCampaignMapper.toNewCampaignListItem(c)),
+      pagination: result.pagination,
+    };
   }
 
   @Get('my')
-  getMyCampaigns(
+  async getMyCampaigns(
     @AuthUser() user: User,
     @Query() query: GetInfluencerMyCampaignsQueryDto,
   ) {
-    return this.influencerCampaignQueryService.getMyCampaigns(user.id, query);
+    const result = await this.campaignQueryService.getInfluencerCampaigns(user.id, query);
+    return {
+      data: result.data.map((c) => InfluencerCampaignMapper.toMyCampaignListItem(c)),
+      pagination: result.pagination,
+    };
   }
 
   @Get('details/:id')
-  getCampaignDetail(
+  async getCampaignDetail(
     @AuthUser() user: User,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.influencerCampaignQueryService.getCampaignDetail(id, user.id);
+    const raw = await this.campaignQueryService.getCampaignDetail(id, user.id);
+    return InfluencerCampaignMapper.toCampaignDetail(raw.campaign, raw.categories, raw.application, raw.submission, raw.invitation);
   }
 }

@@ -1,4 +1,4 @@
-import { IsArray, IsEnum, IsNotEmpty, IsOptional, IsString, IsUUID, IsUrl } from 'class-validator';
+import { IsArray, IsEnum, IsNotEmpty, IsOptional, IsString, IsUUID, IsUrl, ArrayMinSize } from 'class-validator';
 import { ContentType, TargetPlatform, ExpectedBudget } from '../../../../common/enums';
 
 export class ConfirmAdvertiserProfileDto {
@@ -6,9 +6,10 @@ export class ConfirmAdvertiserProfileDto {
   @IsString()
   companyName: string;
 
-  @IsNotEmpty({ message: 'نوع النشاط مطلوب' })
-  @IsUUID()
-  categoryId: string;
+  @IsArray()
+  @ArrayMinSize(1, { message: 'يجب اختيار فئة واحدة على الأقل' })
+  @IsUUID('all', { each: true })
+  categoryIds: string[];
 
   @IsNotEmpty({ message: 'الدولة مطلوبة' })
   @IsUUID()

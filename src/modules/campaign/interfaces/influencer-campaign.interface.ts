@@ -7,6 +7,19 @@ import { ApplicationStatus } from '../applications/enums';
 import { SubmissionStatus } from '../submissions/enums';
 import { InvitationStatus } from '../invitations/enums';
 import { PaginatedResult } from '../../../common/interfaces';
+import { Campaign } from '../entities/campaign.entity';
+import { Category } from '../../categories/entities/category.entity';
+import { CampaignApplication } from '../applications/entities/campaign-application.entity';
+import { CampaignInvitedInfluencer } from '../invitations/entities/campaign-invited-influencer.entity';
+import { CampaignSubmission } from '../submissions/entities/campaign-submission.entity';
+
+export interface CampaignDetailRawResult {
+  campaign: Campaign;
+  categories: Category[];
+  application: CampaignApplication | null;
+  submission: CampaignSubmission | null;
+  invitation: CampaignInvitedInfluencer | null;
+}
 
 export interface CampaignListItemBase {
   id: string;
@@ -17,7 +30,6 @@ export interface CampaignListItemBase {
   relevantDeadline: Date | null;
   includedPlatforms: TargetPlatform[];
   contentTypes: ContentTypeOffer[];
-  influencerPrice: number;
 }
 
 export type NewCampaignListItem = CampaignListItemBase;
@@ -43,7 +55,7 @@ export interface CampaignDetailResult {
   status: ResolvedCampaignStatus;
   name: string;
   description: string;
-  category: { id: string; name: string } | null;
+  categories: { id: string; name: string }[];
   includedPlatforms: TargetPlatform[];
   contentTypes: ContentTypeOffer[];
   contentDescription: string;
@@ -51,7 +63,6 @@ export interface CampaignDetailResult {
   implementationType: ImplementationType;
   implementationPeriodDays: number;
   relevantDeadline: Date | null;
-  influencerPrice?: number;
   orderedServicesPrice?: number;
   requiredInfluencersCount: number;
   influencerType: InfluencerType;

@@ -8,8 +8,6 @@ import {
   ParseUUIDPipe,
   HttpCode,
   HttpStatus,
-  Inject,
-  forwardRef,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import { RolesStatusGuard } from '../../../../common/guards/auth.guard';
@@ -19,7 +17,8 @@ import { AuthUser } from '../../../../common/decorators/auth-user.decorator';
 import { Role, UserStatus } from '../../../../common/enums';
 import { User } from '../../../users/entities/user.entity';
 import { CampaignInvitationResponseService } from '../services/campaign-invitation-response.service';
-import { InfluencerCampaignQueryService } from '../../services/influencer-campaign-query.service';
+import { InfluencerInvitationQueryService } from '../services/influencer-invitation-query.service';
+import { InfluencerInvitationMapper } from '../mappers/influencer-invitation.mapper';
 import { GetInfluencerInvitationsQueryDto } from '../dto/get-influencer-invitations-query.dto';
 
 @Controller('campaigns/influencer')
@@ -29,16 +28,19 @@ import { GetInfluencerInvitationsQueryDto } from '../dto/get-influencer-invitati
 export class InfluencerInvitationController {
   constructor(
     private readonly campaignInvitationResponseService: CampaignInvitationResponseService,
-    @Inject(forwardRef(() => InfluencerCampaignQueryService))
-    private readonly influencerCampaignQueryService: InfluencerCampaignQueryService,
+    private readonly influencerInvitationQueryService: InfluencerInvitationQueryService,
   ) {}
 
   @Get('invitations')
-  getInvitations(
+  async getInvitations(
     @AuthUser() user: User,
     @Query() query: GetInfluencerInvitationsQueryDto,
   ) {
-    return this.influencerCampaignQueryService.getInvitations(user.id, query);
+    const result = await this.influencerInvitationQueryService.getInvitations(user.id, query);
+    return {
+      data: result.data.map((inv) => InfluencerInvitationMapper.toInvitationListItem(inv, inv.campaign)),
+      pagination: result.pagination,
+    };
   }
 
   @Post('invitations/:invitationId/accept')

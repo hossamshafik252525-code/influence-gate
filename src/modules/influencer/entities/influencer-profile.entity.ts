@@ -44,6 +44,9 @@ export class InfluencerProfile {
   @Column({ type: 'int', default: 0 })
   ratingCount: number;
 
+  @Column({ type: 'int', default: 0 })
+  completedCampaignsCount: number;
+
   @Column({ type: 'enum', enum: ImplementationType, nullable: true })
   implementationType: ImplementationType;
 

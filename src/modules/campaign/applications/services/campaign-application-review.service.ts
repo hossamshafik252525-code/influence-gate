@@ -68,6 +68,26 @@ export class CampaignApplicationReviewService {
   private async acceptApplication(
     application: CampaignApplication,
   ): Promise<void> {
+    const acceptedApplications = await this.applicationRepo.find({
+      where: {
+        campaignId: application.campaignId,
+        status: ApplicationStatus.ACCEPTED,
+      },
+    });
+
+    const currentTotalCost = acceptedApplications.reduce(
+      (sum, app) => sum + Number(app.priceWithFee || 0),
+      0,
+    );
+
+    const newTotalCost = currentTotalCost + Number(application.priceWithFee || 0);
+
+    if (newTotalCost > Number(application.campaign.budget || 0)) {
+      throw new BadRequestException(
+        'ميزانية الحملة لا تكفي لقبول هذا الطلب. يرجى زيادة ميزانية الحملة.',
+      );
+    }
+
     application.status = ApplicationStatus.ACCEPTED;
     await this.applicationRepo.save(application);
 

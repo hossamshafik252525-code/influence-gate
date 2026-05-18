@@ -18,19 +18,21 @@ import { AuthUser } from '../../../common/decorators/auth-user.decorator';
 import { Role, UserStatus } from '../../../common/enums';
 import { User } from '../../users/entities/user.entity';
 import { CampaignCreationService } from '../services/campaign-creation.service';
-import { CampaignSubmissionService } from '../services/campaign-submission.service';
-import { CampaignLifecycleService } from '../services/campaign-lifecycle.service';
+import { CampaignManagementService } from '../services/campaign-management.service';
+import { CampaignSubmissionService } from '../submissions/services/campaign-submission.service';
 import { CampaignQueryService } from '../services/campaign-query.service';
+import { AdvertiserCampaignMapper } from '../mappers/advertiser-campaign.mapper';
+import { CategoriesService } from '../../categories/categories.service';
 import {
   SaveCampaignInformationDto,
   SaveContentRequirementsDto,
   SaveInfluencerRequirementsDto,
   SaveCampaignBudgetDto,
   ResolvePendingMinimumDto,
-  GetMyCampaignsQueryDto,
+  GetAdvertiserMyCampaignsQueryDto,
 } from '../dto';
 import { Campaign } from '../entities/campaign.entity';
-import { AdvertiserCampaignResult } from '../interfaces/advertiser-campaign.interface';
+import { AdvertiserCampaignDetail } from '../interfaces/advertiser-campaign.interface';
 
 @Controller('campaigns/advertiser')
 @UseGuards(JwtAuthGuard, RolesStatusGuard)
@@ -39,14 +41,21 @@ import { AdvertiserCampaignResult } from '../interfaces/advertiser-campaign.inte
 export class AdvertiserCampaignController {
   constructor(
     private readonly campaignCreationService: CampaignCreationService,
+    private readonly campaignManagementService: CampaignManagementService,
     private readonly campaignSubmissionService: CampaignSubmissionService,
-    private readonly campaignLifecycleService: CampaignLifecycleService,
     private readonly campaignQueryService: CampaignQueryService,
+    private readonly categoriesService: CategoriesService,
   ) {}
 
+  private async mapDetail(campaign: Campaign): Promise<AdvertiserCampaignDetail> {
+    const categories = await this.categoriesService.findByIds(campaign.categoryIds ?? []);
+    return AdvertiserCampaignMapper.toCampaignDetail(campaign, categories);
+  }
+
   @Post('draft')
-  createDraft(@AuthUser() user: User): Promise<Campaign> {
-    return this.campaignCreationService.createDraft(user.id);
+  async createDraft(@AuthUser() user: User): Promise<AdvertiserCampaignDetail> {
+    const campaign = await this.campaignCreationService.createDraft(user.id);
+    return this.mapDetail(campaign);
   }
 
   @Delete(':id/draft')
@@ -54,83 +63,89 @@ export class AdvertiserCampaignController {
     @Param('id', ParseUUIDPipe) id: string,
     @AuthUser() user: User,
   ): Promise<void> {
-    return this.campaignCreationService.deleteDraft(id, user.id);
+    return this.campaignManagementService.deleteDraft(id, user.id);
   }
 
   @Get('my')
-  getMyCampaigns(
+  async getMyCampaigns(
     @AuthUser() user: User,
-    @Query() query: GetMyCampaignsQueryDto,
+    @Query() query: GetAdvertiserMyCampaignsQueryDto,
   ) {
-    return this.campaignQueryService.getMyCampaigns(user.id, query);
+    const { campaigns, categories, total } =
+      await this.campaignQueryService.getAdvertiserCampaigns(user.id, query);
+    return {
+      data: campaigns.map((c) =>
+        AdvertiserCampaignMapper.toCampaignListItem(c, categories),
+      ),
+      pagination: { total, page: query.page, limit: query.limit },
+    };
   }
 
   @Get(':id')
-  getCampaignById(
+  async getCampaignById(
     @Param('id', ParseUUIDPipe) id: string,
     @AuthUser() user: User,
-  ): Promise<Campaign> {
-    return this.campaignQueryService.getCampaignById(id, user.id);
+  ): Promise<AdvertiserCampaignDetail> {
+    const campaign = await this.campaignQueryService.getCampaignById(id, user.id);
+    return this.mapDetail(campaign);
   }
 
   @Patch(':id/step/information')
-  saveInformation(
+  async saveInformation(
     @Param('id', ParseUUIDPipe) id: string,
     @AuthUser() user: User,
     @Body() dto: SaveCampaignInformationDto,
-  ): Promise<Campaign> {
-    return this.campaignCreationService.saveInformation(id, user.id, dto);
+  ): Promise<AdvertiserCampaignDetail> {
+    const campaign = await this.campaignCreationService.saveInformation(id, user.id, dto);
+    return this.mapDetail(campaign);
   }
 
   @Patch(':id/step/content')
-  saveContentRequirements(
+  async saveContentRequirements(
     @Param('id', ParseUUIDPipe) id: string,
     @AuthUser() user: User,
     @Body() dto: SaveContentRequirementsDto,
-  ): Promise<Campaign> {
-    return this.campaignCreationService.saveContentRequirements(id, user.id, dto);
+  ): Promise<AdvertiserCampaignDetail> {
+    const campaign = await this.campaignCreationService.saveContentRequirements(id, user.id, dto);
+    return this.mapDetail(campaign);
   }
 
   @Patch(':id/step/influencers')
-  saveInfluencerRequirements(
+  async saveInfluencerRequirements(
     @Param('id', ParseUUIDPipe) id: string,
     @AuthUser() user: User,
     @Body() dto: SaveInfluencerRequirementsDto,
-  ): Promise<AdvertiserCampaignResult> {
-    return this.campaignCreationService.saveInfluencerRequirements(
-      id,
-      user.id,
-      dto,
-    );
+  ): Promise<AdvertiserCampaignDetail> {
+    const campaign = await this.campaignCreationService.saveInfluencerRequirements(id, user.id, dto);
+    return this.mapDetail(campaign);
   }
 
   @Patch(':id/step/budget')
-  saveBudget(
+  async saveBudget(
     @Param('id', ParseUUIDPipe) id: string,
     @AuthUser() user: User,
     @Body() dto: SaveCampaignBudgetDto,
-  ): Promise<Campaign> {
-    return this.campaignCreationService.saveBudget(id, user.id, dto);
+  ): Promise<AdvertiserCampaignDetail> {
+    const campaign = await this.campaignCreationService.saveBudget(id, user.id, dto);
+    return this.mapDetail(campaign);
   }
 
   @Post(':id/submit')
-  submitForReview(
+  async submitForReview(
     @Param('id', ParseUUIDPipe) id: string,
     @AuthUser() user: User,
-  ): Promise<Campaign> {
-    return this.campaignSubmissionService.submitForReview(id, user.id);
+  ): Promise<AdvertiserCampaignDetail> {
+    const campaign = await this.campaignSubmissionService.submitForReview(id, user.id);
+    return this.mapDetail(campaign);
   }
 
   @Post(':id/resolve-pending')
-  resolvePendingMinimum(
+  async resolvePendingMinimum(
     @Param('id', ParseUUIDPipe) id: string,
     @AuthUser() user: User,
     @Body() dto: ResolvePendingMinimumDto,
-  ): Promise<Campaign> {
-    return this.campaignLifecycleService.resolvePendingMinimum(
-      id,
-      user.id,
-      dto,
-    );
+  ): Promise<AdvertiserCampaignDetail> {
+    const campaign = await this.campaignManagementService.resolvePendingMinimum(id, user.id, dto);
+    return this.mapDetail(campaign);
   }
 }

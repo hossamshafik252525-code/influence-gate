@@ -33,7 +33,7 @@ export class AdminOfferQueryService {
       .getManyAndCount();
 
     const data: AdminPendingOfferItem[] = applications.map((app) => {
-      const influencerPrice = Number(app.campaign.influencerPrice ?? 0);
+      const influencerPrice = Number(app.basePrice ?? 0);
       const offerPrice = Number(app.offerPrice ?? 0);
       return {
         applicationId: app.id,

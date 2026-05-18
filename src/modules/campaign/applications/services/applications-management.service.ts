@@ -13,18 +13,23 @@ import { ApplicationStatus } from '../enums';
 import { Role } from '../../../../common/enums';
 import { NotificationsService } from '../../../notifications/services/notifications.service';
 import { NotificationType } from '../../../notifications/enums';
+import { InfluencerProfile } from '../../../influencer/entities/influencer-profile.entity';
+import { PlatformSettingsService } from '../../../platform-settings/platform-settings.service';
 
 @Injectable()
-export class CampaignApplicationService {
+export class ApplicationsManagementService {
   constructor(
     @InjectRepository(Campaign)
     private readonly campaignRepo: Repository<Campaign>,
     @InjectRepository(CampaignApplication)
     private readonly applicationRepo: Repository<CampaignApplication>,
+    @InjectRepository(InfluencerProfile)
+    private readonly influencerProfileRepo: Repository<InfluencerProfile>,
     private readonly notificationsService: NotificationsService,
+    private readonly platformSettingsService: PlatformSettingsService,
   ) {}
 
-  async applyToCampaign(
+  async createApplication(
     influencerId: string,
     campaignId: string,
     offer?: number,
@@ -69,15 +74,25 @@ export class CampaignApplicationService {
       );
     }
 
+    const profile = await this.influencerProfileRepo.findOne({
+      where: { userId: influencerId },
+    });
+
+    if (!profile || !profile.price) {
+      throw new BadRequestException('يجب تحديد سعر الخدمة في ملفك الشخصي قبل التقديم');
+    }
+
+    const basePrice = Number(profile.price);
+    const feePercentage = await this.platformSettingsService.getPlatformFeePercentage();
+    const feeMultiplier = 1 + feePercentage / 100;
+    const priceWithFee = Math.round(basePrice * feeMultiplier * 100) / 100;
+
     const hasOffer = offer !== undefined && offer !== null;
 
     if (hasOffer) {
-      if (campaign.influencerPrice === null || campaign.influencerPrice === undefined) {
-        throw new BadRequestException('لا يمكن تقديم عرض على هذه الحملة');
-      }
-      if (offer >= Number(campaign.influencerPrice)) {
+      if (offer >= basePrice) {
         throw new BadRequestException(
-          'قيمة العرض يجب أن تكون أقل من السعر المحدد للمؤثر',
+          'قيمة العرض يجب أن تكون أقل من سعر الخدمة الأساسي الخاص بك',
         );
       }
     }
@@ -89,6 +104,8 @@ export class CampaignApplicationService {
         ? ApplicationStatus.PENDING_ADMIN_APPROVAL
         : ApplicationStatus.PENDING,
       offerPrice: hasOffer ? offer : null,
+      basePrice,
+      priceWithFee,
     });
 
     const savedApplication = await this.applicationRepo.save(application);

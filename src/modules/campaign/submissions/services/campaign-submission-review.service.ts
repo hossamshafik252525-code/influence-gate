@@ -18,6 +18,7 @@ import { NotificationsService } from '../../../notifications/services/notificati
 import { NotificationType } from '../../../notifications/enums';
 import { WalletTransactionService } from '../../../wallet/services/wallet-transaction.service';
 import { TransactionStatus } from '../../../wallet/enums';
+import { CampaignRecordService } from '../../services/campaign-record.service';
 
 @Injectable()
 export class CampaignSubmissionReviewService {
@@ -32,6 +33,7 @@ export class CampaignSubmissionReviewService {
     private readonly invitedInfluencerRepo: Repository<CampaignInvitedInfluencer>,
     private readonly notificationsService: NotificationsService,
     private readonly walletTransactionService: WalletTransactionService,
+    private readonly campaignRecordService: CampaignRecordService,
   ) {}
 
   async reviewSubmission(
@@ -103,6 +105,7 @@ export class CampaignSubmissionReviewService {
     if (dto.status === SubmissionStatus.ACCEPTED) {
       await this.generateRevenueTransaction(submission);
       await this.checkAndCompleteCampaign(submission.campaignId);
+      await this.campaignRecordService.recordCompletedCampaignForInfluencer(submission.influencerId);
     }
   }
 
@@ -113,7 +116,10 @@ export class CampaignSubmissionReviewService {
     let amount: number;
 
     if (campaign.campaignVisibility === CampaignVisibility.PUBLIC) {
-      amount = Number(campaign.influencerPrice);
+      const application = await this.applicationRepo.findOne({
+        where: { campaignId: campaign.id, influencerId: submission.influencerId, status: ApplicationStatus.ACCEPTED },
+      });
+      amount = application ? Number(application.priceWithFee) : 0;
     } else {
       const invitation = await this.invitedInfluencerRepo.findOne({
         where: { campaignId: campaign.id, influencerId: submission.influencerId },

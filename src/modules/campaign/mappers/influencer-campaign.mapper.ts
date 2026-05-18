@@ -2,17 +2,29 @@ import { Campaign } from '../entities/campaign.entity';
 import { CampaignApplication } from '../applications/entities/campaign-application.entity';
 import { CampaignInvitedInfluencer } from '../invitations/entities/campaign-invited-influencer.entity';
 import { CampaignSubmission } from '../submissions/entities/campaign-submission.entity';
+import { Category } from '../../categories/entities/category.entity';
 import { CampaignVisibility } from '../enums';
 import { ApplicationStatus } from '../applications/enums';
 import {
+  NewCampaignListItem,
+  MyCampaignListItem,
   CampaignDetailResult,
   ApplicationSubmissionDetail,
 } from '../interfaces/influencer-campaign.interface';
 import { resolveCampaignDeadline, resolveCampaignStatus } from '../utils';
 
-export class CampaignDetailMapper {
-  static toDetail(
+export class InfluencerCampaignMapper {
+  static toNewCampaignListItem(campaign: Campaign): NewCampaignListItem {
+    return InfluencerCampaignMapper.toCampaignListItemBase(campaign);
+  }
+
+  static toMyCampaignListItem(campaign: Campaign): MyCampaignListItem {
+    return InfluencerCampaignMapper.toCampaignListItemBase(campaign);
+  }
+
+  static toCampaignDetail(
     campaign: Campaign,
+    categories: Category[],
     application: CampaignApplication | null,
     submission: CampaignSubmission | null,
     invitation: CampaignInvitedInfluencer | null,
@@ -23,9 +35,7 @@ export class CampaignDetailMapper {
       status: resolveCampaignStatus(campaign.status),
       name: campaign.name,
       description: campaign.description,
-      category: campaign.category
-        ? { id: campaign.category.id, name: campaign.category.name }
-        : null,
+      categories: categories.map((c) => ({ id: c.id, name: c.name })),
       includedPlatforms: campaign.includedPlatforms,
       contentTypes: campaign.contentTypes,
       contentDescription: campaign.contentDescription,
@@ -35,7 +45,7 @@ export class CampaignDetailMapper {
       relevantDeadline: resolveCampaignDeadline(campaign),
       requiredInfluencersCount: campaign.requiredInfluencersCount,
       influencerType: campaign.influencerType,
-      ...CampaignDetailMapper.resolvePrice(campaign, invitation),
+      ...InfluencerCampaignMapper.resolveOrderedServicesPrice(campaign, invitation),
     };
 
     if (application) {
@@ -53,7 +63,7 @@ export class CampaignDetailMapper {
     }
 
     if (submission) {
-      result.submission = CampaignDetailMapper.mapSubmission(submission);
+      result.submission = InfluencerCampaignMapper.toSubmissionDetail(submission);
     }
 
     if (invitation) {
@@ -73,20 +83,30 @@ export class CampaignDetailMapper {
     return result;
   }
 
-  private static resolvePrice(
-    campaign: Campaign,
-    invitation: CampaignInvitedInfluencer | null,
-  ): { influencerPrice: number } | { orderedServicesPrice: number } {
-    if (
-      campaign.campaignVisibility === CampaignVisibility.PRIVATE &&
-      invitation
-    ) {
-      return { orderedServicesPrice: Number(invitation.priceWithFee) };
-    }
-    return { influencerPrice: Number(campaign.influencerPrice) };
+  static toCampaignListItemBase(campaign: Campaign): NewCampaignListItem {
+    return {
+      id: campaign.id,
+      campaignNumber: campaign.campaignNumber,
+      name: campaign.name,
+      description: campaign.description,
+      status: resolveCampaignStatus(campaign.status),
+      relevantDeadline: resolveCampaignDeadline(campaign),
+      includedPlatforms: campaign.includedPlatforms,
+      contentTypes: campaign.contentTypes,
+    };
   }
 
-  private static mapSubmission(submission: CampaignSubmission): ApplicationSubmissionDetail {
+  private static resolveOrderedServicesPrice(
+    campaign: Campaign,
+    invitation: CampaignInvitedInfluencer | null,
+  ): { orderedServicesPrice?: number } {
+    if (campaign.campaignVisibility === CampaignVisibility.PRIVATE && invitation) {
+      return { orderedServicesPrice: Number(invitation.priceWithFee) };
+    }
+    return {};
+  }
+
+  private static toSubmissionDetail(submission: CampaignSubmission): ApplicationSubmissionDetail {
     return {
       id: submission.id,
       status: submission.status,

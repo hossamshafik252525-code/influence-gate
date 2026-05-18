@@ -10,7 +10,6 @@ import {
   Index,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
-import { Category } from '../../categories/entities/category.entity';
 import { CampaignInvitedInfluencer } from '../invitations/entities/campaign-invited-influencer.entity';
 import { CampaignApplication } from '../applications/entities/campaign-application.entity';
 import { ImplementationType, ContentTypeOffer } from '../../../common/enums';
@@ -46,12 +45,8 @@ export class Campaign {
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  @Column({ nullable: true })
-  categoryId: string;
-
-  @ManyToOne(() => Category, { nullable: true, onDelete: 'SET NULL' })
-  @JoinColumn({ name: 'categoryId' })
-  category: Category;
+  @Column({ type: 'jsonb', nullable: true })
+  categoryIds: string[];
 
   @Column({ type: 'jsonb', nullable: true })
   includedPlatforms: TargetPlatform[];
@@ -88,9 +83,6 @@ export class Campaign {
 
   @Column({ type: 'decimal', precision: 12, scale: 2, nullable: true })
   budget: number;
-
-  @Column({ type: 'decimal', precision: 12, scale: 2, nullable: true })
-  influencerPrice: number;
 
   @Column({ type: 'timestamp', nullable: true })
   submittedAt: Date;

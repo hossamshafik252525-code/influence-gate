@@ -7,8 +7,6 @@ import {
   Query,
   UseGuards,
   ParseUUIDPipe,
-  Inject,
-  forwardRef,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import { RolesStatusGuard } from '../../../../common/guards/auth.guard';
@@ -18,7 +16,7 @@ import { AuthUser } from '../../../../common/decorators/auth-user.decorator';
 import { Role, UserStatus } from '../../../../common/enums';
 import { User } from '../../../users/entities/user.entity';
 import { CampaignApplicationReviewService } from '../services/campaign-application-review.service';
-import { CampaignQueryService } from '../../services/campaign-query.service';
+import { AdvertiserApplicationQueryService } from '../services/advertiser-application-query.service';
 import { ReviewApplicationDto } from '../dto/review-application.dto';
 import { PaginationDto } from '../../../notifications/dto/pagination.dto';
 
@@ -29,8 +27,7 @@ import { PaginationDto } from '../../../notifications/dto/pagination.dto';
 export class AdvertiserApplicationController {
   constructor(
     private readonly campaignApplicationReviewService: CampaignApplicationReviewService,
-    @Inject(forwardRef(() => CampaignQueryService))
-    private readonly campaignQueryService: CampaignQueryService,
+    private readonly advertiserApplicationQueryService: AdvertiserApplicationQueryService,
   ) {}
 
   @Get(':id/applications')
@@ -39,7 +36,7 @@ export class AdvertiserApplicationController {
     @AuthUser() user: User,
     @Query() query: PaginationDto,
   ) {
-    return this.campaignQueryService.getCampaignApplications(
+    return this.advertiserApplicationQueryService.getCampaignApplications(
       id,
       user.id,
       query.page,

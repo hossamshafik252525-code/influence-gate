@@ -4,6 +4,7 @@ import {
   IsUUID,
   IsArray,
   ArrayMinSize,
+  ArrayMaxSize,
   IsEnum,
   IsDateString,
   IsInt,
@@ -24,9 +25,11 @@ export class SaveCampaignInformationDto {
   @IsString({ message: 'وصف الحملة يجب أن يكون نصاً' })
   description: string;
 
-  @IsNotEmpty({ message: 'التصنيف مطلوب' })
-  @IsUUID('4', { message: 'معرف التصنيف غير صالح' })
-  categoryId: string;
+  @IsArray({ message: 'التصنيفات يجب أن تكون قائمة' })
+  @ArrayMinSize(1, { message: 'يجب اختيار تصنيف واحد على الأقل' })
+  @ArrayMaxSize(5, { message: 'لا يمكن اختيار أكثر من 5 تصنيفات' })
+  @IsUUID('4', { each: true, message: 'معرف التصنيف غير صالح' })
+  categoryIds: string[];
 
   @IsArray({ message: 'المنصات يجب أن تكون قائمة' })
   @ArrayMinSize(1, { message: 'يجب اختيار منصة واحدة على الأقل' })

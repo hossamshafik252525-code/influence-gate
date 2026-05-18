@@ -11,9 +11,12 @@ import { CampaignContentSubmissionService } from './services/campaign-content-su
 import { CampaignSubmissionReviewService } from './services/campaign-submission-review.service';
 import { CampaignSubmissionQueryService } from './services/campaign-submission-query.service';
 import { CampaignSubmissionDataService } from './services/campaign-submission-data.service';
+import { CampaignSubmissionService } from './services/campaign-submission.service';
 import { NotificationsModule } from '../../notifications/notifications.module';
 import { WalletModule } from '../../wallet/wallet.module';
 import { ApplicationsModule } from '../applications/applications.module';
+import { CampaignRecordService } from '../services/campaign-record.service';
+import { InfluencerModule } from '../../influencer/influencer.module';
 
 @Module({
   imports: [
@@ -27,19 +30,23 @@ import { ApplicationsModule } from '../applications/applications.module';
     NotificationsModule,
     WalletModule,
     forwardRef(() => ApplicationsModule),
+    forwardRef(() => InfluencerModule),
   ],
   controllers: [InfluencerSubmissionController, AdvertiserSubmissionController],
   providers: [
+    CampaignRecordService,
     CampaignContentSubmissionService,
     CampaignSubmissionReviewService,
     CampaignSubmissionQueryService,
     CampaignSubmissionDataService,
+    CampaignSubmissionService,
   ],
   exports: [
     CampaignContentSubmissionService,
     CampaignSubmissionReviewService,
     CampaignSubmissionQueryService,
     CampaignSubmissionDataService,
+    CampaignSubmissionService,
     TypeOrmModule,
   ],
 })

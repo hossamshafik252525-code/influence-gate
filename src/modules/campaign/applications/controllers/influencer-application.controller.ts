@@ -9,8 +9,6 @@ import {
   ParseUUIDPipe,
   HttpCode,
   HttpStatus,
-  Inject,
-  forwardRef,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import { RolesStatusGuard } from '../../../../common/guards/auth.guard';
@@ -19,9 +17,10 @@ import { Statuses } from '../../../../common/decorators/statuses.decorator';
 import { AuthUser } from '../../../../common/decorators/auth-user.decorator';
 import { Role, UserStatus } from '../../../../common/enums';
 import { User } from '../../../users/entities/user.entity';
-import { CampaignApplicationService } from '../services/campaign-application.service';
+import { ApplicationsManagementService } from '../services/applications-management.service';
 import { CampaignApplicationWithdrawalService } from '../services/campaign-application-withdrawal.service';
-import { InfluencerCampaignQueryService } from '../../services/influencer-campaign-query.service';
+import { InfluencerApplicationQueryService } from '../services/influencer-application-query.service';
+import { InfluencerApplicationMapper } from '../mappers/influencer-application.mapper';
 import { ApplyToCampaignDto } from '../dto/apply-to-campaign.dto';
 import { GetInfluencerApplicationsQueryDto } from '../dto/get-influencer-applications-query.dto';
 
@@ -31,19 +30,21 @@ import { GetInfluencerApplicationsQueryDto } from '../dto/get-influencer-applica
 @Statuses(UserStatus.PENDING, UserStatus.CONFIRMED)
 export class InfluencerApplicationController {
   constructor(
-    private readonly campaignApplicationService: CampaignApplicationService,
+    private readonly applicationsManagementService: ApplicationsManagementService,
     private readonly campaignApplicationWithdrawalService: CampaignApplicationWithdrawalService,
-    @Inject(forwardRef(() => InfluencerCampaignQueryService))
-    private readonly influencerCampaignQueryService: InfluencerCampaignQueryService,
+    private readonly influencerApplicationQueryService: InfluencerApplicationQueryService,
   ) {}
 
   @Get('applications')
-  getApplications(
+  async getApplications(
     @AuthUser() user: User,
     @Query() query: GetInfluencerApplicationsQueryDto,
   ) {
-    console.log("test get applicaoins")
-    return this.influencerCampaignQueryService.getApplications(user.id, query);
+    const result = await this.influencerApplicationQueryService.getApplications(user.id, query);
+    return {
+      data: result.data.map((a) => InfluencerApplicationMapper.toApplicationListItem(a, a.campaign)),
+      pagination: result.pagination,
+    };
   }
 
   @Post(':id/apply')
@@ -54,7 +55,7 @@ export class InfluencerApplicationController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: ApplyToCampaignDto,
   ) {
-    return this.campaignApplicationService.applyToCampaign(user.id, id, dto.offer);
+    return this.applicationsManagementService.createApplication(user.id, id, dto.offer);
   }
 
   @Post(':id/exit')

@@ -1,39 +1,28 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Campaign } from '../entities/campaign.entity';
-import { CampaignInvitedInfluencer } from '../invitations/entities/campaign-invited-influencer.entity';
-import { InfluencerProfile } from '../../influencer/entities/influencer-profile.entity';
 import { CampaignStatus, CampaignStep, CampaignVisibility } from '../enums';
-import { InvitationStatus } from '../invitations/enums';
-import { InvitedInfluencerWithServicesDto } from '../invitations/dto';
 import {
   SaveCampaignInformationDto,
   SaveContentRequirementsDto,
   SaveInfluencerRequirementsDto,
   SaveCampaignBudgetDto,
 } from '../dto';
-import { CategoriesService } from '../../categories/categories.service';
+import { CategoriesValidationService } from '../../categories/categories-validation.service';
 import { CloudinaryService } from '../../cloudinary/cloudinary.service';
-import { UsersService } from '../../users/users.service';
-import { PlatformSettingsService } from '../../platform-settings/platform-settings.service';
-import { Role } from '../../../common/enums';
-import { AdvertiserCampaignMapper } from '../mappers/advertiser-campaign.mapper';
-import { AdvertiserCampaignResult } from '../interfaces/advertiser-campaign.interface';
+import { CampaignQueryService } from './campaign-query.service';
+import { InvitationsManagementService } from '../invitations/services/invitations-management.service';
 
 @Injectable()
 export class CampaignCreationService {
   constructor(
     @InjectRepository(Campaign)
     private readonly campaignRepository: Repository<Campaign>,
-    @InjectRepository(CampaignInvitedInfluencer)
-    private readonly invitedInfluencerRepository: Repository<CampaignInvitedInfluencer>,
-    @InjectRepository(InfluencerProfile)
-    private readonly influencerProfileRepository: Repository<InfluencerProfile>,
-    private readonly categoriesService: CategoriesService,
+    private readonly campaignQueryService: CampaignQueryService,
+    private readonly categoriesValidationService: CategoriesValidationService,
     private readonly cloudinaryService: CloudinaryService,
-    private readonly usersService: UsersService,
-    private readonly platformSettingsService: PlatformSettingsService,
+    private readonly invitationsManagementService: InvitationsManagementService,
   ) {}
 
   async createDraft(advertiserId: string): Promise<Campaign> {
@@ -49,30 +38,22 @@ export class CampaignCreationService {
     return this.campaignRepository.save(campaign);
   }
 
-  async deleteDraft(campaignId: string, advertiserId: string): Promise<void> {
-    const campaign = await this.findDraftOrFail(campaignId, advertiserId);
-
-    if (campaign.contentPdfPublicId) {
-      await this.cloudinaryService.deleteFile(campaign.contentPdfPublicId);
-    }
-
-    await this.invitedInfluencerRepository.delete({ campaignId: campaign.id });
-    await this.campaignRepository.remove(campaign);
-  }
-
   async saveInformation(
     campaignId: string,
     advertiserId: string,
     dto: SaveCampaignInformationDto,
   ): Promise<Campaign> {
-    const campaign = await this.findDraftOrFail(campaignId, advertiserId);
+    const campaign = await this.campaignQueryService.findDraftOrFail(campaignId, advertiserId);
 
-    await this.categoriesService.findOne(dto.categoryId);
+    const valid = await this.categoriesValidationService.allExist(dto.categoryIds);
+    if (!valid) {
+      throw new BadRequestException('إحدى الفئات المحددة غير موجودة');
+    }
 
     const updateData: Partial<Campaign> = {
       name: dto.name,
       description: dto.description,
-      categoryId: dto.categoryId,
+      categoryIds: dto.categoryIds,
       includedPlatforms: dto.includedPlatforms,
       implementationType: dto.implementationType,
       campaignVisibility: dto.campaignVisibility,
@@ -100,7 +81,7 @@ export class CampaignCreationService {
     advertiserId: string,
     dto: SaveContentRequirementsDto,
   ): Promise<Campaign> {
-    const campaign = await this.findDraftOrFail(campaignId, advertiserId);
+    const campaign = await this.campaignQueryService.findDraftOrFail(campaignId, advertiserId);
 
     const updateData: Partial<Campaign> = {
       contentTypes: dto.contentTypes,
@@ -125,40 +106,35 @@ export class CampaignCreationService {
     campaignId: string,
     advertiserId: string,
     dto: SaveInfluencerRequirementsDto,
-  ): Promise<AdvertiserCampaignResult> {
-    const campaign = await this.findDraftOrFail(campaignId, advertiserId);
+  ): Promise<Campaign> {
+    const campaign = await this.campaignQueryService.findDraftOrFail(campaignId, advertiserId);
 
     if (!campaign.campaignVisibility) {
       throw new BadRequestException('يجب إكمال خطوة المعلومات أولاً');
     }
 
-    await this.invitedInfluencerRepository.delete({ campaignId: campaign.id });
-
     const isPrivate = campaign.campaignVisibility === CampaignVisibility.PRIVATE;
+
+    if (!dto.requiredInfluencersCount || dto.requiredInfluencersCount < 1) {
+      throw new BadRequestException('عدد المؤثرين مطلوب');
+    }
 
     if (isPrivate) {
       if (!dto.invitedInfluencers || dto.invitedInfluencers.length === 0) {
         throw new BadRequestException('يجب اختيار مؤثرين للحملة الخاصة');
       }
-
-      await this.persistPrivateInvitations(campaign.id, dto.invitedInfluencers);
-    } else {
-      if (!dto.requiredInfluencersCount || dto.requiredInfluencersCount < 1) {
-        throw new BadRequestException('عدد المؤثرين المطلوب مطلوب للحملات العامة');
-      }
+      await this.invitationsManagementService.deleteInvitationsByCampaign(campaign.id);
+      await this.invitationsManagementService.createInvitations(campaign.id, dto.invitedInfluencers);
     }
 
     const updateData: Partial<Campaign> = {
       influencerType: dto.influencerType,
-      currentStep: isPrivate ? CampaignStep.REVIEW : CampaignStep.BUDGET,
+      currentStep: CampaignStep.BUDGET,
+      requiredInfluencersCount: dto.requiredInfluencersCount,
     };
 
     if (isPrivate) {
-      updateData.requiredInfluencersCount = dto.invitedInfluencers.length;
       updateData.budget = null;
-      updateData.influencerPrice = null;
-    } else {
-      updateData.requiredInfluencersCount = dto.requiredInfluencersCount;
     }
 
     await this.campaignRepository.update(campaign.id, updateData);
@@ -172,7 +148,7 @@ export class CampaignCreationService {
       ],
     });
 
-    return AdvertiserCampaignMapper.toResult(updated);
+    return updated;
   }
 
   async saveBudget(
@@ -180,100 +156,14 @@ export class CampaignCreationService {
     advertiserId: string,
     dto: SaveCampaignBudgetDto,
   ): Promise<Campaign> {
-    const campaign = await this.findDraftOrFail(campaignId, advertiserId);
-
-    if (campaign.campaignVisibility === CampaignVisibility.PRIVATE) {
-      throw new BadRequestException('لا يتم تحديد الميزانية للحملات الخاصة');
-    }
-
-    const feePercentage = await this.platformSettingsService.getPlatformFeePercentage();
-    const influencerPrice =
-      (dto.budget * (1 - feePercentage / 100)) / (campaign.requiredInfluencersCount || 1);
+    const campaign = await this.campaignQueryService.findDraftOrFail(campaignId, advertiserId);
 
     await this.campaignRepository.update(campaign.id, {
       budget: dto.budget,
-      influencerPrice: Math.round(influencerPrice * 100) / 100,
       currentStep: CampaignStep.REVIEW,
     });
 
     return this.campaignRepository.findOne({ where: { id: campaign.id } });
   }
 
-  async getDraft(campaignId: string, advertiserId: string): Promise<Campaign> {
-    const campaign = await this.campaignRepository.findOne({
-      where: { id: campaignId, advertiserId },
-      relations: [
-        'category',
-        'invitedInfluencers',
-        'invitedInfluencers.influencer',
-        'invitedInfluencers.influencer.influencerProfile',
-      ],
-    });
-
-    if (!campaign) {
-      throw new NotFoundException('الحملة غير موجودة');
-    }
-
-    return campaign;
-  }
-
-  async getMyDrafts(advertiserId: string): Promise<Campaign[]> {
-    return this.campaignRepository.find({
-      where: { advertiserId, status: CampaignStatus.DRAFT },
-      relations: ['category'],
-      order: { updatedAt: 'DESC' },
-    });
-  }
-
-  private async persistPrivateInvitations(
-    campaignId: string,
-    invited: InvitedInfluencerWithServicesDto[],
-  ): Promise<void> {
-    const feePercentage = await this.platformSettingsService.getPlatformFeePercentage();
-    const feeMultiplier = 1 + feePercentage / 100;
-
-    for (const item of invited) {
-      const influencer = await this.usersService.findById(item.influencerId);
-      if (!influencer || influencer.role !== Role.INFLUENCER) {
-        throw new BadRequestException(`المؤثر غير موجود: ${item.influencerId}`);
-      }
-
-      const profile = await this.influencerProfileRepository.findOne({
-        where: { userId: item.influencerId },
-      });
-      if (!profile) {
-        throw new BadRequestException(`الملف الشخصي للمؤثر غير موجود: ${item.influencerId}`);
-      }
-
-      if (!profile.price) {
-        throw new BadRequestException(`المؤثر لم يحدد سعر الخدمة: ${item.influencerId}`);
-      }
-
-      const basePrice = Number(profile.price);
-      const priceWithFee = Math.round(basePrice * feeMultiplier * 100) / 100;
-
-      const invitation = this.invitedInfluencerRepository.create({
-        campaignId,
-        influencerId: item.influencerId,
-        status: InvitationStatus.PENDING,
-        basePrice,
-        priceWithFee,
-      });
-      await this.invitedInfluencerRepository.save(invitation);
-    }
-  }
-
-
-
-  private async findDraftOrFail(campaignId: string, advertiserId: string): Promise<Campaign> {
-    const campaign = await this.campaignRepository.findOne({
-      where: { id: campaignId, advertiserId, status: CampaignStatus.DRAFT },
-    });
-
-    if (!campaign) {
-      throw new NotFoundException('المسودة غير موجودة');
-    }
-
-    return campaign;
-  }
 }

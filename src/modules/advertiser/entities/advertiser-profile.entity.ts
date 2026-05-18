@@ -5,11 +5,9 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToOne,
-  ManyToOne,
   JoinColumn,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
-import { Category } from '../../categories/entities/category.entity';
 import { ContentType, TargetPlatform, ExpectedBudget } from '../../../common/enums';
 
 @Entity('advertiser_profiles')
@@ -30,12 +28,8 @@ export class AdvertiserProfile {
   @Column({ nullable: true })
   companyName: string;
 
-  @Column({ nullable: true })
-  categoryId: string;
-
-  @ManyToOne(() => Category, { nullable: true, onDelete: 'SET NULL' })
-  @JoinColumn({ name: 'categoryId' })
-  category: Category;
+  @Column({ type: 'jsonb', nullable: true })
+  categoryIds: string[];
 
   @Column({ nullable: true })
   companyWebsite: string;

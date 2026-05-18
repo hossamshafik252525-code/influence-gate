@@ -1,25 +1,29 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Not } from 'typeorm';
+import { Repository, SelectQueryBuilder } from 'typeorm';
 import { Campaign } from '../entities/campaign.entity';
 import { CampaignApplication } from '../applications/entities/campaign-application.entity';
-import { CampaignStatus } from '../enums';
+import { CampaignInvitedInfluencer } from '../invitations/entities/campaign-invited-influencer.entity';
+import { CampaignSubmission } from '../submissions/entities/campaign-submission.entity';
+import { InfluencerProfileQueryService } from '../../influencer/profile/services/influencer-profile-query.service';
+import {
+  CampaignStatus,
+  CampaignVisibility,
+  MyCampaignsStatusFilter,
+} from '../enums';
 import { ApplicationStatus } from '../applications/enums';
-import { GetMyCampaignsQueryDto } from '../dto/get-my-campaigns-query.dto';
+import { InvitationStatus } from '../invitations/enums';
+import { myCampaignsFilterToStatuses } from '../utils';
+import { CampaignValidationService } from './campaign-validation.service';
+import { CategoriesService } from '../../categories/categories.service';
+import {
+  GetAdvertiserMyCampaignsQueryDto,
+  GetNewCampaignsQueryDto,
+  GetInfluencerMyCampaignsQueryDto,
+} from '../dto';
 import { PaginatedResult } from '../../../common/interfaces';
-import { InfluencerProfile } from '../../influencer/entities/influencer-profile.entity';
-import { GetApplicationsResult, CampaignApplicationItem } from '../applications/interfaces';
-
-export interface CampaignStatistics {
-  totalCampaigns: number;
-  completedCampaigns: number;
-  discardedCampaigns: number;
-  totalSpent: number;
-}
-
-export interface GetMyCampaignsResult extends PaginatedResult<Campaign> {
-  statistics: CampaignStatistics;
-}
+import { Category } from '../../categories/entities/category.entity';
+import { CampaignDetailRawResult } from '../interfaces/influencer-campaign.interface';
 
 @Injectable()
 export class CampaignQueryService {
@@ -28,41 +32,51 @@ export class CampaignQueryService {
     private readonly campaignRepository: Repository<Campaign>,
     @InjectRepository(CampaignApplication)
     private readonly applicationRepository: Repository<CampaignApplication>,
-    @InjectRepository(InfluencerProfile)
-    private readonly influencerProfileRepository: Repository<InfluencerProfile>,
+    @InjectRepository(CampaignInvitedInfluencer)
+    private readonly invitationRepository: Repository<CampaignInvitedInfluencer>,
+    @InjectRepository(CampaignSubmission)
+    private readonly submissionRepository: Repository<CampaignSubmission>,
+    private readonly campaignValidationService: CampaignValidationService,
+    private readonly influencerProfileQueryService: InfluencerProfileQueryService,
+    private readonly categoriesService: CategoriesService,
   ) {}
 
-  async getMyCampaigns(
+  async getAdvertiserCampaigns(
     advertiserId: string,
-    query: GetMyCampaignsQueryDto,
-  ): Promise<GetMyCampaignsResult> {
+    query: GetAdvertiserMyCampaignsQueryDto,
+  ): Promise<{ campaigns: Campaign[]; categories: Category[]; total: number }> {
     const qb = this.campaignRepository
       .createQueryBuilder('campaign')
-      .leftJoinAndSelect('campaign.category', 'category')
       .where('campaign.advertiserId = :advertiserId', { advertiserId });
 
-    if (query.status) {
-      qb.andWhere('campaign.status = :status', { status: query.status });
-    }
-
-    if (query.categoryId) {
-      qb.andWhere('campaign.categoryId = :categoryId', { categoryId: query.categoryId });
-    }
-
-    if (query.platform) {
-      qb.andWhere('campaign.includedPlatforms @> :platform', {
-        platform: JSON.stringify([query.platform]),
+    if (query.statuses?.length) {
+      qb.andWhere('campaign.status IN (:...statuses)', {
+        statuses: query.statuses,
       });
     }
 
-    if (query.contentType) {
-      qb.andWhere('campaign.contentTypes @> :contentType', {
-        contentType: JSON.stringify([query.contentType]),
+    if (query.categoryIds?.length) {
+      qb.andWhere('campaign.categoryIds && :categoryIds::jsonb', {
+        categoryIds: JSON.stringify(query.categoryIds),
+      });
+    }
+
+    if (query.platforms?.length) {
+      qb.andWhere('campaign.includedPlatforms && :platforms::jsonb', {
+        platforms: JSON.stringify(query.platforms),
+      });
+    }
+
+    if (query.contentTypes?.length) {
+      qb.andWhere('campaign.contentTypes && :contentTypes::jsonb', {
+        contentTypes: JSON.stringify(query.contentTypes),
       });
     }
 
     if (query.budgetFrom !== undefined) {
-      qb.andWhere('campaign.budget >= :budgetFrom', { budgetFrom: query.budgetFrom });
+      qb.andWhere('campaign.budget >= :budgetFrom', {
+        budgetFrom: query.budgetFrom,
+      });
     }
 
     if (query.budgetTo !== undefined) {
@@ -78,10 +92,181 @@ export class CampaignQueryService {
           { search: `%${trimmed}%`, num: parseInt(trimmed, 10) },
         );
       } else {
-        qb.andWhere('LOWER(campaign.name) LIKE LOWER(:search)', { search: `%${trimmed}%` });
+        qb.andWhere('LOWER(campaign.name) LIKE LOWER(:search)', {
+          search: `%${trimmed}%`,
+        });
       }
     }
 
+    this.applyAdvertiserListFields(qb);
+
+    qb.orderBy('campaign.createdAt', 'DESC');
+    qb.skip((query.page - 1) * query.limit);
+    qb.take(query.limit);
+
+    const [campaigns, total] = await qb.getManyAndCount();
+
+    const allCategoryIds = [
+      ...new Set(campaigns.flatMap((c) => c.categoryIds ?? [])),
+    ];
+    const categories = await this.categoriesService.findByIds(allCategoryIds);
+
+    return { campaigns, categories, total };
+  }
+
+  async getCampaignById(
+    campaignId: string,
+    advertiserId: string,
+  ): Promise<Campaign> {
+    const campaign = await this.campaignRepository.findOne({
+      where: { id: campaignId, advertiserId },
+      relations: [
+        'advertiser',
+        'invitedInfluencers',
+        'invitedInfluencers.influencer',
+        'invitedInfluencers.influencer.influencerProfile',
+      ],
+    });
+
+    if (!campaign) {
+      throw new NotFoundException('الحملة غير موجودة');
+    }
+
+    return campaign;
+  }
+
+  async findDraftOrFail(
+    campaignId: string,
+    advertiserId: string,
+  ): Promise<Campaign> {
+    const campaign = await this.campaignRepository.findOne({
+      where: { id: campaignId, advertiserId, status: CampaignStatus.DRAFT },
+    });
+
+    if (!campaign) {
+      throw new NotFoundException('المسودة غير موجودة');
+    }
+
+    return campaign;
+  }
+
+  async getNewCampaigns(
+    userId: string,
+    query: GetNewCampaignsQueryDto,
+  ): Promise<PaginatedResult<Campaign>> {
+    const { contentTypes, platforms, categoryIds } =
+      await this.influencerProfileQueryService.loadInfluencerMatchSignals(
+        userId,
+      );
+
+    const qb = this.campaignRepository
+      .createQueryBuilder('campaign')
+      .where('campaign.status IN (:...statuses)', {
+        statuses: [CampaignStatus.APPROVED, CampaignStatus.PENDING_MINIMUM],
+      })
+      .andWhere('campaign.campaignVisibility = :visibility', {
+        visibility: CampaignVisibility.PUBLIC,
+      })
+      .andWhere(
+        '(campaign.deadlineDate >= CURRENT_DATE OR campaign.status = :pendingMinimum)',
+        { pendingMinimum: CampaignStatus.PENDING_MINIMUM },
+      )
+      .andWhere((subQb) => {
+        const sub = subQb
+          .subQuery()
+          .select('1')
+          .from(CampaignApplication, 'app_sub')
+          .where('app_sub.campaignId = campaign.id')
+          .andWhere('app_sub.influencerId = :userId')
+          .getQuery();
+        return `NOT EXISTS ${sub}`;
+      })
+      .setParameter('userId', userId);
+
+    this.applyCommonInfluencerFilters(qb, query);
+    this.applyInfluencerListFields(qb);
+    this.applyMatchOrdering(qb, contentTypes, platforms, categoryIds);
+
+    qb.skip((query.page - 1) * query.limit).take(query.limit);
+
+    const [data, total] = await qb.getManyAndCount();
+
+    return {
+      data,
+      pagination: { total, page: query.page, limit: query.limit },
+    };
+  }
+
+  async getInfluencerCampaigns(
+    userId: string,
+    query: GetInfluencerMyCampaignsQueryDto,
+  ): Promise<PaginatedResult<Campaign>> {
+    const campaignStatuses = myCampaignsFilterToStatuses(query.status);
+
+    const qb = this.campaignRepository
+      .createQueryBuilder('campaign')
+      .where('campaign.status IN (:...statuses)', {
+        statuses: campaignStatuses,
+      });
+
+    this.applyMembershipFilter(qb, userId, query.status);
+    this.applyCommonInfluencerFilters(qb, query);
+    this.applyInfluencerListFields(qb);
+
+    qb.orderBy('campaign.createdAt', 'DESC')
+      .skip((query.page - 1) * query.limit)
+      .take(query.limit);
+
+    const [data, total] = await qb.getManyAndCount();
+
+    return {
+      data,
+      pagination: { total, page: query.page, limit: query.limit },
+    };
+  }
+
+  async getCampaignDetail(
+    campaignId: string,
+    userId: string,
+  ): Promise<CampaignDetailRawResult> {
+    const campaign =
+      await this.campaignValidationService.assertCampaignExists(campaignId);
+    await this.campaignValidationService.assertInfluencerCanAccessCampaign(
+      campaign,
+      userId,
+    );
+
+    const [application, submission, invitation, categories] = await Promise.all(
+      [
+        this.applicationRepository.findOne({
+          where: { campaignId, influencerId: userId },
+        }),
+        this.submissionRepository.findOne({
+          where: { campaignId, influencerId: userId },
+        }),
+        campaign.campaignVisibility === CampaignVisibility.PRIVATE
+          ? this.invitationRepository.findOne({
+              where: { campaignId, influencerId: userId },
+              relations: ['influencer', 'influencer.influencerProfile'],
+            })
+          : Promise.resolve(null),
+        campaign.categoryIds?.length
+          ? this.categoriesService.findByIds(campaign.categoryIds)
+          : Promise.resolve([]),
+      ],
+    );
+
+    return {
+      campaign,
+      categories,
+      application: application ?? null,
+      submission: submission ?? null,
+      invitation: invitation ?? null,
+    };
+  }
+
+
+  private applyAdvertiserListFields(qb: SelectQueryBuilder<Campaign>): void {
     qb.select([
       'campaign.id',
       'campaign.campaignNumber',
@@ -94,146 +279,148 @@ export class CampaignQueryService {
       'campaign.currentStep',
       'campaign.budget',
       'campaign.createdAt',
-      'category.id',
-      'category.name',
-      'category.iconUrl',
+      'campaign.categoryIds',
     ]);
-
-    qb.orderBy('campaign.createdAt', 'DESC');
-    qb.skip((query.page - 1) * query.limit);
-    qb.take(query.limit);
-
-    const [data, total] = await qb.getManyAndCount();
-    const statistics = await this.getStatistics(advertiserId);
-
-    return {
-      data,
-      pagination: { total, page: query.page, limit: query.limit },
-      statistics,
-    };
   }
 
-  async getCampaignById(campaignId: string, advertiserId: string): Promise<Campaign> {
-    const campaign = await this.campaignRepository.findOne({
-      where: { id: campaignId, advertiserId },
-      relations: [
-        'category',
-        'advertiser',
-        'invitedInfluencers',
-        'invitedInfluencers.influencer',
-      ],
-    });
-
-    if (!campaign) {
-      throw new NotFoundException('الحملة غير موجودة');
-    }
-
-    return campaign;
+  private applyInfluencerListFields(qb: SelectQueryBuilder<Campaign>): void {
+    qb.select([
+      'campaign.id',
+      'campaign.campaignNumber',
+      'campaign.name',
+      'campaign.description',
+      'campaign.status',
+      'campaign.deadlineDate',
+      'campaign.pendingMinimumDeadline',
+      'campaign.implementationEndDate',
+      'campaign.includedPlatforms',
+      'campaign.contentTypes',
+      'campaign.createdAt',
+    ]);
   }
 
-  async getCampaignApplications(
-    campaignId: string,
-    advertiserId: string,
-    page: number,
-    limit: number,
-  ): Promise<GetApplicationsResult> {
-    const campaign = await this.campaignRepository.findOne({
-      where: { id: campaignId, advertiserId },
-    });
-
-    if (!campaign) {
-      throw new NotFoundException('الحملة غير موجودة');
+  private applyCommonInfluencerFilters(
+    qb: SelectQueryBuilder<Campaign>,
+    query: GetNewCampaignsQueryDto | GetInfluencerMyCampaignsQueryDto,
+  ): void {
+    if (query.search) {
+      const trimmed = query.search.trim();
+      const isNumeric = /^\d+$/.test(trimmed);
+      if (isNumeric) {
+        qb.andWhere(
+          '(LOWER(campaign.name) LIKE LOWER(:search) OR campaign.campaignNumber = :num)',
+          { search: `%${trimmed}%`, num: parseInt(trimmed, 10) },
+        );
+      } else {
+        qb.andWhere('LOWER(campaign.name) LIKE LOWER(:search)', {
+          search: `%${trimmed}%`,
+        });
+      }
     }
 
-    const eligibleStatuses: CampaignStatus[] = [
-      CampaignStatus.APPROVED,
-      CampaignStatus.PENDING_MINIMUM,
-    ];
-
-    if (!eligibleStatuses.includes(campaign.status)) {
-      throw new BadRequestException('لا يمكن عرض الطلبات في هذه المرحلة');
+    if (query.categoryId) {
+      qb.andWhere('campaign.categoryIds @> :categoryId', {
+        categoryId: JSON.stringify([query.categoryId]),
+      });
     }
 
-    const [applications, total] = await this.applicationRepository.findAndCount({
-      where: {
-        campaignId,
-        status: Not(ApplicationStatus.PENDING_ADMIN_APPROVAL),
-      },
-      order: { createdAt: 'DESC' },
-      skip: (page - 1) * limit,
-      take: limit,
-    });
+    if (query.platform) {
+      qb.andWhere('campaign.includedPlatforms @> :platform', {
+        platform: JSON.stringify([query.platform]),
+      });
+    }
 
-    const influencerIds = applications.map((a) => a.influencerId);
+    if (query.contentType) {
+      qb.andWhere('campaign.contentTypes @> :contentType', {
+        contentType: JSON.stringify([query.contentType]),
+      });
+    }
 
-    const profiles = influencerIds.length
-      ? await this.influencerProfileRepository
-          .createQueryBuilder('ip')
-          .leftJoin('ip.user', 'user')
-          .select(['ip.userId', 'ip.rating', 'ip.ratingCount', 'user.fullName'])
-          .where('ip.userId IN (:...ids)', { ids: influencerIds })
-          .getMany()
-      : [];
+    if (query.implementationType) {
+      qb.andWhere('campaign.implementationType = :implementationType', {
+        implementationType: query.implementationType,
+      });
+    }
 
-    const completedCounts = await this.applicationRepository
-      .createQueryBuilder('app')
-      .innerJoin('app.campaign', 'campaign')
-      .select('app.influencerId', 'influencerId')
-      .addSelect('COUNT(*)', 'count')
-      .where('app.influencerId IN (:...ids)', { ids: influencerIds.length ? influencerIds : [''] })
-      .andWhere('app.status = :status', { status: ApplicationStatus.ACCEPTED })
-      .andWhere('campaign.status = :campaignStatus', { campaignStatus: CampaignStatus.COMPLETED })
-      .groupBy('app.influencerId')
-      .getRawMany<{ influencerId: string; count: string }>();
-
-    const profileMap = new Map(profiles.map((p) => [p.userId, { rating: p.rating, ratingCount: p.ratingCount, fullName: p.user?.fullName ?? '' }]));
-    const countMap = new Map(completedCounts.map((r) => [r.influencerId, Number(r.count)]));
-
-    const data: CampaignApplicationItem[] = applications.map((app) => ({
-      id: app.id,
-      campaignId: app.campaignId,
-      influencerId: app.influencerId,
-      status: app.status,
-      createdAt: app.createdAt,
-      updatedAt: app.updatedAt,
-      influencer: {
-        fullName: profileMap.get(app.influencerId)?.fullName ?? '',
-        rating: Number(profileMap.get(app.influencerId)?.rating ?? 0),
-        ratingCount: profileMap.get(app.influencerId)?.ratingCount ?? 0,
-        completedCampaignsCount: countMap.get(app.influencerId) ?? 0,
-      },
-    }));
-
-    return { data, pagination: { total, page, limit } };
+    if (query.implementationPeriodDays !== undefined) {
+      qb.andWhere('campaign.implementationPeriodDays = :days', {
+        days: query.implementationPeriodDays,
+      });
+    }
   }
 
-  private async getStatistics(advertiserId: string): Promise<CampaignStatistics> {
-    const totalCampaigns = await this.campaignRepository.count({
-      where: { advertiserId },
-    });
+  private applyMembershipFilter(
+    qb: SelectQueryBuilder<Campaign>,
+    userId: string,
+    status: MyCampaignsStatusFilter,
+  ): void {
+    qb.setParameter('userId', userId);
 
-    const completedCampaigns = await this.campaignRepository.count({
-      where: { advertiserId, status: CampaignStatus.COMPLETED },
-    });
+    const acceptedApplicationExists = `EXISTS (
+      SELECT 1 FROM campaign_applications app_m
+      WHERE app_m."campaignId" = campaign.id
+        AND app_m."influencerId" = :userId
+        AND app_m.status = :acceptedAppStatus
+    )`;
+    qb.setParameter('acceptedAppStatus', ApplicationStatus.ACCEPTED);
 
-    const discardedCampaigns = await this.campaignRepository.count({
-      where: { advertiserId, status: CampaignStatus.DISCARDED },
-    });
+    if (status === MyCampaignsStatusFilter.APPLICATION_PERIOD) {
+      qb.andWhere(acceptedApplicationExists);
+      return;
+    }
 
-    const spentResult = await this.campaignRepository
-      .createQueryBuilder('campaign')
-      .select('COALESCE(SUM(campaign.budget), 0)', 'totalSpent')
-      .where('campaign.advertiserId = :advertiserId', { advertiserId })
-      .andWhere('campaign.status IN (:...statuses)', {
-        statuses: [CampaignStatus.IMPLEMENTATION, CampaignStatus.COMPLETED],
-      })
-      .getRawOne();
+    const acceptedInvitationExists = `EXISTS (
+      SELECT 1 FROM campaign_invited_influencers inv_m
+      WHERE inv_m."campaignId" = campaign.id
+        AND inv_m."influencerId" = :userId
+        AND inv_m.status = :acceptedInvStatus
+    )`;
+    qb.setParameter('acceptedInvStatus', InvitationStatus.ACCEPTED);
 
-    return {
-      totalCampaigns,
-      completedCampaigns,
-      discardedCampaigns,
-      totalSpent: Number(spentResult.totalSpent),
-    };
+    qb.andWhere(
+      `(${acceptedApplicationExists} OR ${acceptedInvitationExists})`,
+    );
+  }
+
+  private applyMatchOrdering(
+    qb: SelectQueryBuilder<Campaign>,
+    contentTypes: string[],
+    platforms: string[],
+    categoryIds: string[],
+  ): void {
+    const parts: string[] = [];
+
+    if (contentTypes.length) {
+      parts.push(
+        `CASE WHEN EXISTS (
+          SELECT 1 FROM jsonb_array_elements_text(campaign.contentTypes) AS ct_elem
+          WHERE ct_elem = ANY(:matchContentTypes)
+        ) THEN 1 ELSE 0 END`,
+      );
+      qb.setParameter('matchContentTypes', contentTypes);
+    }
+
+    if (platforms.length) {
+      parts.push(
+        `CASE WHEN EXISTS (
+          SELECT 1 FROM jsonb_array_elements_text(campaign.includedPlatforms) AS pl_elem
+          WHERE pl_elem = ANY(:matchPlatforms)
+        ) THEN 1 ELSE 0 END`,
+      );
+      qb.setParameter('matchPlatforms', platforms);
+    }
+
+    if (categoryIds.length) {
+      parts.push(
+        `CASE WHEN campaign.categoryIds && ARRAY[:...matchCategoryIds]::uuid[] THEN 1 ELSE 0 END`,
+      );
+      qb.setParameter('matchCategoryIds', categoryIds);
+    }
+
+    if (parts.length) {
+      qb.addOrderBy(`(${parts.join(' + ')})`, 'DESC');
+    }
+
+    qb.addOrderBy('campaign.createdAt', 'DESC');
   }
 }

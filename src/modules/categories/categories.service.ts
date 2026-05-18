@@ -49,6 +49,11 @@ export class CategoriesService {
     return category;
   }
 
+  async findByIds(ids: string[]) {
+    if (!ids.length) return [];
+    return this.categoriesRepo.find({ where: { id: In(ids) } });
+  }
+
   async update(id: string, dto: UpdateCategoryDto) {
     const category = await this.findOne(id);
 

@@ -1,3 +1,2 @@
-export { CampaignListItemMapper } from './campaign-list-item.mapper';
-export { CampaignDetailMapper } from './campaign-detail.mapper';
+export { InfluencerCampaignMapper } from './influencer-campaign.mapper';
 export { AdvertiserCampaignMapper } from './advertiser-campaign.mapper';

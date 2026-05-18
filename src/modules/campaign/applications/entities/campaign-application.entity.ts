@@ -41,6 +41,12 @@ export class CampaignApplication {
   @Column({ type: 'decimal', precision: 12, scale: 2, nullable: true })
   offerPrice: number | null;
 
+  @Column({ type: 'decimal', precision: 12, scale: 2, nullable: true })
+  basePrice: number | null;
+
+  @Column({ type: 'decimal', precision: 12, scale: 2, nullable: true })
+  priceWithFee: number | null;
+
   @CreateDateColumn()
   createdAt: Date;
 

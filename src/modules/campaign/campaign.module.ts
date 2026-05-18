@@ -2,19 +2,18 @@ import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Campaign } from './entities/campaign.entity';
 import { CampaignInvitedInfluencer } from './invitations/entities/campaign-invited-influencer.entity';
-import { CampaignApplication } from './applications/entities/campaign-application.entity';
 import { CampaignSubmission } from './submissions/entities/campaign-submission.entity';
 import { AdvertiserCampaignController } from './controllers/advertiser-campaign.controller';
 import { AdminCampaignController } from './controllers/admin-campaign.controller';
 import { InfluencerCampaignController } from './controllers/influencer-campaign.controller';
 import { CampaignCreationService } from './services/campaign-creation.service';
-import { CampaignSubmissionService } from './services/campaign-submission.service';
+import { CampaignManagementService } from './services/campaign-management.service';
 import { CampaignReviewService } from './services/campaign-review.service';
 import { CampaignLifecycleService } from './services/campaign-lifecycle.service';
 import { CampaignQueryService } from './services/campaign-query.service';
-import { InfluencerCampaignQueryService } from './services/influencer-campaign-query.service';
+import { CampaignValidationService } from './services/campaign-validation.service';
 import { PrivateCampaignLaunchService } from './services/private-campaign-launch.service';
-import { InfluencerProfile } from '../influencer/entities/influencer-profile.entity';
+import { InfluencerModule } from '../influencer/influencer.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { CloudinaryModule } from '../cloudinary/cloudinary.module';
 import { CategoriesModule } from '../categories/categories.module';
@@ -31,11 +30,11 @@ import { SubmissionsModule } from './submissions/submissions.module';
       Campaign,
       CampaignInvitedInfluencer,
       CampaignSubmission,
-      InfluencerProfile,
     ]),
     forwardRef(() => InvitationsModule),
     forwardRef(() => ApplicationsModule),
     forwardRef(() => SubmissionsModule),
+    InfluencerModule,
     NotificationsModule,
     CloudinaryModule,
     CategoriesModule,
@@ -50,17 +49,16 @@ import { SubmissionsModule } from './submissions/submissions.module';
   ],
   providers: [
     CampaignCreationService,
-    CampaignSubmissionService,
+    CampaignManagementService,
     CampaignReviewService,
     CampaignLifecycleService,
     CampaignQueryService,
-    InfluencerCampaignQueryService,
+    CampaignValidationService,
     PrivateCampaignLaunchService,
   ],
   exports: [
     CampaignCreationService,
     CampaignQueryService,
-    InfluencerCampaignQueryService,
     ApplicationsModule,
     SubmissionsModule,
     TypeOrmModule,
