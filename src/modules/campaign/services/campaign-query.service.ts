@@ -412,7 +412,10 @@ export class CampaignQueryService {
 
     if (categoryIds.length) {
       parts.push(
-        `CASE WHEN campaign.categoryIds && ARRAY[:...matchCategoryIds]::uuid[] THEN 1 ELSE 0 END`,
+        `CASE WHEN EXISTS (
+          SELECT 1 FROM jsonb_array_elements_text(campaign.categoryIds) AS cat_elem
+          WHERE cat_elem = ANY(:matchCategoryIds)
+        ) THEN 1 ELSE 0 END`,
       );
       qb.setParameter('matchCategoryIds', categoryIds);
     }
