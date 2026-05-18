@@ -2,7 +2,6 @@ import { Injectable, NotFoundException, ConflictException, BadRequestException }
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { Category } from './entities/category.entity';
-import { InfluencerCategory } from '../influencer/entities/influencer-category.entity';
 import { InfluencerProfile } from '../influencer/entities/influencer-profile.entity';
 import { CreateCategoryDto, UpdateCategoryDto } from './dto';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
@@ -12,8 +11,6 @@ export class CategoriesService {
   constructor(
     @InjectRepository(Category)
     private readonly categoriesRepo: Repository<Category>,
-    @InjectRepository(InfluencerCategory)
-    private readonly influencerCategoryRepo: Repository<InfluencerCategory>,
     @InjectRepository(InfluencerProfile)
     private readonly influencerProfileRepo: Repository<InfluencerProfile>,
     private readonly cloudinaryService: CloudinaryService,
@@ -87,34 +84,20 @@ export class CategoriesService {
     return { message: 'تم حذف الفئة بنجاح' };
   }
 
-  async getUserCategories(userId: string): Promise<InfluencerCategory[]> {
-    return this.influencerCategoryRepo.find({ where: { influencerProfile: { userId } }, relations: ['category'] });
-  }
-
   async selectCategories(userId: string, categoryIds: string[]) {
     const profile = await this.influencerProfileRepo.findOne({ where: { userId } });
     if (!profile) {
       throw new NotFoundException('الملف الشخصي غير موجود');
     }
 
-    await this.influencerCategoryRepo.delete({ influencerProfileId: profile.id });
-
     if (categoryIds.length > 0) {
-      const validCategoriesCount = await this.categoriesRepo.count({
-        where: { id: In(categoryIds) },
-      });
-
-      if (validCategoriesCount !== categoryIds.length) {
+      const categories = await this.findByIds(categoryIds);
+      if (categories.length !== categoryIds.length) {
         throw new BadRequestException('إحدى الفئات المحددة غير موجودة');
       }
-
-      const influencerCategories = categoryIds.map((categoryId) =>
-        this.influencerCategoryRepo.create({
-          influencerProfileId: profile.id,
-          categoryId: categoryId,
-        }),
-      );
-      await this.influencerCategoryRepo.save(influencerCategories);
+      await this.influencerProfileRepo.save({ ...profile, categories });
+    } else {
+      await this.influencerProfileRepo.save({ ...profile, categories: [] });
     }
 
     return { message: 'تم اختيار الفئات بنجاح' };

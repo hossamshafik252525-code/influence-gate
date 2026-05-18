@@ -84,9 +84,17 @@ export class InfluencerInvitationQueryService {
     }
 
     if (query.categoryId) {
-      qb.andWhere('campaign.categoryIds @> :categoryId', {
-        categoryId: JSON.stringify([query.categoryId]),
+      qb.andWhere((subQb) => {
+        const sub = subQb
+          .subQuery()
+          .select('1')
+          .from('campaign_categories', 'cc')
+          .where('cc."campaignId" = campaign.id')
+          .andWhere('cc."categoryId" = :filterCategoryId')
+          .getQuery();
+        return `EXISTS ${sub}`;
       });
+      qb.setParameter('filterCategoryId', query.categoryId);
     }
 
     if (query.platform) {

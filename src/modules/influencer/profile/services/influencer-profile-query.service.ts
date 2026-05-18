@@ -26,7 +26,7 @@ export class InfluencerProfileQueryService {
   async getProfile(userId: string): Promise<InfluencerProfile> {
     const profile = await this.influencerProfileRepository.findOne({
       where: { userId },
-      relations: ['user', 'user.country', 'categories', 'categories.category'],
+      relations: ['user', 'user.country', 'categories'],
     });
 
     if (!profile) {
@@ -63,7 +63,7 @@ export class InfluencerProfileQueryService {
       platforms: profile?.includedPlatforms
         ? (profile.includedPlatforms as string[])
         : [],
-      categoryIds: [...new Set(categories.map((c) => c.categoryId))],
+      categoryIds: [...new Set(categories.map((c) => c.id))],
     };
   }
 

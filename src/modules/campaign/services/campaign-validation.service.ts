@@ -21,6 +21,7 @@ export class CampaignValidationService {
   async assertCampaignExists(campaignId: string): Promise<Campaign> {
     const campaign = await this.campaignRepository.findOne({
       where: { id: campaignId },
+      relations: ['categories'],
     });
 
     if (!campaign) {

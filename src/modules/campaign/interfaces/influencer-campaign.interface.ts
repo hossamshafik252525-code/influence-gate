@@ -8,14 +8,12 @@ import { SubmissionStatus } from '../submissions/enums';
 import { InvitationStatus } from '../invitations/enums';
 import { PaginatedResult } from '../../../common/interfaces';
 import { Campaign } from '../entities/campaign.entity';
-import { Category } from '../../categories/entities/category.entity';
 import { CampaignApplication } from '../applications/entities/campaign-application.entity';
 import { CampaignInvitedInfluencer } from '../invitations/entities/campaign-invited-influencer.entity';
 import { CampaignSubmission } from '../submissions/entities/campaign-submission.entity';
 
 export interface CampaignDetailRawResult {
   campaign: Campaign;
-  categories: Category[];
   application: CampaignApplication | null;
   submission: CampaignSubmission | null;
   invitation: CampaignInvitedInfluencer | null;

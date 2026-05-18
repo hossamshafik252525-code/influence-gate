@@ -6,12 +6,13 @@ import {
   UpdateDateColumn,
   OneToOne,
   OneToMany,
+  ManyToMany,
   JoinColumn,
+  JoinTable,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
-
+import { Category } from '../../categories/entities/category.entity';
 import { SocialPlatform } from '../../social-linking/entities/social-platform.entity';
-import { InfluencerCategory } from './influencer-category.entity';
 import { ImplementationType, ContentTypeOffer, TargetPlatform } from '../../../common/enums';
 
 @Entity('influencer_profiles')
@@ -71,8 +72,13 @@ export class InfluencerProfile {
   @OneToMany(() => SocialPlatform, (sp) => sp.influencerProfile)
   socialPlatforms: SocialPlatform[];
 
-  @OneToMany(() => InfluencerCategory, (ic) => ic.influencerProfile)
-  categories: InfluencerCategory[];
+  @ManyToMany(() => Category)
+  @JoinTable({
+    name: 'influencer_categories',
+    joinColumn: { name: 'influencerProfileId', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'categoryId', referencedColumnName: 'id' },
+  })
+  categories: Category[];
 
   @CreateDateColumn()
   createdAt: Date;

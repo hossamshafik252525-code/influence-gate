@@ -52,8 +52,7 @@ export class AdvertiserInfluencerDiscoveryService {
       .innerJoinAndSelect('user.influencerProfile', 'profile')
 
       .leftJoinAndSelect('user.country', 'country')
-      .leftJoinAndSelect('profile.categories', 'influencerCategory')
-      .leftJoinAndSelect('influencerCategory.category', 'category')
+      .leftJoinAndSelect('profile.categories', 'category')
       .where('user.role = :role', { role: Role.INFLUENCER })
       .andWhere('profile.price IS NOT NULL')
       // .andWhere(   only on development and later i will delete this comments
@@ -85,8 +84,7 @@ export class AdvertiserInfluencerDiscoveryService {
       .innerJoinAndSelect('user.influencerProfile', 'profile')
 
       .leftJoinAndSelect('user.country', 'country')
-      .leftJoinAndSelect('profile.categories', 'influencerCategory')
-      .leftJoinAndSelect('influencerCategory.category', 'category')
+      .leftJoinAndSelect('profile.categories', 'category')
       .where('user.id = :id', { id: influencerId })
       .andWhere('user.role = :role', { role: Role.INFLUENCER })
       .getOne();

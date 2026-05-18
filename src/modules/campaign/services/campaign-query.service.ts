@@ -15,14 +15,12 @@ import { ApplicationStatus } from '../applications/enums';
 import { InvitationStatus } from '../invitations/enums';
 import { myCampaignsFilterToStatuses } from '../utils';
 import { CampaignValidationService } from './campaign-validation.service';
-import { CategoriesService } from '../../categories/categories.service';
 import {
   GetAdvertiserMyCampaignsQueryDto,
   GetNewCampaignsQueryDto,
   GetInfluencerMyCampaignsQueryDto,
 } from '../dto';
 import { PaginatedResult } from '../../../common/interfaces';
-import { Category } from '../../categories/entities/category.entity';
 import { CampaignDetailRawResult } from '../interfaces/influencer-campaign.interface';
 
 @Injectable()
@@ -38,15 +36,15 @@ export class CampaignQueryService {
     private readonly submissionRepository: Repository<CampaignSubmission>,
     private readonly campaignValidationService: CampaignValidationService,
     private readonly influencerProfileQueryService: InfluencerProfileQueryService,
-    private readonly categoriesService: CategoriesService,
   ) {}
 
   async getAdvertiserCampaigns(
     advertiserId: string,
     query: GetAdvertiserMyCampaignsQueryDto,
-  ): Promise<{ campaigns: Campaign[]; categories: Category[]; total: number }> {
+  ): Promise<{ campaigns: Campaign[]; total: number }> {
     const qb = this.campaignRepository
       .createQueryBuilder('campaign')
+      .leftJoinAndSelect('campaign.categories', 'category')
       .where('campaign.advertiserId = :advertiserId', { advertiserId });
 
     if (query.statuses?.length) {
@@ -56,9 +54,17 @@ export class CampaignQueryService {
     }
 
     if (query.categoryIds?.length) {
-      qb.andWhere('campaign.categoryIds && :categoryIds::jsonb', {
-        categoryIds: JSON.stringify(query.categoryIds),
+      qb.andWhere((subQb) => {
+        const sub = subQb
+          .subQuery()
+          .select('1')
+          .from('campaign_categories', 'cc')
+          .where('cc."campaignId" = campaign.id')
+          .andWhere('cc."categoryId" IN (:...filterCategoryIds)')
+          .getQuery();
+        return `EXISTS ${sub}`;
       });
+      qb.setParameter('filterCategoryIds', query.categoryIds);
     }
 
     if (query.platforms?.length) {
@@ -106,12 +112,7 @@ export class CampaignQueryService {
 
     const [campaigns, total] = await qb.getManyAndCount();
 
-    const allCategoryIds = [
-      ...new Set(campaigns.flatMap((c) => c.categoryIds ?? [])),
-    ];
-    const categories = await this.categoriesService.findByIds(allCategoryIds);
-
-    return { campaigns, categories, total };
+    return { campaigns, total };
   }
 
   async getCampaignById(
@@ -121,6 +122,7 @@ export class CampaignQueryService {
     const campaign = await this.campaignRepository.findOne({
       where: { id: campaignId, advertiserId },
       relations: [
+        'categories',
         'advertiser',
         'invitedInfluencers',
         'invitedInfluencers.influencer',
@@ -236,29 +238,23 @@ export class CampaignQueryService {
       userId,
     );
 
-    const [application, submission, invitation, categories] = await Promise.all(
-      [
-        this.applicationRepository.findOne({
-          where: { campaignId, influencerId: userId },
-        }),
-        this.submissionRepository.findOne({
-          where: { campaignId, influencerId: userId },
-        }),
-        campaign.campaignVisibility === CampaignVisibility.PRIVATE
-          ? this.invitationRepository.findOne({
-              where: { campaignId, influencerId: userId },
-              relations: ['influencer', 'influencer.influencerProfile'],
-            })
-          : Promise.resolve(null),
-        campaign.categoryIds?.length
-          ? this.categoriesService.findByIds(campaign.categoryIds)
-          : Promise.resolve([]),
-      ],
-    );
+    const [application, submission, invitation] = await Promise.all([
+      this.applicationRepository.findOne({
+        where: { campaignId, influencerId: userId },
+      }),
+      this.submissionRepository.findOne({
+        where: { campaignId, influencerId: userId },
+      }),
+      campaign.campaignVisibility === CampaignVisibility.PRIVATE
+        ? this.invitationRepository.findOne({
+            where: { campaignId, influencerId: userId },
+            relations: ['influencer', 'influencer.influencerProfile'],
+          })
+        : Promise.resolve(null),
+    ]);
 
     return {
       campaign,
-      categories,
       application: application ?? null,
       submission: submission ?? null,
       invitation: invitation ?? null,
@@ -279,7 +275,6 @@ export class CampaignQueryService {
       'campaign.currentStep',
       'campaign.budget',
       'campaign.createdAt',
-      'campaign.categoryIds',
     ]);
   }
 
@@ -319,9 +314,17 @@ export class CampaignQueryService {
     }
 
     if (query.categoryId) {
-      qb.andWhere('campaign.categoryIds @> :categoryId', {
-        categoryId: JSON.stringify([query.categoryId]),
+      qb.andWhere((subQb) => {
+        const sub = subQb
+          .subQuery()
+          .select('1')
+          .from('campaign_categories', 'cc')
+          .where('cc."campaignId" = campaign.id')
+          .andWhere('cc."categoryId" = :filterCategoryId')
+          .getQuery();
+        return `EXISTS ${sub}`;
       });
+      qb.setParameter('filterCategoryId', query.categoryId);
     }
 
     if (query.platform) {
@@ -413,8 +416,9 @@ export class CampaignQueryService {
     if (categoryIds.length) {
       parts.push(
         `CASE WHEN EXISTS (
-          SELECT 1 FROM jsonb_array_elements_text(campaign.categoryIds) AS cat_elem
-          WHERE cat_elem = ANY(:matchCategoryIds)
+          SELECT 1 FROM campaign_categories cc_match
+          WHERE cc_match."campaignId" = campaign.id
+            AND cc_match."categoryId" = ANY(:matchCategoryIds)
         ) THEN 1 ELSE 0 END`,
       );
       qb.setParameter('matchCategoryIds', categoryIds);

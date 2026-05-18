@@ -2,7 +2,7 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UsersService } from '../../../users/users.service';
-import { CategoriesValidationService } from '../../../categories/categories-validation.service';
+import { CategoriesService } from '../../../categories/categories.service';
 import { CountriesService } from '../../../countries/countries.service';
 import { AdvertiserProfile } from '../../entities/advertiser-profile.entity';
 import { ConfirmAdvertiserProfileDto } from '../dto';
@@ -14,7 +14,7 @@ export class AdvertiserProfileService {
     @InjectRepository(AdvertiserProfile)
     private readonly advertiserProfileRepository: Repository<AdvertiserProfile>,
     private readonly usersService: UsersService,
-    private readonly categoriesValidationService: CategoriesValidationService,
+    private readonly categoriesService: CategoriesService,
     private readonly countriesService: CountriesService,
   ) {}
 
@@ -30,32 +30,33 @@ export class AdvertiserProfileService {
       throw new BadRequestException('الملف الشخصي غير موجود');
     }
 
-    const valid = await this.categoriesValidationService.allExist(dto.categoryIds);
-    if (!valid) {
+    const categories = await this.categoriesService.findByIds(dto.categoryIds);
+    if (categories.length !== dto.categoryIds.length) {
       throw new BadRequestException('إحدى الفئات المحددة غير موجودة');
     }
     await this.countriesService.findOne(dto.countryId);
 
-    const updateData: Partial<AdvertiserProfile> = {
-      companyName: dto.companyName,
-      categoryIds: dto.categoryIds,
-      companyWebsite: dto.companyWebsite,
-      contentTypes: dto.contentTypes,
-      targetPlatforms: dto.targetPlatforms,
-      expectedBudget: dto.expectedBudget,
-    };
+    profile.companyName = dto.companyName;
+    profile.categories = categories;
+    profile.companyWebsite = dto.companyWebsite ?? null;
+    profile.contentTypes = dto.contentTypes ?? null;
+    profile.targetPlatforms = dto.targetPlatforms ?? null;
+    profile.expectedBudget = dto.expectedBudget ?? null;
 
     if (dto.logoUrl && dto.logoPublicId) {
-      updateData.logoUrl = dto.logoUrl;
-      updateData.logoPublicId = dto.logoPublicId;
+      profile.logoUrl = dto.logoUrl;
+      profile.logoPublicId = dto.logoPublicId;
     }
 
-    await this.advertiserProfileRepository.update(profile.id, updateData);
+    await this.advertiserProfileRepository.save(profile);
     await this.usersService.update(userId, {
       status: UserStatus.CONFIRMED,
       countryId: dto.countryId,
     });
 
-    return this.advertiserProfileRepository.findOne({ where: { userId } });
+    return this.advertiserProfileRepository.findOne({
+      where: { userId },
+      relations: ['categories'],
+    });
   }
 }

@@ -9,7 +9,7 @@ import {
   SaveInfluencerRequirementsDto,
   SaveCampaignBudgetDto,
 } from '../dto';
-import { CategoriesValidationService } from '../../categories/categories-validation.service';
+import { CategoriesService } from '../../categories/categories.service';
 import { CloudinaryService } from '../../cloudinary/cloudinary.service';
 import { CampaignQueryService } from './campaign-query.service';
 import { InvitationsManagementService } from '../invitations/services/invitations-management.service';
@@ -20,7 +20,7 @@ export class CampaignCreationService {
     @InjectRepository(Campaign)
     private readonly campaignRepository: Repository<Campaign>,
     private readonly campaignQueryService: CampaignQueryService,
-    private readonly categoriesValidationService: CategoriesValidationService,
+    private readonly categoriesService: CategoriesService,
     private readonly cloudinaryService: CloudinaryService,
     private readonly invitationsManagementService: InvitationsManagementService,
   ) {}
@@ -45,35 +45,35 @@ export class CampaignCreationService {
   ): Promise<Campaign> {
     const campaign = await this.campaignQueryService.findDraftOrFail(campaignId, advertiserId);
 
-    const valid = await this.categoriesValidationService.allExist(dto.categoryIds);
-    if (!valid) {
+    const categories = await this.categoriesService.findByIds(dto.categoryIds);
+    if (categories.length !== dto.categoryIds.length) {
       throw new BadRequestException('إحدى الفئات المحددة غير موجودة');
     }
 
-    const updateData: Partial<Campaign> = {
-      name: dto.name,
-      description: dto.description,
-      categoryIds: dto.categoryIds,
-      includedPlatforms: dto.includedPlatforms,
-      implementationType: dto.implementationType,
-      campaignVisibility: dto.campaignVisibility,
-      implementationPeriodDays: dto.implementationPeriodDays,
-      currentStep: CampaignStep.CONTENT,
-    };
+    campaign.name = dto.name;
+    campaign.description = dto.description;
+    campaign.categories = categories;
+    campaign.includedPlatforms = dto.includedPlatforms;
+    campaign.implementationType = dto.implementationType;
+    campaign.campaignVisibility = dto.campaignVisibility;
+    campaign.implementationPeriodDays = dto.implementationPeriodDays;
+    campaign.currentStep = CampaignStep.CONTENT;
 
     if (dto.campaignVisibility === CampaignVisibility.PUBLIC) {
       const deadlineDate = new Date(dto.deadlineDate);
       if (deadlineDate <= new Date()) {
         throw new BadRequestException('تاريخ الموعد النهائي يجب أن يكون في المستقبل');
       }
-      updateData.deadlineDate = deadlineDate;
+      campaign.deadlineDate = deadlineDate;
     } else {
-      updateData.deadlineDate = null;
+      campaign.deadlineDate = null;
     }
 
-    await this.campaignRepository.update(campaign.id, updateData);
-
-    return this.campaignRepository.findOne({ where: { id: campaign.id } });
+    const saved = await this.campaignRepository.save(campaign);
+    return this.campaignRepository.findOne({
+      where: { id: saved.id },
+      relations: ['categories'],
+    });
   }
 
   async saveContentRequirements(
@@ -142,6 +142,7 @@ export class CampaignCreationService {
     const updated = await this.campaignRepository.findOne({
       where: { id: campaign.id },
       relations: [
+        'categories',
         'invitedInfluencers',
         'invitedInfluencers.influencer',
         'invitedInfluencers.influencer.influencerProfile',

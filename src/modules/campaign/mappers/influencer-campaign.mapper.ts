@@ -2,7 +2,6 @@ import { Campaign } from '../entities/campaign.entity';
 import { CampaignApplication } from '../applications/entities/campaign-application.entity';
 import { CampaignInvitedInfluencer } from '../invitations/entities/campaign-invited-influencer.entity';
 import { CampaignSubmission } from '../submissions/entities/campaign-submission.entity';
-import { Category } from '../../categories/entities/category.entity';
 import { CampaignVisibility } from '../enums';
 import { ApplicationStatus } from '../applications/enums';
 import {
@@ -24,7 +23,6 @@ export class InfluencerCampaignMapper {
 
   static toCampaignDetail(
     campaign: Campaign,
-    categories: Category[],
     application: CampaignApplication | null,
     submission: CampaignSubmission | null,
     invitation: CampaignInvitedInfluencer | null,
@@ -35,7 +33,7 @@ export class InfluencerCampaignMapper {
       status: resolveCampaignStatus(campaign.status),
       name: campaign.name,
       description: campaign.description,
-      categories: categories.map((c) => ({ id: c.id, name: c.name })),
+      categories: (campaign.categories ?? []).map((c) => ({ id: c.id, name: c.name })),
       includedPlatforms: campaign.includedPlatforms,
       contentTypes: campaign.contentTypes,
       contentDescription: campaign.contentDescription,

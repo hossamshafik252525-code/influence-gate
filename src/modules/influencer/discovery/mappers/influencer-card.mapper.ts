@@ -33,9 +33,7 @@ export class InfluencerCardMapper {
       country: source.user.country
         ? { id: source.user.country.id, name: source.user.country.name }
         : null,
-      categories: (source.profile.categories ?? [])
-        .filter((ic) => !!ic.category)
-        .map((ic) => ({ id: ic.category.id, name: ic.category.name })),
+      categories: (source.profile.categories ?? []).map((c) => ({ id: c.id, name: c.name })),
       services,
       priceAverage,
     };

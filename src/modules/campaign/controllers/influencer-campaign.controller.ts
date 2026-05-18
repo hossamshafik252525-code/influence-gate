@@ -59,6 +59,6 @@ export class InfluencerCampaignController {
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     const raw = await this.campaignQueryService.getCampaignDetail(id, user.id);
-    return InfluencerCampaignMapper.toCampaignDetail(raw.campaign, raw.categories, raw.application, raw.submission, raw.invitation);
+    return InfluencerCampaignMapper.toCampaignDetail(raw.campaign, raw.application, raw.submission, raw.invitation);
   }
 }

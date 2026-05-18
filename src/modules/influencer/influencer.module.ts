@@ -4,7 +4,6 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { HttpModule } from '@nestjs/axios';
 import { InfluencerProfile } from './entities/influencer-profile.entity';
-import { InfluencerCategory } from './entities/influencer-category.entity';
 import { CampaignApplication } from '../campaign/applications/entities/campaign-application.entity';
 import { CampaignInvitedInfluencer } from '../campaign/invitations/entities/campaign-invited-influencer.entity';
 import { SocialPlatform } from '../social-linking/entities/social-platform.entity';
@@ -38,7 +37,6 @@ import { CategoriesModule } from '../categories/categories.module';
       CampaignInvitedInfluencer,
       SocialPlatform,
       User,
-      InfluencerCategory,
     ]),
     PassportModule,
     JwtModule.register({}),

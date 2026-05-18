@@ -22,7 +22,6 @@ import { CampaignManagementService } from '../services/campaign-management.servi
 import { CampaignSubmissionService } from '../submissions/services/campaign-submission.service';
 import { CampaignQueryService } from '../services/campaign-query.service';
 import { AdvertiserCampaignMapper } from '../mappers/advertiser-campaign.mapper';
-import { CategoriesService } from '../../categories/categories.service';
 import {
   SaveCampaignInformationDto,
   SaveContentRequirementsDto,
@@ -31,7 +30,6 @@ import {
   ResolvePendingMinimumDto,
   GetAdvertiserMyCampaignsQueryDto,
 } from '../dto';
-import { Campaign } from '../entities/campaign.entity';
 import { AdvertiserCampaignDetail } from '../interfaces/advertiser-campaign.interface';
 
 @Controller('campaigns/advertiser')
@@ -44,18 +42,12 @@ export class AdvertiserCampaignController {
     private readonly campaignManagementService: CampaignManagementService,
     private readonly campaignSubmissionService: CampaignSubmissionService,
     private readonly campaignQueryService: CampaignQueryService,
-    private readonly categoriesService: CategoriesService,
   ) {}
-
-  private async mapDetail(campaign: Campaign): Promise<AdvertiserCampaignDetail> {
-    const categories = await this.categoriesService.findByIds(campaign.categoryIds ?? []);
-    return AdvertiserCampaignMapper.toCampaignDetail(campaign, categories);
-  }
 
   @Post('draft')
   async createDraft(@AuthUser() user: User): Promise<AdvertiserCampaignDetail> {
     const campaign = await this.campaignCreationService.createDraft(user.id);
-    return this.mapDetail(campaign);
+    return AdvertiserCampaignMapper.toCampaignDetail(campaign);
   }
 
   @Delete(':id/draft')
@@ -71,11 +63,11 @@ export class AdvertiserCampaignController {
     @AuthUser() user: User,
     @Query() query: GetAdvertiserMyCampaignsQueryDto,
   ) {
-    const { campaigns, categories, total } =
+    const { campaigns, total } =
       await this.campaignQueryService.getAdvertiserCampaigns(user.id, query);
     return {
       data: campaigns.map((c) =>
-        AdvertiserCampaignMapper.toCampaignListItem(c, categories),
+        AdvertiserCampaignMapper.toCampaignListItem(c),
       ),
       pagination: { total, page: query.page, limit: query.limit },
     };
@@ -87,7 +79,7 @@ export class AdvertiserCampaignController {
     @AuthUser() user: User,
   ): Promise<AdvertiserCampaignDetail> {
     const campaign = await this.campaignQueryService.getCampaignById(id, user.id);
-    return this.mapDetail(campaign);
+    return AdvertiserCampaignMapper.toCampaignDetail(campaign);
   }
 
   @Patch(':id/step/information')
@@ -97,7 +89,7 @@ export class AdvertiserCampaignController {
     @Body() dto: SaveCampaignInformationDto,
   ): Promise<AdvertiserCampaignDetail> {
     const campaign = await this.campaignCreationService.saveInformation(id, user.id, dto);
-    return this.mapDetail(campaign);
+    return AdvertiserCampaignMapper.toCampaignDetail(campaign);
   }
 
   @Patch(':id/step/content')
@@ -107,7 +99,7 @@ export class AdvertiserCampaignController {
     @Body() dto: SaveContentRequirementsDto,
   ): Promise<AdvertiserCampaignDetail> {
     const campaign = await this.campaignCreationService.saveContentRequirements(id, user.id, dto);
-    return this.mapDetail(campaign);
+    return AdvertiserCampaignMapper.toCampaignDetail(campaign);
   }
 
   @Patch(':id/step/influencers')
@@ -117,7 +109,7 @@ export class AdvertiserCampaignController {
     @Body() dto: SaveInfluencerRequirementsDto,
   ): Promise<AdvertiserCampaignDetail> {
     const campaign = await this.campaignCreationService.saveInfluencerRequirements(id, user.id, dto);
-    return this.mapDetail(campaign);
+    return AdvertiserCampaignMapper.toCampaignDetail(campaign);
   }
 
   @Patch(':id/step/budget')
@@ -127,7 +119,7 @@ export class AdvertiserCampaignController {
     @Body() dto: SaveCampaignBudgetDto,
   ): Promise<AdvertiserCampaignDetail> {
     const campaign = await this.campaignCreationService.saveBudget(id, user.id, dto);
-    return this.mapDetail(campaign);
+    return AdvertiserCampaignMapper.toCampaignDetail(campaign);
   }
 
   @Post(':id/submit')
@@ -136,7 +128,7 @@ export class AdvertiserCampaignController {
     @AuthUser() user: User,
   ): Promise<AdvertiserCampaignDetail> {
     const campaign = await this.campaignSubmissionService.submitForReview(id, user.id);
-    return this.mapDetail(campaign);
+    return AdvertiserCampaignMapper.toCampaignDetail(campaign);
   }
 
   @Post(':id/resolve-pending')
@@ -146,6 +138,6 @@ export class AdvertiserCampaignController {
     @Body() dto: ResolvePendingMinimumDto,
   ): Promise<AdvertiserCampaignDetail> {
     const campaign = await this.campaignManagementService.resolvePendingMinimum(id, user.id, dto);
-    return this.mapDetail(campaign);
+    return AdvertiserCampaignMapper.toCampaignDetail(campaign);
   }
 }

@@ -1,6 +1,5 @@
 import { Campaign } from '../entities/campaign.entity';
 import { CampaignInvitedInfluencer } from '../invitations/entities/campaign-invited-influencer.entity';
-import { Category } from '../../categories/entities/category.entity';
 import { CampaignVisibility } from '../enums';
 import {
   AdvertiserCampaignListItem,
@@ -9,20 +8,14 @@ import {
 } from '../interfaces/advertiser-campaign.interface';
 
 export class AdvertiserCampaignMapper {
-  static toCampaignListItem(
-    campaign: Campaign,
-    allCategories: Category[],
-  ): AdvertiserCampaignListItem {
-    const categoryIds = campaign.categoryIds ?? [];
+  static toCampaignListItem(campaign: Campaign): AdvertiserCampaignListItem {
     return {
       id: campaign.id,
       campaignNumber: campaign.campaignNumber,
       status: campaign.status,
       currentStep: campaign.currentStep,
       name: campaign.name ?? null,
-      categories: allCategories
-        .filter((c) => categoryIds.includes(c.id))
-        .map((c) => ({ id: c.id, name: c.name })),
+      categories: (campaign.categories ?? []).map((c) => ({ id: c.id, name: c.name })),
       includedPlatforms: campaign.includedPlatforms ?? null,
       deadlineDate: campaign.deadlineDate ?? null,
       budget: campaign.budget ? Number(campaign.budget) : null,
@@ -32,11 +25,7 @@ export class AdvertiserCampaignMapper {
     };
   }
 
-  static toCampaignDetail(
-    campaign: Campaign,
-    allCategories: Category[],
-  ): AdvertiserCampaignDetail {
-    const categoryIds = campaign.categoryIds ?? [];
+  static toCampaignDetail(campaign: Campaign): AdvertiserCampaignDetail {
     const isPrivate = campaign.campaignVisibility === CampaignVisibility.PRIVATE;
     return {
       id: campaign.id,
@@ -45,9 +34,7 @@ export class AdvertiserCampaignMapper {
       currentStep: campaign.currentStep,
       name: campaign.name ?? null,
       description: campaign.description ?? null,
-      categories: allCategories
-        .filter((c) => categoryIds.includes(c.id))
-        .map((c) => ({ id: c.id, name: c.name })),
+      categories: (campaign.categories ?? []).map((c) => ({ id: c.id, name: c.name })),
       includedPlatforms: campaign.includedPlatforms ?? null,
       implementationType: campaign.implementationType ?? null,
       campaignVisibility: campaign.campaignVisibility ?? null,

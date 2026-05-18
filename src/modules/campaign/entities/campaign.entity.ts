@@ -5,11 +5,14 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   ManyToOne,
+  ManyToMany,
   OneToMany,
   JoinColumn,
+  JoinTable,
   Index,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
+import { Category } from '../../categories/entities/category.entity';
 import { CampaignInvitedInfluencer } from '../invitations/entities/campaign-invited-influencer.entity';
 import { CampaignApplication } from '../applications/entities/campaign-application.entity';
 import { ImplementationType, ContentTypeOffer } from '../../../common/enums';
@@ -45,8 +48,13 @@ export class Campaign {
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  @Column({ type: 'jsonb', nullable: true })
-  categoryIds: string[];
+  @ManyToMany(() => Category)
+  @JoinTable({
+    name: 'campaign_categories',
+    joinColumn: { name: 'campaignId', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'categoryId', referencedColumnName: 'id' },
+  })
+  categories: Category[];
 
   @Column({ type: 'jsonb', nullable: true })
   includedPlatforms: TargetPlatform[];

@@ -5,9 +5,12 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToOne,
+  ManyToMany,
   JoinColumn,
+  JoinTable,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
+import { Category } from '../../categories/entities/category.entity';
 import { ContentType, TargetPlatform, ExpectedBudget } from '../../../common/enums';
 
 @Entity('advertiser_profiles')
@@ -28,8 +31,13 @@ export class AdvertiserProfile {
   @Column({ nullable: true })
   companyName: string;
 
-  @Column({ type: 'jsonb', nullable: true })
-  categoryIds: string[];
+  @ManyToMany(() => Category)
+  @JoinTable({
+    name: 'advertiser_profile_categories',
+    joinColumn: { name: 'advertiserProfileId', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'categoryId', referencedColumnName: 'id' },
+  })
+  categories: Category[];
 
   @Column({ nullable: true })
   companyWebsite: string;

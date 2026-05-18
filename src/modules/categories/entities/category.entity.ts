@@ -4,9 +4,7 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
-  OneToMany,
 } from 'typeorm';
-import { InfluencerCategory } from '../../influencer/entities/influencer-category.entity';
 
 @Entity('categories')
 export class Category {
@@ -27,7 +25,4 @@ export class Category {
 
   @UpdateDateColumn()
   updatedAt: Date;
-
-  @OneToMany(() => InfluencerCategory, (ic) => ic.category)
-  influencerCategories: InfluencerCategory[];
 }

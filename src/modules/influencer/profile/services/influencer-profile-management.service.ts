@@ -67,7 +67,11 @@ export class InfluencerProfileManagementService {
     }
 
     if (dto.categoryIds) {
-      await this.categoriesService.selectCategories(userId, dto.categoryIds);
+      const categories = await this.categoriesService.findByIds(dto.categoryIds);
+      if (categories.length !== dto.categoryIds.length) {
+        throw new BadRequestException('إحدى الفئات المحددة غير موجودة');
+      }
+      await this.influencerProfileRepository.save({ ...profile, categories });
     }
   }
 

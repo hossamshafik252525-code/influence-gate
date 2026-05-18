@@ -25,7 +25,7 @@ export class CampaignSubmissionService {
   ): Promise<Campaign> {
     const campaign = await this.campaignRepository.findOne({
       where: { id: campaignId, advertiserId, status: CampaignStatus.DRAFT },
-      relations: ['invitedInfluencers'],
+      relations: ['invitedInfluencers', 'categories'],
     });
 
     if (!campaign) {
@@ -51,7 +51,7 @@ export class CampaignSubmissionService {
   }
 
   private validateAllStepsCompleted(campaign: Campaign): void {
-    if (!campaign.name || !campaign.description || !campaign.categoryIds?.length) {
+    if (!campaign.name || !campaign.description || !campaign.categories?.length) {
       throw new BadRequestException('يجب إكمال معلومات الحملة');
     }
 

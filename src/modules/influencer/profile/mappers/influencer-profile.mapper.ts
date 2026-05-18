@@ -15,11 +15,7 @@ export class InfluencerProfileMapper {
       countryName: profile.user.country?.name ?? null,
       profileImageUrl: profile.profileImageUrl ?? null,
       portfolioLink: profile.portfolioLink ?? null,
-      categories:
-        profile.categories
-          ?.map((ic) => ic.category)
-          ?.filter(Boolean)
-          ?.map((c) => ({ id: c.id, name: c.name })) ?? [],
+      categories: (profile.categories ?? []).map((c) => ({ id: c.id, name: c.name })),
       implementationType: profile.implementationType ?? null,
       contentType: profile.contentType ?? null,
       description: profile.description ?? null,
