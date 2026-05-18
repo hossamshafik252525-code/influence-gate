@@ -2,22 +2,18 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import * as bcrypt from 'bcrypt';
 import { InfluencerProfile } from '../../entities/influencer-profile.entity';
 import { UsersService } from '../../../users/users.service';
 import { CountriesService } from '../../../countries/countries.service';
 import { CloudinaryService } from '../../../cloudinary/cloudinary.service';
 import { CategoriesService } from '../../../categories/categories.service';
-import { UpdateInfluencerProfileDto, ChangePasswordDto } from '../dto';
+import { UpdateInfluencerProfileDto } from '../dto';
 
 @Injectable()
 export class InfluencerProfileManagementService {
-  private readonly SALT_ROUNDS = 10;
-
   constructor(
     @InjectRepository(InfluencerProfile)
     private readonly influencerProfileRepository: Repository<InfluencerProfile>,
@@ -73,29 +69,6 @@ export class InfluencerProfileManagementService {
       }
       await this.influencerProfileRepository.save({ ...profile, categories });
     }
-  }
-
-  async changePassword(userId: string, dto: ChangePasswordDto): Promise<void> {
-    const user = await this.usersService.findByIdWithPassword(userId);
-    if (!user) {
-      throw new NotFoundException('المستخدم غير موجود');
-    }
-
-    if (!user.password) {
-      throw new BadRequestException('لا يمكن تغيير كلمة المرور لهذا الحساب');
-    }
-
-    const isOldPasswordValid = await bcrypt.compare(dto.oldPassword, user.password);
-    if (!isOldPasswordValid) {
-      throw new UnauthorizedException('كلمة المرور الحالية غير صحيحة');
-    }
-
-    if (dto.oldPassword === dto.newPassword) {
-      throw new BadRequestException('كلمة المرور الجديدة يجب أن تختلف عن الحالية');
-    }
-
-    const hashedPassword = await bcrypt.hash(dto.newPassword, this.SALT_ROUNDS);
-    await this.usersService.update(userId, { password: hashedPassword, isLoggedIn: false });
   }
 
   async incrementCompletedCampaigns(userId: string): Promise<void> {

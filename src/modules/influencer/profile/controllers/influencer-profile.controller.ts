@@ -2,7 +2,6 @@ import {
   Controller,
   Get,
   Patch,
-  Post,
   Delete,
   Body,
   UseGuards,
@@ -18,7 +17,7 @@ import { Roles } from '../../../../common/decorators/roles.decorator';
 import { AuthUser } from '../../../../common/decorators/auth-user.decorator';
 import { Role } from '../../../../common/enums';
 import { User } from '../../../users/entities/user.entity';
-import { UpdateInfluencerProfileDto, ChangePasswordDto } from '../dto';
+import { UpdateInfluencerProfileDto } from '../dto';
 import { InfluencerProfileData, InfluencerNumbers } from '../../interfaces';
 
 @UseGuards(JwtAuthGuard, RolesStatusGuard)
@@ -59,12 +58,4 @@ export class InfluencerProfileController {
     return { message: 'تم حذف الصورة بنجاح' };
   }
 
-  @Post('change-password')
-  @HttpCode(HttpStatus.OK)
-  changePassword(
-    @AuthUser() user: User,
-    @Body() dto: ChangePasswordDto,
-  ): Promise<void> {
-    return this.influencerProfileManagementService.changePassword(user.id, dto);
-  }
 }
