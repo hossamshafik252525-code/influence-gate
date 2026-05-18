@@ -65,9 +65,14 @@ export class AdvertiserProfileManagementService {
       throw new NotFoundException('الملف الشخصي غير موجود');
     }
 
+    const userUpdate: Record<string, unknown> = {};
+    if (dto.fullName !== undefined) userUpdate.fullName = dto.fullName;
     if (dto.countryId !== undefined) {
       await this.countriesService.findOne(dto.countryId);
-      await this.usersService.update(userId, { countryId: dto.countryId });
+      userUpdate.countryId = dto.countryId;
+    }
+    if (Object.keys(userUpdate).length > 0) {
+      await this.usersService.update(userId, userUpdate);
     }
 
     if (dto.categoryIds !== undefined) {
@@ -79,6 +84,7 @@ export class AdvertiserProfileManagementService {
     }
 
     const profileUpdate: Partial<AdvertiserProfile> = {};
+    if (dto.username !== undefined) profileUpdate.username = dto.username;
     if (dto.companyName !== undefined) profileUpdate.companyName = dto.companyName;
     if (dto.companyWebsite !== undefined) profileUpdate.companyWebsite = dto.companyWebsite;
     if (dto.contentTypes !== undefined) profileUpdate.contentTypes = dto.contentTypes;

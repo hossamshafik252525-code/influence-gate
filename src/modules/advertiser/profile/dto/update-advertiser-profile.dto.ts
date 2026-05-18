@@ -5,10 +5,24 @@ import {
   IsString,
   IsUUID,
   IsUrl,
+  MinLength,
+  MaxLength,
 } from 'class-validator';
 import { ContentType, ExpectedBudget, TargetPlatform } from '../../../../common/enums';
 
 export class UpdateAdvertiserProfileDto {
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  @MaxLength(100)
+  fullName?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(3)
+  @MaxLength(50)
+  username?: string;
+
   @IsOptional()
   @IsString()
   companyName?: string;
