@@ -54,7 +54,7 @@ export class AdvertiserProfileManagementService {
 
     return this.advertiserProfileRepository.findOne({
       where: { userId },
-      relations: ['categories'],
+      relations: ['user', 'user.country', 'categories'],
     });
   }
 
