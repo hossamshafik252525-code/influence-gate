@@ -1,0 +1,1 @@
+export const MEGA_FOLLOWERS_THRESHOLD = 100_000;

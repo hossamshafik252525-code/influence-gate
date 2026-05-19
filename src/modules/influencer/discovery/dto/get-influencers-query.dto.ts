@@ -5,9 +5,11 @@ import {
   IsNumber,
   Min,
   IsArray,
+  IsEnum,
 } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 import { PaginationQueryDto } from '../../../../common/dto/pagination-query.dto';
+import { InfluencerType, TargetPlatform } from '../../../../common/enums';
 
 export class GetInfluencersQueryDto extends PaginationQueryDto {
   @IsOptional()
@@ -23,6 +25,16 @@ export class GetInfluencersQueryDto extends PaginationQueryDto {
   @IsOptional()
   @IsUUID('4')
   countryId?: string;
+
+  @IsOptional()
+  @Transform(({ value }) => (Array.isArray(value) ? value : [value]))
+  @IsArray()
+  @IsEnum(TargetPlatform, { each: true })
+  platforms?: TargetPlatform[];
+
+  @IsOptional()
+  @IsEnum(InfluencerType)
+  type?: InfluencerType;
 
   @IsOptional()
   @Type(() => Number)

@@ -8,7 +8,7 @@ import {
   ArrayMinSize,
   IsUUID,
 } from 'class-validator';
-import { InfluencerType } from '../enums';
+import { InfluencerType } from '../../../common/enums';
 
 export class SaveInfluencerRequirementsDto {
   @IsOptional()

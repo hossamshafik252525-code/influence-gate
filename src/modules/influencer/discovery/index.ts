@@ -4,7 +4,6 @@ export { InfluencerAdvertiserHistoryService } from './services/influencer-advert
 export { GetInfluencersQueryDto } from './dto/get-influencers-query.dto';
 export {
   InfluencerCard,
-  InfluencerServiceCardItem,
   InfluencerCategoryItem,
   InfluencerCountryItem,
   InfluencersDiscoveryResult,
@@ -12,4 +11,7 @@ export {
 export {
   InfluencerDetail,
   InfluencerSocialPlatformItem,
+  InfluencerDetailSocialPlatforms,
+  InfluencerPlatformNoHistory,
+  InfluencerPlatformWithHistory,
 } from './interfaces/influencer-detail.interface';

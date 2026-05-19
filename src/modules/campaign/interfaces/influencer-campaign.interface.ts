@@ -1,8 +1,5 @@
-import { TargetPlatform, ContentTypeOffer, ImplementationType } from '../../../common/enums';
-import {
-  InfluencerType,
-  ResolvedCampaignStatus,
-} from '../enums';
+import { TargetPlatform, ContentTypeOffer, ImplementationType, InfluencerType } from '../../../common/enums';
+import { ResolvedCampaignStatus } from '../enums';
 import { ApplicationStatus } from '../applications/enums';
 import { SubmissionStatus } from '../submissions/enums';
 import { InvitationStatus } from '../invitations/enums';

@@ -2,45 +2,30 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../../../users/entities/user.entity';
-import { InfluencerProfile } from '../../entities/influencer-profile.entity';
-
 import { SocialPlatform } from '../../../social-linking/entities/social-platform.entity';
-import { CampaignApplication } from '../../../campaign/applications/entities/campaign-application.entity';
-import { CampaignInvitedInfluencer } from '../../../campaign/invitations/entities/campaign-invited-influencer.entity';
-import { CampaignStatus } from '../../../campaign/enums';
-import { ApplicationStatus } from '../../../campaign/applications/enums';
-import { InvitationStatus } from '../../../campaign/invitations/enums';
 import { PlatformSettingsService } from '../../../platform-settings/platform-settings.service';
-import { Role } from '../../../../common/enums';
+import { InfluencerType, Role } from '../../../../common/enums';
 import { GetInfluencersQueryDto } from '../dto/get-influencers-query.dto';
 import {
-  InfluencerCard,
-  InfluencersDiscoveryResult,
+  InfluencersDiscoveryRawResult,
+  InfluencersDiscoveryRawRow,
+  InfluencerDetailRawResult,
 } from '../interfaces/influencer-card.interface';
-import { InfluencerDetail } from '../interfaces/influencer-detail.interface';
-import { InfluencerCardMapper, InfluencerCardSource } from '../mappers/influencer-card.mapper';
-import { InfluencerDetailMapper } from '../mappers/influencer-detail.mapper';
 import { InfluencerAdvertiserHistoryService } from './influencer-advertiser-history.service';
+import { MEGA_FOLLOWERS_THRESHOLD } from '../constants/follower-thresholds';
 
 @Injectable()
 export class AdvertiserInfluencerDiscoveryService {
   constructor(
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
-    @InjectRepository(InfluencerProfile)
-    private readonly influencerProfileRepo: Repository<InfluencerProfile>,
-
     @InjectRepository(SocialPlatform)
     private readonly socialPlatformRepo: Repository<SocialPlatform>,
-    @InjectRepository(CampaignApplication)
-    private readonly campaignApplicationRepo: Repository<CampaignApplication>,
-    @InjectRepository(CampaignInvitedInfluencer)
-    private readonly invitedInfluencerRepo: Repository<CampaignInvitedInfluencer>,
     private readonly platformSettingsService: PlatformSettingsService,
     private readonly historyService: InfluencerAdvertiserHistoryService,
   ) {}
 
-  async getInfluencers(query: GetInfluencersQueryDto): Promise<InfluencersDiscoveryResult> {
+  async getInfluencers(query: GetInfluencersQueryDto): Promise<InfluencersDiscoveryRawResult> {
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
     const offset = (page - 1) * limit;
@@ -50,17 +35,16 @@ export class AdvertiserInfluencerDiscoveryService {
     const qb = this.userRepo
       .createQueryBuilder('user')
       .innerJoinAndSelect('user.influencerProfile', 'profile')
-
       .leftJoinAndSelect('user.country', 'country')
       .leftJoinAndSelect('profile.categories', 'category')
       .where('user.role = :role', { role: Role.INFLUENCER })
       .andWhere('profile.price IS NOT NULL')
-      // .andWhere(   only on development and later i will delete this comments
-      //   `EXISTS (
-      //     SELECT 1 FROM social_platforms sp
-      //     WHERE sp."influencerProfileId" = profile.id
-      //   )`,
-      // );
+      .andWhere(
+        `EXISTS (
+          SELECT 1 FROM social_platforms sp
+          WHERE sp."influencerProfileId" = profile.id
+        )`,
+      );
 
     this.applyFilters(qb, query, feeMultiplier);
 
@@ -68,21 +52,24 @@ export class AdvertiserInfluencerDiscoveryService {
 
     const [users, total] = await qb.skip(offset).take(limit).getManyAndCount();
 
-    const cards = await Promise.all(
-      users.map((user) => this.buildCard(user, feeMultiplier)),
-    );
+    const rows: InfluencersDiscoveryRawRow[] = users.map((user) => ({
+      user,
+      feeMultiplier,
+    }));
 
     return {
-      data: cards,
+      data: rows,
       pagination: { total, page, limit },
     };
   }
 
-  async getInfluencerById(influencerId: string, advertiserId: string): Promise<InfluencerDetail> {
+  async getInfluencerById(
+    influencerId: string,
+    advertiserId: string,
+  ): Promise<InfluencerDetailRawResult> {
     const user = await this.userRepo
       .createQueryBuilder('user')
       .innerJoinAndSelect('user.influencerProfile', 'profile')
-
       .leftJoinAndSelect('user.country', 'country')
       .leftJoinAndSelect('profile.categories', 'category')
       .where('user.id = :id', { id: influencerId })
@@ -94,80 +81,17 @@ export class AdvertiserInfluencerDiscoveryService {
     }
 
     const feeMultiplier = await this.resolveFeeMultiplier();
-    const card = await this.buildCard(user, feeMultiplier);
 
     const hasHistory = await this.historyService.hasCompletedCampaignWith(
       influencerId,
       advertiserId,
     );
 
-    const socialPlatforms = hasHistory
-      ? await this.socialPlatformRepo.find({
-          where: { influencerProfileId: user.influencerProfile.id },
-        })
-      : null;
-
-    return InfluencerDetailMapper.toDetail(card, socialPlatforms);
-  }
-
-  private async buildCard(user: User, feeMultiplier: number): Promise<InfluencerCard> {
-    const totalFollowers = await this.calculateTotalFollowers(user.influencerProfile.id);
-    const completedCampaignsCount = await this.countCompletedCampaigns(user.id);
-
-    const source: InfluencerCardSource = {
-      user,
-      profile: user.influencerProfile,
-
-      totalFollowers,
-      completedCampaignsCount,
-      feeMultiplier,
-    };
-
-    return InfluencerCardMapper.toCard(source);
-  }
-
-  private async calculateTotalFollowers(influencerProfileId: string): Promise<number> {
-    const platforms = await this.socialPlatformRepo.find({
-      where: { influencerProfileId },
-      select: ['id', 'statistics'],
+    const socialPlatforms = await this.socialPlatformRepo.find({
+      where: { influencerProfileId: user.influencerProfile.id },
     });
 
-    if (platforms.length === 0) {
-      return 0;
-    }
-
-    return platforms.reduce((total, platform) => {
-      const stats = platform.statistics;
-      if (!stats) {
-        return total;
-      }
-      const followers = stats.followersCount ?? stats.followerCount ?? stats.fanCount ?? 0;
-      return total + Number(followers);
-    }, 0);
-  }
-
-  private async countCompletedCampaigns(influencerId: string): Promise<number> {
-    const acceptedApplications = await this.campaignApplicationRepo
-      .createQueryBuilder('app')
-      .innerJoin('app.campaign', 'campaign')
-      .where('app.influencerId = :influencerId', { influencerId })
-      .andWhere('app.status = :appStatus', { appStatus: ApplicationStatus.ACCEPTED })
-      .andWhere('campaign.status = :campaignStatus', {
-        campaignStatus: CampaignStatus.COMPLETED,
-      })
-      .getCount();
-
-    const acceptedInvitations = await this.invitedInfluencerRepo
-      .createQueryBuilder('inv')
-      .innerJoin('inv.campaign', 'campaign')
-      .where('inv.influencerId = :influencerId', { influencerId })
-      .andWhere('inv.status = :invStatus', { invStatus: InvitationStatus.ACCEPTED })
-      .andWhere('campaign.status = :campaignStatus', {
-        campaignStatus: CampaignStatus.COMPLETED,
-      })
-      .getCount();
-
-    return acceptedApplications + acceptedInvitations;
+    return { user, socialPlatforms, feeMultiplier, hasHistory };
   }
 
   private async resolveFeeMultiplier(): Promise<number> {
@@ -198,6 +122,22 @@ export class AdvertiserInfluencerDiscoveryService {
       );
     }
 
+    if (query.platforms && query.platforms.length > 0) {
+      qb.andWhere(`profile."includedPlatforms" ?| ARRAY[:...platforms]`, {
+        platforms: query.platforms,
+      });
+    }
+
+    if (query.type === InfluencerType.MICRO) {
+      qb.andWhere('profile.totalFollowers < :megaThreshold', {
+        megaThreshold: MEGA_FOLLOWERS_THRESHOLD,
+      });
+    } else if (query.type === InfluencerType.MEGA) {
+      qb.andWhere('profile.totalFollowers >= :megaThreshold', {
+        megaThreshold: MEGA_FOLLOWERS_THRESHOLD,
+      });
+    }
+
     if (query.ratingFrom !== undefined) {
       qb.andWhere('profile.rating >= :ratingFrom', { ratingFrom: query.ratingFrom });
     }
@@ -219,30 +159,15 @@ export class AdvertiserInfluencerDiscoveryService {
       }
     }
 
-    if (query.followersFrom !== undefined || query.followersTo !== undefined) {
-      const followersSubQuery = `(
-        SELECT COALESCE(SUM(
-          COALESCE(
-            (sp.statistics->>'followersCount')::numeric,
-            (sp.statistics->>'followerCount')::numeric,
-            (sp.statistics->>'fanCount')::numeric,
-            0
-          )
-        ), 0)
-        FROM social_platforms sp
-        WHERE sp."influencerProfileId" = profile.id
-      )`;
-      if (query.followersFrom !== undefined) {
-        qb.andWhere(`${followersSubQuery} >= :followersFrom`, {
-          followersFrom: query.followersFrom,
-        });
-      }
-      if (query.followersTo !== undefined) {
-        qb.andWhere(`${followersSubQuery} <= :followersTo`, {
-          followersTo: query.followersTo,
-        });
-      }
+    if (query.followersFrom !== undefined) {
+      qb.andWhere('profile.totalFollowers >= :followersFrom', {
+        followersFrom: query.followersFrom,
+      });
     }
-
+    if (query.followersTo !== undefined) {
+      qb.andWhere('profile.totalFollowers <= :followersTo', {
+        followersTo: query.followersTo,
+      });
+    }
   }
 }

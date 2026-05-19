@@ -9,6 +9,7 @@ import {
   ManyToMany,
   JoinColumn,
   JoinTable,
+  Index,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Category } from '../../categories/entities/category.entity';
@@ -47,6 +48,10 @@ export class InfluencerProfile {
 
   @Column({ type: 'int', default: 0 })
   completedCampaignsCount: number;
+
+  @Index('idx_influencer_profile_total_followers')
+  @Column({ type: 'bigint', default: 0 })
+  totalFollowers: number;
 
   @Column({ type: 'enum', enum: ImplementationType, nullable: true })
   implementationType: ImplementationType;

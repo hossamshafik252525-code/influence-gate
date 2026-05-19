@@ -8,8 +8,14 @@ import { Role, UserStatus } from '../../../../common/enums';
 import { User } from '../../../users/entities/user.entity';
 import { AdvertiserInfluencerDiscoveryService } from '../services/advertiser-influencer-discovery.service';
 import { GetInfluencersQueryDto } from '../dto/get-influencers-query.dto';
-import { InfluencersDiscoveryResult } from '../interfaces/influencer-card.interface';
+import {
+  InfluencerCard,
+  InfluencersDiscoveryResult,
+  InfluencersDiscoveryRawRow,
+} from '../interfaces/influencer-card.interface';
 import { InfluencerDetail } from '../interfaces/influencer-detail.interface';
+import { InfluencerCardMapper } from '../mappers/influencer-card.mapper';
+import { InfluencerDetailMapper } from '../mappers/influencer-detail.mapper';
 
 @Controller('advertiser/influencers')
 @UseGuards(JwtAuthGuard, RolesStatusGuard)
@@ -21,17 +27,37 @@ export class AdvertiserInfluencerDiscoveryController {
   ) {}
 
   @Get()
-  getInfluencers(
+  async getInfluencers(
     @Query() query: GetInfluencersQueryDto,
   ): Promise<InfluencersDiscoveryResult> {
-    return this.discoveryService.getInfluencers(query);
+    const result = await this.discoveryService.getInfluencers(query);
+    return {
+      data: result.data.map((row) => this.toCard(row)),
+      pagination: result.pagination,
+    };
   }
 
   @Get(':id')
-  getInfluencerById(
+  async getInfluencerById(
     @Param('id', ParseUUIDPipe) id: string,
     @AuthUser() user: User,
   ): Promise<InfluencerDetail> {
-    return this.discoveryService.getInfluencerById(id, user.id);
+    const result = await this.discoveryService.getInfluencerById(id, user.id);
+    return InfluencerDetailMapper.toDetail({
+      user: result.user,
+      socialPlatforms: result.socialPlatforms,
+      hasHistory: result.hasHistory,
+      feeMultiplier: result.feeMultiplier,
+    });
+  }
+
+  private toCard(row: InfluencersDiscoveryRawRow): InfluencerCard {
+    const profile = row.user.influencerProfile;
+    return InfluencerCardMapper.toCard({
+      user: row.user,
+      profile,
+      totalFollowers: Number(profile.totalFollowers),
+      feeMultiplier: row.feeMultiplier,
+    });
   }
 }

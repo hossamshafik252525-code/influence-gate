@@ -8,6 +8,7 @@ import { SocialProviderStrategy } from '../../interfaces/social-provider.interfa
 import { SocialPlatform } from '../../entities/social-platform.entity';
 import { Platform } from '../../../../common/enums';
 import { InfluencerProfile } from '../../../influencer/entities/influencer-profile.entity';
+import { InfluencerFollowerSyncService } from '../../services/influencer-follower-sync.service';
 import {
   MetaTokenResponse,
   MetaFacebookProfile,
@@ -31,6 +32,7 @@ export class MetaStrategy implements SocialProviderStrategy {
     private readonly influencerProfileRepo: Repository<InfluencerProfile>,
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
+    private readonly followerSyncService: InfluencerFollowerSyncService,
   ) {
     this.apiVersion = this.configService.get<string>('meta.graphApiVersion');
     this.graphUrl = `https://graph.facebook.com/${this.apiVersion}`;
@@ -99,6 +101,8 @@ export class MetaStrategy implements SocialProviderStrategy {
         igStats,
       );
     }
+
+    await this.followerSyncService.recomputeForProfile(influencerProfileId);
 
     return this.findUserPlatforms(influencerProfileId);
   }

@@ -11,6 +11,7 @@ import { MetaStrategy, TikTokStrategy } from './strategies';
 import { Platform } from '../../common/enums';
 import { SocialProviderStrategy } from './interfaces/social-provider.interface';
 import { InfluencerProfile } from '../influencer/entities/influencer-profile.entity';
+import { InfluencerFollowerSyncService } from './services/influencer-follower-sync.service';
 
 @Injectable()
 export class SocialLinkingService {
@@ -23,6 +24,7 @@ export class SocialLinkingService {
     private readonly influencerProfileRepo: Repository<InfluencerProfile>,
     private readonly metaStrategy: MetaStrategy,
     private readonly tiktokStrategy: TikTokStrategy,
+    private readonly followerSyncService: InfluencerFollowerSyncService,
   ) {}
 
   getMetaAuthUrl(): { url: string } {
@@ -74,6 +76,8 @@ export class SocialLinkingService {
       lastSyncedAt: new Date(),
     });
 
+    await this.followerSyncService.recomputeForProfile(influencerProfileId);
+
     return this.getLinkedPlatforms(userId);
   }
 
@@ -81,6 +85,7 @@ export class SocialLinkingService {
     const influencerProfileId = await this.resolveProfileId(userId);
     const record = await this.findPlatformOrFail(influencerProfileId, socialPlatformId);
     await this.socialPlatformRepo.remove(record);
+    await this.followerSyncService.recomputeForProfile(influencerProfileId);
     return { message: 'تم إلغاء ربط المنصة بنجاح' };
   }
 
@@ -122,6 +127,8 @@ export class SocialLinkingService {
       statistics,
       lastSyncedAt: new Date(),
     });
+
+    await this.followerSyncService.recomputeForProfile(record.influencerProfileId);
   }
 
   private async resolveProfileId(userId: string): Promise<string> {

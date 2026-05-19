@@ -11,12 +11,12 @@ import {
   ImplementationType,
   ContentTypeOffer,
   TargetPlatform,
+  InfluencerType,
 } from '../../common/enums';
 import {
   CampaignStatus,
   CampaignStep,
   CampaignVisibility,
-  InfluencerType,
 } from '../../modules/campaign/enums';
 import { ApplicationStatus } from '../../modules/campaign/applications/enums';
 import { SubmissionStatus } from '../../modules/campaign/submissions/enums';

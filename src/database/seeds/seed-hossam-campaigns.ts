@@ -13,12 +13,12 @@ import {
   ImplementationType,
   ContentTypeOffer,
   TargetPlatform,
+  InfluencerType,
 } from '../../common/enums';
 import {
   CampaignStatus,
   CampaignStep,
   CampaignVisibility,
-  InfluencerType,
 } from '../../modules/campaign/enums';
 
 dotenv.config();

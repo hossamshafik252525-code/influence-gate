@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { InfluencerProfile } from '../../entities/influencer-profile.entity';
@@ -20,6 +20,7 @@ export class InfluencerProfileQueryService {
   constructor(
     @InjectRepository(InfluencerProfile)
     private readonly influencerProfileRepository: Repository<InfluencerProfile>,
+    @Inject(forwardRef(() => SocialLinkingService))
     private readonly socialLinkingService: SocialLinkingService,
   ) {}
 

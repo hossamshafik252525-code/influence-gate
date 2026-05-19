@@ -3,12 +3,11 @@ import * as dotenv from 'dotenv';
 import { User } from '../../modules/users/entities/user.entity';
 import { Campaign } from '../../modules/campaign/entities/campaign.entity';
 import { Category } from '../../modules/categories/entities/category.entity';
-import { Role, UserStatus, ImplementationType, ContentTypeOffer, TargetPlatform } from '../../common/enums';
+import { Role, UserStatus, ImplementationType, ContentTypeOffer, TargetPlatform, InfluencerType } from '../../common/enums';
 import {
   CampaignStatus,
   CampaignStep,
   CampaignVisibility,
-  InfluencerType,
 } from '../../modules/campaign/enums';
 
 dotenv.config();

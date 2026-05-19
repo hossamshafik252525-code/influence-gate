@@ -1,5 +1,5 @@
-import { ImplementationType, ContentTypeOffer, TargetPlatform } from '../../../common/enums';
-import { CampaignStatus, CampaignStep, InfluencerType, CampaignVisibility } from '../enums';
+import { ImplementationType, ContentTypeOffer, TargetPlatform, InfluencerType } from '../../../common/enums';
+import { CampaignStatus, CampaignStep, CampaignVisibility } from '../enums';
 import { InvitationStatus } from '../invitations/enums';
 export interface AdvertiserCampaignListItem {
   id: string;

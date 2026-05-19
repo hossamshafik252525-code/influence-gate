@@ -1,14 +1,35 @@
-import { InfluencerCard } from './influencer-card.interface';
 import { Platform } from '../../../../common/enums';
+import { InfluencerCategoryItem } from './influencer-card.interface';
 
-export interface InfluencerSocialPlatformItem {
-  id: string;
-  platform: Platform;
-  platformUsername: string | null;
+export interface InfluencerPlatformNoHistory {
   followersCount: number;
-  statistics: Record<string, unknown> | null;
 }
 
-export interface InfluencerDetail extends InfluencerCard {
-  socialPlatforms: InfluencerSocialPlatformItem[] | null;
+export interface InfluencerPlatformWithHistory {
+  followersCount: number;
+  platformUsername: string | null;
+  statistics: Record<string, unknown> | null;
+  lastSyncedAt: Date | null;
+}
+
+export type InfluencerSocialPlatformItem =
+  | InfluencerPlatformNoHistory
+  | InfluencerPlatformWithHistory;
+
+export type InfluencerDetailSocialPlatforms = Partial<
+  Record<Platform, InfluencerSocialPlatformItem>
+>;
+
+export interface InfluencerDetail {
+  id: string;
+  fullName: string;
+  userName: string | null;
+  profileImageUrl: string | null;
+  description: string | null;
+  price: number;
+  rating: number;
+  ratingCount: number;
+  completedCampaignsCount: number;
+  categories: InfluencerCategoryItem[];
+  socialPlatforms: InfluencerDetailSocialPlatforms;
 }

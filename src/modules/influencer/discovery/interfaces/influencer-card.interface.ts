@@ -1,15 +1,7 @@
-import { ImplementationType, ContentTypeOffer, TargetPlatform } from '../../../../common/enums';
+import { TargetPlatform, InfluencerType } from '../../../../common/enums';
 import { PaginatedResult } from '../../../../common/interfaces';
-
-export interface InfluencerServiceCardItem {
-  id: string;
-  implementationType: ImplementationType;
-  contentType: ContentTypeOffer;
-  description: string;
-  price: number;
-  implementationPeriodDays: number;
-  includedPlatforms: TargetPlatform[];
-}
+import { User } from '../../../users/entities/user.entity';
+import { SocialPlatform } from '../../../social-linking/entities/social-platform.entity';
 
 export interface InfluencerCategoryItem {
   id: string;
@@ -24,15 +16,30 @@ export interface InfluencerCountryItem {
 export interface InfluencerCard {
   id: string;
   fullName: string;
+  userName: string | null;
   profileImageUrl: string | null;
   totalFollowers: number;
-  completedCampaignsCount: number;
+  type: InfluencerType;
+  includedPlatforms: TargetPlatform[];
+  price: number;
   rating: number;
   ratingCount: number;
   country: InfluencerCountryItem | null;
   categories: InfluencerCategoryItem[];
-  services: InfluencerServiceCardItem[];
-  priceAverage: number;
 }
 
 export type InfluencersDiscoveryResult = PaginatedResult<InfluencerCard>;
+
+export interface InfluencersDiscoveryRawRow {
+  user: User;
+  feeMultiplier: number;
+}
+
+export type InfluencersDiscoveryRawResult = PaginatedResult<InfluencersDiscoveryRawRow>;
+
+export interface InfluencerDetailRawResult {
+  user: User;
+  socialPlatforms: SocialPlatform[] | null;
+  feeMultiplier: number;
+  hasHistory: boolean;
+}

@@ -8,6 +8,7 @@ import { SocialProviderStrategy } from '../../interfaces/social-provider.interfa
 import { SocialPlatform } from '../../entities/social-platform.entity';
 import { Platform } from '../../../../common/enums';
 import { InfluencerProfile } from '../../../influencer/entities/influencer-profile.entity';
+import { InfluencerFollowerSyncService } from '../../services/influencer-follower-sync.service';
 import {
   TikTokTokenResponse,
   TikTokUserInfoResponse,
@@ -37,6 +38,7 @@ export class TikTokStrategy implements SocialProviderStrategy {
     private readonly influencerProfileRepo: Repository<InfluencerProfile>,
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
+    private readonly followerSyncService: InfluencerFollowerSyncService,
   ) {
     this.clientKey = this.configService.get<string>('tiktok.clientKey');
     this.clientSecret = this.configService.get<string>('tiktok.clientSecret');
@@ -101,6 +103,8 @@ export class TikTokStrategy implements SocialProviderStrategy {
       userData,
       statistics,
     );
+
+    await this.followerSyncService.recomputeForProfile(influencerProfileId);
 
     return this.findUserPlatforms(influencerProfileId);
   }

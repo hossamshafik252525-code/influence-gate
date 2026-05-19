@@ -75,6 +75,10 @@ export class InfluencerProfileManagementService {
     await this.influencerProfileRepository.increment({ userId }, 'completedCampaignsCount', 1);
   }
 
+  async updateTotalFollowers(profileId: string, totalFollowers: number): Promise<void> {
+    await this.influencerProfileRepository.update(profileId, { totalFollowers });
+  }
+
   async deleteProfileImage(userId: string): Promise<void> {
     const profile = await this.influencerProfileRepository.findOne({ where: { userId } });
     if (!profile) {
