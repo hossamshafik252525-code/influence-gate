@@ -1,26 +1,25 @@
-import {
-  Injectable,
-  BadRequestException,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Campaign } from '../../entities/campaign.entity';
 import { CampaignApplication } from '../entities/campaign-application.entity';
-import { CampaignStatus, CampaignVisibility } from '../../enums';
 import { ApplicationStatus } from '../enums';
 import { ReviewApplicationDto } from '../dto';
 import { NotificationsService } from '../../../notifications/services/notifications.service';
 import { NotificationType } from '../../../notifications/enums';
+import { ApplicationsValidationService } from './applications-validation.service';
+import { ApplicationsDataService } from './applications-data.service';
+import { CampaignLaunchService } from '../../services/campaign-launch.service';
 
 @Injectable()
 export class CampaignApplicationReviewService {
   constructor(
-    @InjectRepository(Campaign)
-    private readonly campaignRepo: Repository<Campaign>,
     @InjectRepository(CampaignApplication)
     private readonly applicationRepo: Repository<CampaignApplication>,
     private readonly notificationsService: NotificationsService,
+    private readonly applicationsValidationService: ApplicationsValidationService,
+    private readonly applicationsDataService: ApplicationsDataService,
+    @Inject(forwardRef(() => CampaignLaunchService))
+    private readonly campaignLaunchService: CampaignLaunchService,
   ) {}
 
   async reviewApplication(
@@ -37,24 +36,12 @@ export class CampaignApplicationReviewService {
       throw new NotFoundException('الطلب غير موجود');
     }
 
-    if (application.campaign.advertiserId !== advertiserId) {
-      throw new BadRequestException('غير مصرح لك بمراجعة هذا الطلب');
-    }
-
-    if (application.campaign.campaignVisibility === CampaignVisibility.PRIVATE) {
-      throw new BadRequestException('مراجعة الطلبات متاحة للحملات العامة فقط');
-    }
-
-    if (
-      application.campaign.status !== CampaignStatus.APPROVED &&
-      application.campaign.status !== CampaignStatus.PENDING_MINIMUM
-    ) {
-      throw new BadRequestException('لا يمكن مراجعة الطلبات لهذه الحملة');
-    }
-
-    if (application.status !== ApplicationStatus.PENDING) {
-      throw new BadRequestException('تم مراجعة هذا الطلب مسبقاً');
-    }
+    this.applicationsValidationService.ensureAdvertiserOwnsApplication(
+      application,
+      advertiserId,
+    );
+    this.applicationsValidationService.ensureCampaignCanReceiveReview(application);
+    this.applicationsValidationService.ensureApplicationIsPending(application);
 
     if (dto.status === ApplicationStatus.ACCEPTED) {
       await this.acceptApplication(application);
@@ -68,25 +55,10 @@ export class CampaignApplicationReviewService {
   private async acceptApplication(
     application: CampaignApplication,
   ): Promise<void> {
-    const acceptedApplications = await this.applicationRepo.find({
-      where: {
-        campaignId: application.campaignId,
-        status: ApplicationStatus.ACCEPTED,
-      },
-    });
-
-    const currentTotalCost = acceptedApplications.reduce(
-      (sum, app) => sum + Number(app.priceWithFee || 0),
-      0,
+    await this.applicationsValidationService.ensureBudgetCovers(
+      application.campaign,
+      Number(application.priceWithFee || 0),
     );
-
-    const newTotalCost = currentTotalCost + Number(application.priceWithFee || 0);
-
-    if (newTotalCost > Number(application.campaign.budget || 0)) {
-      throw new BadRequestException(
-        'ميزانية الحملة لا تكفي لقبول هذا الطلب. يرجى زيادة ميزانية الحملة.',
-      );
-    }
 
     application.status = ApplicationStatus.ACCEPTED;
     await this.applicationRepo.save(application);
@@ -99,17 +71,13 @@ export class CampaignApplicationReviewService {
       { campaignId: application.campaignId, applicationId: application.id },
     );
 
-    const acceptedCount = await this.applicationRepo.count({
-      where: {
-        campaignId: application.campaignId,
-        status: ApplicationStatus.ACCEPTED,
-      },
-    });
+    const acceptedCount = await this.applicationsDataService.countAcceptedApplications(
+      application.campaignId,
+    );
 
     if (acceptedCount >= application.campaign.requiredInfluencersCount) {
-      await this.launchCampaign(application.campaign);
+      await this.campaignLaunchService.launchImplementation(application.campaign);
     }
-
   }
 
   private async rejectApplication(
@@ -125,49 +93,5 @@ export class CampaignApplicationReviewService {
       NotificationType.APPLICATION_REJECTED,
       { campaignId: application.campaignId, applicationId: application.id },
     );
-  }
-
-  private async launchCampaign(campaign: Campaign): Promise<void> {
-    const implementationEndDate = new Date();
-    implementationEndDate.setDate(
-      implementationEndDate.getDate() + campaign.implementationPeriodDays,
-    );
-
-    await this.campaignRepo.update(campaign.id, {
-      status: CampaignStatus.IMPLEMENTATION,
-      implementationStartDate: new Date(),
-      implementationEndDate,
-    });
-
-    const pendingApplications = await this.applicationRepo.find({
-      where: { campaignId: campaign.id, status: ApplicationStatus.PENDING },
-    });
-
-    for (const pending of pendingApplications) {
-      pending.status = ApplicationStatus.REJECTED;
-      await this.applicationRepo.save(pending);
-
-      await this.notificationsService.notify(
-        pending.influencerId,
-        'تم رفض طلبك',
-        `تم رفض طلبك للحملة ${campaign.name} لاكتمال العدد المطلوب`,
-        NotificationType.APPLICATION_REJECTED,
-        { campaignId: campaign.id, applicationId: pending.id },
-      );
-    }
-
-    const acceptedApplications = await this.applicationRepo.find({
-      where: { campaignId: campaign.id, status: ApplicationStatus.ACCEPTED },
-    });
-
-    for (const accepted of acceptedApplications) {
-      await this.notificationsService.notify(
-        accepted.influencerId,
-        'بدأت الحملة',
-        `بدأت فترة التنفيذ للحملة ${campaign.name}`,
-        NotificationType.CAMPAIGN_STARTED,
-        { campaignId: campaign.id },
-      );
-    }
   }
 }

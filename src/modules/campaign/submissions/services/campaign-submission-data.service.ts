@@ -44,4 +44,11 @@ export class CampaignSubmissionDataService {
       },
     };
   }
+
+  async getAcceptedInfluencerIds(campaignId: string): Promise<string[]> {
+    const submissions = await this.submissionRepo.find({
+      where: { campaignId, status: SubmissionStatus.ACCEPTED },
+    });
+    return submissions.map((s) => s.influencerId);
+  }
 }

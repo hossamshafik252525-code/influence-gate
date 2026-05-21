@@ -9,8 +9,13 @@ import {
   IsUUID,
 } from 'class-validator';
 import { InfluencerType } from '../../../common/enums';
+import { CampaignVisibility } from '../enums';
 
 export class SaveInfluencerRequirementsDto {
+  @IsNotEmpty({ message: 'نوع الحملة مطلوب' })
+  @IsEnum(CampaignVisibility, { message: 'نوع الحملة غير صالح' })
+  campaignVisibility: CampaignVisibility;
+
   @IsOptional()
   @IsInt({ message: 'عدد المؤثرين يجب أن يكون رقماً صحيحاً' })
   @Min(1, { message: 'يجب أن يكون عدد المؤثرين واحداً على الأقل' })

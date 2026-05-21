@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
 import { CampaignInvitedInfluencer } from '../entities/campaign-invited-influencer.entity';
-import { Campaign } from '../../entities/campaign.entity';
 import { CampaignStatus } from '../../enums';
 import { InvitationStatus } from '../enums';
 import { GetInfluencerInvitationsQueryDto } from '../dto';
@@ -28,7 +27,12 @@ export class InfluencerInvitationQueryService {
       .andWhere('inv.status IN (:...invStatuses)', {
         invStatuses: [InvitationStatus.PENDING, InvitationStatus.CANCELLED],
       })
-      .andWhere('campaign.status = :campaignStatus', { campaignStatus: CampaignStatus.IMPLEMENTATION });
+      .andWhere('campaign.status IN (:...campaignStatuses)', {
+        campaignStatuses: [
+          CampaignStatus.SCHEDULED,
+          CampaignStatus.IMPLEMENTATION,
+        ],
+      });
 
     this.applyCommonFilters(qb, query);
 
@@ -53,10 +57,8 @@ export class InfluencerInvitationQueryService {
          AND inv."influencerId" = $1
          AND inv.status = $3
          AND c.status = $4
-         AND c."implementationStartDate" IS NOT NULL
-         AND c."implementationEndDate" IS NOT NULL
-         AND EXTRACT(EPOCH FROM (NOW() - c."implementationStartDate"::timestamp))
-             >= 0.75 * EXTRACT(EPOCH FROM (c."implementationEndDate"::timestamp - c."implementationStartDate"::timestamp))`,
+         AND c."applicationDeadlineDate" IS NOT NULL
+         AND c."applicationDeadlineDate" <= CURRENT_DATE`,
       [
         userId,
         InvitationStatus.CANCELLED,
@@ -112,12 +114,6 @@ export class InfluencerInvitationQueryService {
     if (query.implementationType) {
       qb.andWhere('campaign.implementationType = :implementationType', {
         implementationType: query.implementationType,
-      });
-    }
-
-    if (query.implementationPeriodDays !== undefined) {
-      qb.andWhere('campaign.implementationPeriodDays = :days', {
-        days: query.implementationPeriodDays,
       });
     }
   }

@@ -7,13 +7,9 @@ import {
   ArrayMaxSize,
   IsEnum,
   IsDateString,
-  IsInt,
-  Min,
   MaxLength,
-  ValidateIf,
 } from 'class-validator';
 import { TargetPlatform, ImplementationType } from '../../../common/enums';
-import { CampaignVisibility } from '../enums';
 
 export class SaveCampaignInformationDto {
   @IsNotEmpty({ message: 'اسم الحملة مطلوب' })
@@ -31,6 +27,10 @@ export class SaveCampaignInformationDto {
   @IsUUID('4', { each: true, message: 'معرف التصنيف غير صالح' })
   categoryIds: string[];
 
+  @IsNotEmpty({ message: 'الدولة مطلوبة' })
+  @IsUUID('4', { message: 'معرف الدولة غير صالح' })
+  countryId: string;
+
   @IsArray({ message: 'المنصات يجب أن تكون قائمة' })
   @ArrayMinSize(1, { message: 'يجب اختيار منصة واحدة على الأقل' })
   @IsEnum(TargetPlatform, { each: true, message: 'منصة غير صالحة' })
@@ -40,17 +40,15 @@ export class SaveCampaignInformationDto {
   @IsEnum(ImplementationType, { message: 'نوع التنفيذ غير صالح' })
   implementationType: ImplementationType;
 
-  @IsNotEmpty({ message: 'نوع الحملة مطلوب' })
-  @IsEnum(CampaignVisibility, { message: 'نوع الحملة غير صالح' })
-  campaignVisibility: CampaignVisibility;
+  @IsNotEmpty({ message: 'تاريخ بداية الحملة مطلوب' })
+  @IsDateString({}, { message: 'تاريخ بداية الحملة غير صالح' })
+  startDate: string;
 
-  @ValidateIf((o) => o.campaignVisibility === CampaignVisibility.PUBLIC)
-  @IsNotEmpty({ message: 'تاريخ الموعد النهائي مطلوب' })
-  @IsDateString({}, { message: 'تاريخ الموعد النهائي غير صالح' })
-  deadlineDate?: string;
+  @IsNotEmpty({ message: 'تاريخ نهاية الحملة مطلوب' })
+  @IsDateString({}, { message: 'تاريخ نهاية الحملة غير صالح' })
+  endDate: string;
 
-  @IsNotEmpty({ message: 'مدة التنفيذ مطلوبة' })
-  @IsInt({ message: 'مدة التنفيذ يجب أن تكون رقماً صحيحاً' })
-  @Min(1, { message: 'مدة التنفيذ يجب أن تكون يوماً واحداً على الأقل' })
-  implementationPeriodDays: number;
+  @IsNotEmpty({ message: 'تاريخ نهاية فترة التقديم مطلوب' })
+  @IsDateString({}, { message: 'تاريخ نهاية فترة التقديم غير صالح' })
+  applicationDeadlineDate: string;
 }

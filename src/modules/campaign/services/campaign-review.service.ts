@@ -6,7 +6,8 @@ import { CampaignStatus, CampaignVisibility } from '../enums';
 import { ReviewCampaignDto } from '../dto';
 import { NotificationsService } from '../../notifications/services/notifications.service';
 import { NotificationType } from '../../notifications/enums';
-import { PrivateCampaignLaunchService } from './private-campaign-launch.service';
+import { computePendingMinimumDeadline } from '../utils';
+import { CampaignLaunchService } from './campaign-launch.service';
 import { InvitationsManagementService } from '../invitations/services/invitations-management.service';
 
 @Injectable()
@@ -15,7 +16,7 @@ export class CampaignReviewService {
     @InjectRepository(Campaign)
     private readonly campaignRepository: Repository<Campaign>,
     private readonly notificationsService: NotificationsService,
-    private readonly privateCampaignLaunchService: PrivateCampaignLaunchService,
+    private readonly campaignLaunchService: CampaignLaunchService,
     private readonly invitationsManagementService: InvitationsManagementService,
   ) {}
 
@@ -53,10 +54,62 @@ export class CampaignReviewService {
       approvedAt: new Date(),
     });
 
-    if (campaign.campaignVisibility === CampaignVisibility.PRIVATE) {
-      await this.invitationsManagementService.activateInvitations(campaign.id, campaign.name);
-      await this.privateCampaignLaunchService.launchOnApproval(campaign);
+    const now = new Date();
+    const decision = this.campaignLaunchService.decideStatusOnApproval(campaign, now);
+    const isPrivate = campaign.campaignVisibility === CampaignVisibility.PRIVATE;
 
+    if (decision.kind === 'discarded') {
+      await this.campaignRepository.update(campaign.id, {
+        status: CampaignStatus.DISCARDED,
+      });
+      await this.notificationsService.notify(
+        campaign.advertiserId,
+        'تم إلغاء حملتك',
+        `تم إلغاء حملة "${campaign.name}" لأن فترة التقديم قد انتهت`,
+        NotificationType.CAMPAIGN_AUTO_DISCARDED,
+        { campaignId: campaign.id },
+      );
+      return;
+    }
+
+    if (decision.kind === 'pending-minimum-public') {
+      await this.campaignRepository.update(campaign.id, {
+        status: CampaignStatus.PENDING_MINIMUM,
+        pendingMinimumDeadline: computePendingMinimumDeadline(now),
+      });
+      await this.notificationsService.notify(
+        campaign.advertiserId,
+        'تمت الموافقة على حملتك',
+        `تمت الموافقة على حملة "${campaign.name}"، لكن فترة التقديم قد انتهت — يرجى اتخاذ إجراء`,
+        NotificationType.CAMPAIGN_PENDING_MINIMUM,
+        { campaignId: campaign.id },
+      );
+      return;
+    }
+
+    if (isPrivate) {
+      await this.invitationsManagementService.activateInvitations(
+        campaign.id,
+        campaign.name,
+      );
+    }
+
+    if (decision.kind === 'scheduled') {
+      await this.campaignRepository.update(campaign.id, {
+        status: CampaignStatus.SCHEDULED,
+      });
+      await this.notificationsService.notify(
+        campaign.advertiserId,
+        'تمت الموافقة على حملتك',
+        `تمت الموافقة على حملة "${campaign.name}" وستبدأ في الموعد المحدد`,
+        NotificationType.CAMPAIGN_APPROVED,
+        { campaignId: campaign.id },
+      );
+      return;
+    }
+
+    if (decision.kind === 'implementation') {
+      await this.campaignLaunchService.launchImplementation(campaign);
       await this.notificationsService.notify(
         campaign.advertiserId,
         'تمت الموافقة على حملتك',
@@ -70,7 +123,6 @@ export class CampaignReviewService {
     await this.campaignRepository.update(campaign.id, {
       status: CampaignStatus.APPROVED,
     });
-
     await this.notificationsService.notify(
       campaign.advertiserId,
       'تمت الموافقة على حملتك',

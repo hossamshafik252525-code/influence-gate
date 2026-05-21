@@ -1,16 +1,12 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Campaign } from '../../entities/campaign.entity';
 import { CampaignInvitedInfluencer } from '../entities/campaign-invited-influencer.entity';
-import { CampaignStatus, CampaignVisibility } from '../../enums';
 import { InvitationStatus } from '../enums';
 import { NotificationsService } from '../../../notifications/services/notifications.service';
 import { NotificationType } from '../../../notifications/enums';
+import { InvitationsValidationService } from './invitations-validation.service';
 
 @Injectable()
 export class CampaignInvitationResponseService {
@@ -20,6 +16,7 @@ export class CampaignInvitationResponseService {
     @InjectRepository(CampaignInvitedInfluencer)
     private readonly invitationRepo: Repository<CampaignInvitedInfluencer>,
     private readonly notificationsService: NotificationsService,
+    private readonly invitationsValidationService: InvitationsValidationService,
   ) {}
 
   async acceptInvitation(
@@ -66,17 +63,11 @@ export class CampaignInvitationResponseService {
     influencerId: string,
     invitationId: string,
   ): Promise<{ campaign: Campaign; invitation: CampaignInvitedInfluencer }> {
-    const invitation = await this.invitationRepo.findOne({
-      where: { id: invitationId, influencerId },
-    });
-
-    if (!invitation) {
-      throw new NotFoundException('الدعوة غير موجودة');
-    }
-
-    if (invitation.status !== InvitationStatus.PENDING) {
-      throw new BadRequestException('تم الرد على هذه الدعوة مسبقاً');
-    }
+    const invitation =
+      await this.invitationsValidationService.assertPendingInvitationForInfluencer(
+        invitationId,
+        influencerId,
+      );
 
     const campaign = await this.campaignRepo.findOne({
       where: { id: invitation.campaignId },
@@ -86,23 +77,7 @@ export class CampaignInvitationResponseService {
       throw new NotFoundException('الحملة غير موجودة');
     }
 
-    if (campaign.campaignVisibility !== CampaignVisibility.PRIVATE) {
-      throw new BadRequestException('هذه الحملة ليست حملة خاصة');
-    }
-
-    if (campaign.status !== CampaignStatus.IMPLEMENTATION) {
-      throw new BadRequestException('لا يمكن الرد على الدعوة في هذه الحالة');
-    }
-
-    const now = new Date();
-    const start = new Date(campaign.implementationStartDate);
-    const end = new Date(campaign.implementationEndDate);
-    const totalMs = end.getTime() - start.getTime();
-    const elapsedMs = now.getTime() - start.getTime();
-
-    if (elapsedMs >= totalMs * 0.75) {
-      throw new BadRequestException('انتهت فترة قبول الدعوات لهذه الحملة');
-    }
+    this.invitationsValidationService.assertCampaignAcceptingInvitationResponses(campaign);
 
     return { campaign, invitation };
   }

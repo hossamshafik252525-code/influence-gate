@@ -9,10 +9,10 @@ export interface AdvertiserCampaignListItem {
   name: string | null;
   categories: { id: string; name: string }[];
   includedPlatforms: TargetPlatform[] | null;
-  deadlineDate: Date | null;
+  startDate: Date | null;
+  endDate: Date | null;
+  applicationDeadlineDate: Date | null;
   budget: number | null;
-  implementationStartDate: Date | null;
-  implementationEndDate: Date | null;
   createdAt: Date;
 }
 
@@ -42,8 +42,9 @@ export interface AdvertiserCampaignDetail {
   includedPlatforms: TargetPlatform[] | null;
   implementationType: ImplementationType | null;
   campaignVisibility: CampaignVisibility | null;
-  deadlineDate: Date | null;
-  implementationPeriodDays: number | null;
+  startDate: Date | null;
+  endDate: Date | null;
+  applicationDeadlineDate: Date | null;
   contentTypes: ContentTypeOffer[] | null;
   contentDescription: string | null;
   contentPdfUrl: string | null;

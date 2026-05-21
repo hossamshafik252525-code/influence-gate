@@ -1,6 +1,7 @@
 export enum CampaignStatus {
   DRAFT = 'draft',
   PENDING_REVIEW = 'pending_review',
+  SCHEDULED = 'scheduled',
   APPROVED = 'approved',
   REJECTED = 'rejected',
   IMPLEMENTATION = 'implementation',

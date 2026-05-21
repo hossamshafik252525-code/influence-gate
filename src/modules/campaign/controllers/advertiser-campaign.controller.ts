@@ -18,8 +18,8 @@ import { AuthUser } from '../../../common/decorators/auth-user.decorator';
 import { Role, UserStatus } from '../../../common/enums';
 import { User } from '../../users/entities/user.entity';
 import { CampaignCreationService } from '../services/campaign-creation.service';
+import { CampaignDraftService } from '../services/campaign-draft.service';
 import { CampaignManagementService } from '../services/campaign-management.service';
-import { CampaignSubmissionService } from '../submissions/services/campaign-submission.service';
 import { CampaignQueryService } from '../services/campaign-query.service';
 import { AdvertiserCampaignMapper } from '../mappers/advertiser-campaign.mapper';
 import {
@@ -27,7 +27,7 @@ import {
   SaveContentRequirementsDto,
   SaveInfluencerRequirementsDto,
   SaveCampaignBudgetDto,
-  ResolvePendingMinimumDto,
+  UpdateCampaignDatesDto,
   GetAdvertiserMyCampaignsQueryDto,
 } from '../dto';
 import { AdvertiserCampaignDetail } from '../interfaces/advertiser-campaign.interface';
@@ -39,8 +39,8 @@ import { AdvertiserCampaignDetail } from '../interfaces/advertiser-campaign.inte
 export class AdvertiserCampaignController {
   constructor(
     private readonly campaignCreationService: CampaignCreationService,
+    private readonly campaignDraftService: CampaignDraftService,
     private readonly campaignManagementService: CampaignManagementService,
-    private readonly campaignSubmissionService: CampaignSubmissionService,
     private readonly campaignQueryService: CampaignQueryService,
   ) {}
 
@@ -55,7 +55,7 @@ export class AdvertiserCampaignController {
     @Param('id', ParseUUIDPipe) id: string,
     @AuthUser() user: User,
   ): Promise<void> {
-    return this.campaignManagementService.deleteDraft(id, user.id);
+    return this.campaignDraftService.deleteDraft(id, user.id);
   }
 
   @Get('my')
@@ -127,17 +127,26 @@ export class AdvertiserCampaignController {
     @Param('id', ParseUUIDPipe) id: string,
     @AuthUser() user: User,
   ): Promise<AdvertiserCampaignDetail> {
-    const campaign = await this.campaignSubmissionService.submitForReview(id, user.id);
+    const campaign = await this.campaignCreationService.submitForReview(id, user.id);
     return AdvertiserCampaignMapper.toCampaignDetail(campaign);
   }
 
-  @Post(':id/resolve-pending')
-  async resolvePendingMinimum(
+  @Patch(':id/dates')
+  async updateDates(
     @Param('id', ParseUUIDPipe) id: string,
     @AuthUser() user: User,
-    @Body() dto: ResolvePendingMinimumDto,
+    @Body() dto: UpdateCampaignDatesDto,
   ): Promise<AdvertiserCampaignDetail> {
-    const campaign = await this.campaignManagementService.resolvePendingMinimum(id, user.id, dto);
+    const campaign = await this.campaignManagementService.updateDates(id, user.id, dto);
+    return AdvertiserCampaignMapper.toCampaignDetail(campaign);
+  }
+
+  @Post(':id/launch')
+  async launch(
+    @Param('id', ParseUUIDPipe) id: string,
+    @AuthUser() user: User,
+  ): Promise<AdvertiserCampaignDetail> {
+    const campaign = await this.campaignManagementService.launchPublicOnDemand(id, user.id);
     return AdvertiserCampaignMapper.toCampaignDetail(campaign);
   }
 }

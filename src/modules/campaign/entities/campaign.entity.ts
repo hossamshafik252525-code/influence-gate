@@ -13,6 +13,7 @@ import {
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Category } from '../../categories/entities/category.entity';
+import { Country } from '../../countries/entities/country.entity';
 import { CampaignInvitedInfluencer } from '../invitations/entities/campaign-invited-influencer.entity';
 import { CampaignApplication } from '../applications/entities/campaign-application.entity';
 import { ImplementationType, ContentTypeOffer, InfluencerType, TargetPlatform } from '../../../common/enums';
@@ -58,14 +59,24 @@ export class Campaign {
   @Column({ type: 'jsonb', nullable: true })
   includedPlatforms: TargetPlatform[];
 
+  @Column({ nullable: true })
+  countryId: string;
+
+  @ManyToOne(() => Country, { onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'countryId' })
+  country: Country;
+
   @Column({ type: 'enum', enum: ImplementationType, nullable: true })
   implementationType: ImplementationType;
 
   @Column({ type: 'date', nullable: true })
-  deadlineDate: Date;
+  startDate: Date;
 
-  @Column({ type: 'int', nullable: true })
-  implementationPeriodDays: number;
+  @Column({ type: 'date', nullable: true })
+  endDate: Date;
+
+  @Column({ type: 'date', nullable: true })
+  applicationDeadlineDate: Date;
 
   @Column({ type: 'jsonb', nullable: true })
   contentTypes: ContentTypeOffer[];
@@ -102,12 +113,6 @@ export class Campaign {
 
   @Column({ type: 'text', nullable: true })
   rejectionReason: string;
-
-  @Column({ type: 'date', nullable: true })
-  implementationStartDate: Date;
-
-  @Column({ type: 'date', nullable: true })
-  implementationEndDate: Date;
 
   @Column({ type: 'timestamp', nullable: true })
   pendingMinimumDeadline: Date;

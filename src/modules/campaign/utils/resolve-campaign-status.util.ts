@@ -2,6 +2,7 @@ import { CampaignStatus, ResolvedCampaignStatus } from '../enums';
 
 export function resolveCampaignStatus(status: CampaignStatus): ResolvedCampaignStatus {
   switch (status) {
+    case CampaignStatus.SCHEDULED:
     case CampaignStatus.APPROVED:
     case CampaignStatus.PENDING_MINIMUM:
       return ResolvedCampaignStatus.APPLICATION_PERIOD;
@@ -21,7 +22,11 @@ export function resolvedStatusToCampaignStatuses(
 ): CampaignStatus[] {
   switch (resolved) {
     case ResolvedCampaignStatus.APPLICATION_PERIOD:
-      return [CampaignStatus.APPROVED, CampaignStatus.PENDING_MINIMUM];
+      return [
+        CampaignStatus.SCHEDULED,
+        CampaignStatus.APPROVED,
+        CampaignStatus.PENDING_MINIMUM,
+      ];
     case ResolvedCampaignStatus.IMPLEMENTATION:
       return [CampaignStatus.IMPLEMENTATION];
     case ResolvedCampaignStatus.COMPLETED:

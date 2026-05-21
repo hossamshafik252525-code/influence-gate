@@ -33,7 +33,7 @@ export class InvitationsManagementService {
     for (const influencerId of influencerIds) {
       const influencer = await this.usersService.findById(influencerId);
       if (!influencer || influencer.role !== Role.INFLUENCER) {
-        throw new BadRequestException(`المؤثر غير موجود: ${influencerId}`);
+        throw new BadRequestException(` احدالمؤثرين غير موجود `);
       }
 
       const profile = await this.influencerProfileRepository.findOne({
@@ -77,6 +77,28 @@ export class InvitationsManagementService {
         'دعوة للمشاركة في حملة',
         `تمت دعوتك للمشاركة في حملة "${campaignName}"`,
         NotificationType.CAMPAIGN_INVITATION,
+        { campaignId, invitationId: invitation.id },
+      );
+    }
+  }
+
+  async cancelPendingByCampaign(
+    campaignId: string,
+    campaignName: string,
+  ): Promise<void> {
+    const pending = await this.invitedInfluencerRepository.find({
+      where: { campaignId, status: InvitationStatus.PENDING },
+    });
+
+    for (const invitation of pending) {
+      invitation.status = InvitationStatus.CANCELLED;
+      await this.invitedInfluencerRepository.save(invitation);
+
+      await this.notificationsService.notify(
+        invitation.influencerId,
+        'تم إلغاء الدعوة',
+        `تم إلغاء دعوتك للمشاركة في حملة ${campaignName}`,
+        NotificationType.APPLICATION_REJECTED,
         { campaignId, invitationId: invitation.id },
       );
     }

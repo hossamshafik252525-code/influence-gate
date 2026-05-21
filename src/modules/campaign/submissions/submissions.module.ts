@@ -11,7 +11,6 @@ import { CampaignContentSubmissionService } from './services/campaign-content-su
 import { CampaignSubmissionReviewService } from './services/campaign-submission-review.service';
 import { CampaignSubmissionQueryService } from './services/campaign-submission-query.service';
 import { CampaignSubmissionDataService } from './services/campaign-submission-data.service';
-import { CampaignSubmissionService } from './services/campaign-submission.service';
 import { NotificationsModule } from '../../notifications/notifications.module';
 import { WalletModule } from '../../wallet/wallet.module';
 import { ApplicationsModule } from '../applications/applications.module';
@@ -39,14 +38,12 @@ import { InfluencerModule } from '../../influencer/influencer.module';
     CampaignSubmissionReviewService,
     CampaignSubmissionQueryService,
     CampaignSubmissionDataService,
-    CampaignSubmissionService,
   ],
   exports: [
     CampaignContentSubmissionService,
     CampaignSubmissionReviewService,
     CampaignSubmissionQueryService,
     CampaignSubmissionDataService,
-    CampaignSubmissionService,
     TypeOrmModule,
   ],
 })

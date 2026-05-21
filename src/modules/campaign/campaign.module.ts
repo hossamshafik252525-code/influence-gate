@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Campaign } from './entities/campaign.entity';
 import { CampaignInvitedInfluencer } from './invitations/entities/campaign-invited-influencer.entity';
 import { CampaignSubmission } from './submissions/entities/campaign-submission.entity';
+import { CampaignApplication } from './applications/entities/campaign-application.entity';
 import { AdvertiserCampaignController } from './controllers/advertiser-campaign.controller';
 import { AdminCampaignController } from './controllers/admin-campaign.controller';
 import { InfluencerCampaignController } from './controllers/influencer-campaign.controller';
@@ -12,11 +13,14 @@ import { CampaignReviewService } from './services/campaign-review.service';
 import { CampaignLifecycleService } from './services/campaign-lifecycle.service';
 import { CampaignQueryService } from './services/campaign-query.service';
 import { CampaignValidationService } from './services/campaign-validation.service';
-import { PrivateCampaignLaunchService } from './services/private-campaign-launch.service';
+import { CampaignDraftService } from './services/campaign-draft.service';
+import { CampaignLaunchService } from './services/campaign-launch.service';
+import { CampaignCompletionService } from './services/campaign-completion.service';
 import { InfluencerModule } from '../influencer/influencer.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { CloudinaryModule } from '../cloudinary/cloudinary.module';
 import { CategoriesModule } from '../categories/categories.module';
+import { CountriesModule } from '../countries/countries.module';
 import { UsersModule } from '../users/users.module';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
 import { WalletModule } from '../wallet/wallet.module';
@@ -30,6 +34,7 @@ import { SubmissionsModule } from './submissions/submissions.module';
       Campaign,
       CampaignInvitedInfluencer,
       CampaignSubmission,
+      CampaignApplication,
     ]),
     forwardRef(() => InvitationsModule),
     forwardRef(() => ApplicationsModule),
@@ -38,6 +43,7 @@ import { SubmissionsModule } from './submissions/submissions.module';
     NotificationsModule,
     CloudinaryModule,
     CategoriesModule,
+    CountriesModule,
     UsersModule,
     PlatformSettingsModule,
     WalletModule,
@@ -54,11 +60,14 @@ import { SubmissionsModule } from './submissions/submissions.module';
     CampaignLifecycleService,
     CampaignQueryService,
     CampaignValidationService,
-    PrivateCampaignLaunchService,
+    CampaignDraftService,
+    CampaignLaunchService,
+    CampaignCompletionService,
   ],
   exports: [
     CampaignCreationService,
     CampaignQueryService,
+    CampaignLaunchService,
     ApplicationsModule,
     SubmissionsModule,
     TypeOrmModule,

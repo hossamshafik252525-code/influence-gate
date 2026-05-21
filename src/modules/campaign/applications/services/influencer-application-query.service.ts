@@ -83,11 +83,5 @@ export class InfluencerApplicationQueryService {
         implementationType: query.implementationType,
       });
     }
-
-    if (query.implementationPeriodDays !== undefined) {
-      qb.andWhere('campaign.implementationPeriodDays = :days', {
-        days: query.implementationPeriodDays,
-      });
-    }
   }
 }

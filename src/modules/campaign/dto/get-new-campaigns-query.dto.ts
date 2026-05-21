@@ -4,7 +4,6 @@ import {
   IsUUID,
   IsNumber,
   IsString,
-  IsInt,
   Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -31,12 +30,6 @@ export class GetNewCampaignsQueryDto extends PaginationQueryDto {
   @IsOptional()
   @IsEnum(ImplementationType, { message: 'نوع التنفيذ غير صالح' })
   implementationType?: ImplementationType;
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt({ message: 'مدة التنفيذ يجب أن تكون رقماً صحيحاً' })
-  @Min(1, { message: 'مدة التنفيذ يجب أن تكون 1 على الأقل' })
-  implementationPeriodDays?: number;
 
   @IsOptional()
   @Type(() => Number)

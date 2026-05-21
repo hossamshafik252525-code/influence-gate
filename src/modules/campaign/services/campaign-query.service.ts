@@ -44,7 +44,6 @@ export class CampaignQueryService {
   ): Promise<{ campaigns: Campaign[]; total: number }> {
     const qb = this.campaignRepository
       .createQueryBuilder('campaign')
-      .leftJoinAndSelect('campaign.categories', 'category')
       .where('campaign.advertiserId = :advertiserId', { advertiserId });
 
     if (query.statuses?.length) {
@@ -104,13 +103,23 @@ export class CampaignQueryService {
       }
     }
 
-    this.applyAdvertiserListFields(qb);
+    qb.orderBy('campaign.createdAt', 'DESC')
+      .skip((query.page - 1) * query.limit)
+      .take(query.limit);
 
-    qb.orderBy('campaign.createdAt', 'DESC');
-    qb.skip((query.page - 1) * query.limit);
-    qb.take(query.limit);
+    const [paged, total] = await qb.getManyAndCount();
 
-    const [campaigns, total] = await qb.getManyAndCount();
+    if (paged.length === 0) {
+      return { campaigns: [], total };
+    }
+
+    const ids = paged.map((c) => c.id);
+    const campaigns = await this.campaignRepository
+      .createQueryBuilder('campaign')
+      .leftJoinAndSelect('campaign.categories', 'category')
+      .where('campaign.id IN (:...ids)', { ids })
+      .orderBy('campaign.createdAt', 'DESC')
+      .getMany();
 
     return { campaigns, total };
   }
@@ -152,6 +161,24 @@ export class CampaignQueryService {
     return campaign;
   }
 
+  async findCampaignWithRelations(campaignId: string): Promise<Campaign> {
+    const campaign = await this.campaignRepository.findOne({
+      where: { id: campaignId },
+      relations: [
+        'categories',
+        'invitedInfluencers',
+        'invitedInfluencers.influencer',
+        'invitedInfluencers.influencer.influencerProfile',
+      ],
+    });
+
+    if (!campaign) {
+      throw new NotFoundException('الحملة غير موجودة');
+    }
+
+    return campaign;
+  }
+
   async getNewCampaigns(
     userId: string,
     query: GetNewCampaignsQueryDto,
@@ -170,7 +197,7 @@ export class CampaignQueryService {
         visibility: CampaignVisibility.PUBLIC,
       })
       .andWhere(
-        '(campaign.deadlineDate >= CURRENT_DATE OR campaign.status = :pendingMinimum)',
+        '(campaign.applicationDeadlineDate >= CURRENT_DATE OR campaign.status = :pendingMinimum)',
         { pendingMinimum: CampaignStatus.PENDING_MINIMUM },
       )
       .andWhere((subQb) => {
@@ -262,22 +289,6 @@ export class CampaignQueryService {
   }
 
 
-  private applyAdvertiserListFields(qb: SelectQueryBuilder<Campaign>): void {
-    qb.select([
-      'campaign.id',
-      'campaign.campaignNumber',
-      'campaign.name',
-      'campaign.includedPlatforms',
-      'campaign.deadlineDate',
-      'campaign.implementationStartDate',
-      'campaign.implementationEndDate',
-      'campaign.status',
-      'campaign.currentStep',
-      'campaign.budget',
-      'campaign.createdAt',
-    ]);
-  }
-
   private applyInfluencerListFields(qb: SelectQueryBuilder<Campaign>): void {
     qb.select([
       'campaign.id',
@@ -285,9 +296,10 @@ export class CampaignQueryService {
       'campaign.name',
       'campaign.description',
       'campaign.status',
-      'campaign.deadlineDate',
+      'campaign.startDate',
+      'campaign.endDate',
+      'campaign.applicationDeadlineDate',
       'campaign.pendingMinimumDeadline',
-      'campaign.implementationEndDate',
       'campaign.includedPlatforms',
       'campaign.contentTypes',
       'campaign.createdAt',
@@ -342,12 +354,6 @@ export class CampaignQueryService {
     if (query.implementationType) {
       qb.andWhere('campaign.implementationType = :implementationType', {
         implementationType: query.implementationType,
-      });
-    }
-
-    if (query.implementationPeriodDays !== undefined) {
-      qb.andWhere('campaign.implementationPeriodDays = :days', {
-        days: query.implementationPeriodDays,
       });
     }
   }

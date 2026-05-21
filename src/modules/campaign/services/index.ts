@@ -5,3 +5,6 @@ export { CampaignLifecycleService } from './campaign-lifecycle.service';
 export { CampaignQueryService } from './campaign-query.service';
 export { CampaignValidationService } from './campaign-validation.service';
 export { CampaignRecordService } from './campaign-record.service';
+export { CampaignDraftService } from './campaign-draft.service';
+export { CampaignLaunchService } from './campaign-launch.service';
+export { CampaignCompletionService } from './campaign-completion.service';

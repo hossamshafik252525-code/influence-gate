@@ -1,4 +1,9 @@
-import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  ForbiddenException,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Campaign } from '../entities/campaign.entity';
@@ -63,5 +68,49 @@ export class CampaignValidationService {
     });
 
     return !!application;
+  }
+
+  assertAllStepsCompleted(campaign: Campaign): void {
+    if (!campaign.name || !campaign.description || !campaign.categories?.length) {
+      throw new BadRequestException('يجب إكمال معلومات الحملة');
+    }
+
+    if (!campaign.includedPlatforms || !campaign.implementationType) {
+      throw new BadRequestException('يجب إكمال معلومات الحملة');
+    }
+
+    if (
+      !campaign.startDate ||
+      !campaign.endDate ||
+      !campaign.applicationDeadlineDate
+    ) {
+      throw new BadRequestException('يجب إكمال معلومات الحملة');
+    }
+
+    if (!campaign.contentTypes || !campaign.contentDescription) {
+      throw new BadRequestException('يجب إكمال متطلبات المحتوى');
+    }
+
+    if (
+      campaign.requiredInfluencersCount === null ||
+      campaign.requiredInfluencersCount === undefined
+    ) {
+      throw new BadRequestException('يجب إكمال متطلبات المؤثرين');
+    }
+
+    if (!campaign.influencerType || !campaign.campaignVisibility) {
+      throw new BadRequestException('يجب إكمال متطلبات المؤثرين');
+    }
+
+    if (
+      campaign.campaignVisibility === CampaignVisibility.PRIVATE &&
+      (!campaign.invitedInfluencers || campaign.invitedInfluencers.length === 0)
+    ) {
+      throw new BadRequestException('يجب اختيار مؤثرين للحملة الخاصة');
+    }
+
+    if (campaign.budget === null || campaign.budget === undefined) {
+      throw new BadRequestException('يجب إكمال الميزانية');
+    }
   }
 }

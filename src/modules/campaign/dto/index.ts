@@ -3,7 +3,7 @@ export { SaveContentRequirementsDto } from './save-content-requirements.dto';
 export { SaveInfluencerRequirementsDto } from './save-influencer-requirements.dto';
 export { SaveCampaignBudgetDto } from './save-campaign-budget.dto';
 export { ReviewCampaignDto } from './review-campaign.dto';
-export { ResolvePendingMinimumDto } from './resolve-pending-minimum.dto';
+export { UpdateCampaignDatesDto } from './update-campaign-dates.dto';
 export { GetAdvertiserMyCampaignsQueryDto } from './get-advertiser-my-campaigns-query.dto';
 export { GetNewCampaignsQueryDto } from './get-new-campaigns-query.dto';
 export { GetInfluencerMyCampaignsQueryDto } from './get-influencer-my-campaigns-query.dto';

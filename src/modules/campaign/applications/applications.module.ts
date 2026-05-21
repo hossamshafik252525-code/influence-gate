@@ -13,6 +13,8 @@ import { AdminOfferQueryService } from './services/admin-offer-query.service';
 import { AdminOfferReviewService } from './services/admin-offer-review.service';
 import { AdvertiserApplicationQueryService } from './services/advertiser-application-query.service';
 import { InfluencerApplicationQueryService } from './services/influencer-application-query.service';
+import { ApplicationsValidationService } from './services/applications-validation.service';
+import { ApplicationsDataService } from './services/applications-data.service';
 import { NotificationsModule } from '../../notifications/notifications.module';
 import { WalletModule } from '../../wallet/wallet.module';
 import { CampaignModule } from '../campaign.module';
@@ -45,11 +47,15 @@ import { PlatformSettingsModule } from '../../platform-settings/platform-setting
     AdminOfferReviewService,
     AdvertiserApplicationQueryService,
     InfluencerApplicationQueryService,
+    ApplicationsValidationService,
+    ApplicationsDataService,
   ],
   exports: [
     TypeOrmModule,
     AdvertiserApplicationQueryService,
     InfluencerApplicationQueryService,
+    ApplicationsValidationService,
+    ApplicationsDataService,
   ],
 })
 export class ApplicationsModule {}

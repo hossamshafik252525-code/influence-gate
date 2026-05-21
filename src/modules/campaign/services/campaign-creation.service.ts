@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Campaign } from '../entities/campaign.entity';
@@ -10,9 +10,15 @@ import {
   SaveCampaignBudgetDto,
 } from '../dto';
 import { CategoriesService } from '../../categories/categories.service';
+import { CountriesService } from '../../countries/countries.service';
 import { CloudinaryService } from '../../cloudinary/cloudinary.service';
 import { CampaignQueryService } from './campaign-query.service';
+import { CampaignValidationService } from './campaign-validation.service';
 import { InvitationsManagementService } from '../invitations/services/invitations-management.service';
+import { NotificationsService } from '../../notifications/services/notifications.service';
+import { NotificationType } from '../../notifications/enums';
+import { Role } from '../../../common/enums';
+import { validateInitialDateOrdering } from '../utils';
 
 @Injectable()
 export class CampaignCreationService {
@@ -20,9 +26,12 @@ export class CampaignCreationService {
     @InjectRepository(Campaign)
     private readonly campaignRepository: Repository<Campaign>,
     private readonly campaignQueryService: CampaignQueryService,
+    private readonly campaignValidationService: CampaignValidationService,
     private readonly categoriesService: CategoriesService,
+    private readonly countriesService: CountriesService,
     private readonly cloudinaryService: CloudinaryService,
     private readonly invitationsManagementService: InvitationsManagementService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async createDraft(advertiserId: string): Promise<Campaign> {
@@ -35,7 +44,8 @@ export class CampaignCreationService {
     }
 
     const campaign = this.campaignRepository.create({ advertiserId });
-    return this.campaignRepository.save(campaign);
+    const saved = await this.campaignRepository.save(campaign);
+    return this.campaignQueryService.findCampaignWithRelations(saved.id);
   }
 
   async saveInformation(
@@ -50,30 +60,27 @@ export class CampaignCreationService {
       throw new BadRequestException('إحدى الفئات المحددة غير موجودة');
     }
 
+    await this.countriesService.findOne(dto.countryId);
+
+    const startDate = new Date(dto.startDate);
+    const endDate = new Date(dto.endDate);
+    const applicationDeadlineDate = new Date(dto.applicationDeadlineDate);
+
+    validateInitialDateOrdering(startDate, applicationDeadlineDate, endDate);
+
     campaign.name = dto.name;
     campaign.description = dto.description;
     campaign.categories = categories;
+    campaign.countryId = dto.countryId;
     campaign.includedPlatforms = dto.includedPlatforms;
     campaign.implementationType = dto.implementationType;
-    campaign.campaignVisibility = dto.campaignVisibility;
-    campaign.implementationPeriodDays = dto.implementationPeriodDays;
+    campaign.startDate = startDate;
+    campaign.endDate = endDate;
+    campaign.applicationDeadlineDate = applicationDeadlineDate;
     campaign.currentStep = CampaignStep.CONTENT;
 
-    if (dto.campaignVisibility === CampaignVisibility.PUBLIC) {
-      const deadlineDate = new Date(dto.deadlineDate);
-      if (deadlineDate <= new Date()) {
-        throw new BadRequestException('تاريخ الموعد النهائي يجب أن يكون في المستقبل');
-      }
-      campaign.deadlineDate = deadlineDate;
-    } else {
-      campaign.deadlineDate = null;
-    }
-
     const saved = await this.campaignRepository.save(campaign);
-    return this.campaignRepository.findOne({
-      where: { id: saved.id },
-      relations: ['categories'],
-    });
+    return this.campaignQueryService.findCampaignWithRelations(saved.id);
   }
 
   async saveContentRequirements(
@@ -99,7 +106,7 @@ export class CampaignCreationService {
 
     await this.campaignRepository.update(campaign.id, updateData);
 
-    return this.campaignRepository.findOne({ where: { id: campaign.id } });
+    return this.campaignQueryService.findCampaignWithRelations(campaign.id);
   }
 
   async saveInfluencerRequirements(
@@ -109,11 +116,7 @@ export class CampaignCreationService {
   ): Promise<Campaign> {
     const campaign = await this.campaignQueryService.findDraftOrFail(campaignId, advertiserId);
 
-    if (!campaign.campaignVisibility) {
-      throw new BadRequestException('يجب إكمال خطوة المعلومات أولاً');
-    }
-
-    const isPrivate = campaign.campaignVisibility === CampaignVisibility.PRIVATE;
+    const isPrivate = dto.campaignVisibility === CampaignVisibility.PRIVATE;
 
     if (!dto.requiredInfluencersCount || dto.requiredInfluencersCount < 1) {
       throw new BadRequestException('عدد المؤثرين مطلوب');
@@ -125,31 +128,18 @@ export class CampaignCreationService {
       }
       await this.invitationsManagementService.deleteInvitationsByCampaign(campaign.id);
       await this.invitationsManagementService.createInvitations(campaign.id, dto.invitedInfluencers);
+    } else {
+      await this.invitationsManagementService.deleteInvitationsByCampaign(campaign.id);
     }
 
-    const updateData: Partial<Campaign> = {
+    await this.campaignRepository.update(campaign.id, {
+      campaignVisibility: dto.campaignVisibility,
       influencerType: dto.influencerType,
       currentStep: CampaignStep.BUDGET,
       requiredInfluencersCount: dto.requiredInfluencersCount,
-    };
-
-    if (isPrivate) {
-      updateData.budget = null;
-    }
-
-    await this.campaignRepository.update(campaign.id, updateData);
-
-    const updated = await this.campaignRepository.findOne({
-      where: { id: campaign.id },
-      relations: [
-        'categories',
-        'invitedInfluencers',
-        'invitedInfluencers.influencer',
-        'invitedInfluencers.influencer.influencerProfile',
-      ],
     });
 
-    return updated;
+    return this.campaignQueryService.findCampaignWithRelations(campaign.id);
   }
 
   async saveBudget(
@@ -164,7 +154,37 @@ export class CampaignCreationService {
       currentStep: CampaignStep.REVIEW,
     });
 
-    return this.campaignRepository.findOne({ where: { id: campaign.id } });
+    return this.campaignQueryService.findCampaignWithRelations(campaign.id);
   }
 
+  async submitForReview(
+    campaignId: string,
+    advertiserId: string,
+  ): Promise<Campaign> {
+    const campaign = await this.campaignRepository.findOne({
+      where: { id: campaignId, advertiserId, status: CampaignStatus.DRAFT },
+      relations: ['invitedInfluencers', 'categories'],
+    });
+
+    if (!campaign) {
+      throw new NotFoundException('المسودة غير موجودة');
+    }
+
+    this.campaignValidationService.assertAllStepsCompleted(campaign);
+
+    await this.campaignRepository.update(campaign.id, {
+      status: CampaignStatus.PENDING_REVIEW,
+      submittedAt: new Date(),
+    });
+
+    await this.notificationsService.notifyByRole(
+      Role.ADMIN,
+      'حملة جديدة للمراجعة',
+      `تم تقديم حملة "${campaign.name}" للمراجعة`,
+      NotificationType.CAMPAIGN_SUBMITTED_FOR_REVIEW,
+      { campaignId: campaign.id },
+    );
+
+    return this.campaignQueryService.findCampaignWithRelations(campaign.id);
+  }
 }

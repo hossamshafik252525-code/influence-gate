@@ -5,3 +5,5 @@ export { AdminOfferQueryService } from './admin-offer-query.service';
 export { AdminOfferReviewService } from './admin-offer-review.service';
 export { AdvertiserApplicationQueryService } from './advertiser-application-query.service';
 export { InfluencerApplicationQueryService } from './influencer-application-query.service';
+export { ApplicationsValidationService } from './applications-validation.service';
+export { ApplicationsDataService } from './applications-data.service';

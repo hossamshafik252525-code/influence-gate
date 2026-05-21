@@ -56,7 +56,9 @@ export interface CampaignDetailResult {
   contentDescription: string;
   requirementsFile: string;
   implementationType: ImplementationType;
-  implementationPeriodDays: number;
+  startDate: Date | null;
+  endDate: Date | null;
+  applicationDeadlineDate: Date | null;
   relevantDeadline: Date | null;
   orderedServicesPrice?: number;
   requiredInfluencersCount: number;

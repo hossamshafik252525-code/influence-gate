@@ -6,6 +6,7 @@ export function myCampaignsFilterToStatuses(
   switch (filter) {
     case MyCampaignsStatusFilter.ALL:
       return [
+        CampaignStatus.SCHEDULED,
         CampaignStatus.APPROVED,
         CampaignStatus.PENDING_MINIMUM,
         CampaignStatus.IMPLEMENTATION,
@@ -13,7 +14,11 @@ export function myCampaignsFilterToStatuses(
         CampaignStatus.DISCARDED,
       ];
     case MyCampaignsStatusFilter.APPLICATION_PERIOD:
-      return [CampaignStatus.APPROVED, CampaignStatus.PENDING_MINIMUM];
+      return [
+        CampaignStatus.SCHEDULED,
+        CampaignStatus.APPROVED,
+        CampaignStatus.PENDING_MINIMUM,
+      ];
     case MyCampaignsStatusFilter.IMPLEMENTATION:
       return [CampaignStatus.IMPLEMENTATION];
     case MyCampaignsStatusFilter.COMPLETED:
