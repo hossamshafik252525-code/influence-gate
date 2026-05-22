@@ -1,12 +1,12 @@
 import { Controller, Get, Patch, Param, Body, Query, UseGuards } from '@nestjs/common';
-import { WalletAdminService } from '../services/wallet-admin.service';
-import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
-import { RolesStatusGuard } from '../../../common/guards/auth.guard';
-import { Roles } from '../../../common/decorators/roles.decorator';
-import { Role } from '../../../common/enums';
-import { WalletTransactionListResult } from '../interfaces';
-import { ReviewTransactionDto, TransactionFilterDto } from '../dto';
-import { WalletTransaction } from '../entities/wallet-transaction.entity';
+import { WalletAdminService } from '../../services/admin/wallet-admin.service';
+import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
+import { RolesStatusGuard } from '../../../../common/guards/auth.guard';
+import { Roles } from '../../../../common/decorators/roles.decorator';
+import { Role } from '../../../../common/enums';
+import { WalletTransactionListResult } from '../../interfaces';
+import { ReviewTransactionDto, TransactionFilterDto } from '../../dto';
+import { WalletTransaction } from '../../entities/wallet-transaction.entity';
 
 @Controller('admin/wallet')
 @UseGuards(JwtAuthGuard, RolesStatusGuard)

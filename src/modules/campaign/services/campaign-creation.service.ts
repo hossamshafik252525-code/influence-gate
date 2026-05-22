@@ -15,6 +15,7 @@ import { CloudinaryService } from '../../cloudinary/cloudinary.service';
 import { CampaignQueryService } from './campaign-query.service';
 import { CampaignValidationService } from './campaign-validation.service';
 import { InvitationsManagementService } from '../invitations/services/invitations-management.service';
+import { InvitationsDataService } from '../invitations/services/invitations-data.service';
 import { NotificationsService } from '../../notifications/services/notifications.service';
 import { NotificationType } from '../../notifications/enums';
 import { Role } from '../../../common/enums';
@@ -31,6 +32,7 @@ export class CampaignCreationService {
     private readonly countriesService: CountriesService,
     private readonly cloudinaryService: CloudinaryService,
     private readonly invitationsManagementService: InvitationsManagementService,
+    private readonly invitationsDataService: InvitationsDataService,
     private readonly notificationsService: NotificationsService,
   ) {}
 
@@ -148,6 +150,17 @@ export class CampaignCreationService {
     dto: SaveCampaignBudgetDto,
   ): Promise<Campaign> {
     const campaign = await this.campaignQueryService.findDraftOrFail(campaignId, advertiserId);
+
+    if (campaign.campaignVisibility === CampaignVisibility.PRIVATE) {
+      const invitationsTotalCost =
+        await this.invitationsDataService.sumAllInvitationsCost(campaign.id);
+
+      if (dto.budget < invitationsTotalCost) {
+        throw new BadRequestException(
+          'الميزانية يجب أن تكون مساوية أو أكبر من إجمالي تكلفة المؤثرين المدعوين',
+        );
+      }
+    }
 
     await this.campaignRepository.update(campaign.id, {
       budget: dto.budget,

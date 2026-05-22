@@ -41,4 +41,14 @@ export class InvitationsDataService {
       where: { campaignId, status: InvitationStatus.PENDING },
     });
   }
+
+  async sumAllInvitationsCost(campaignId: string): Promise<number> {
+    const invitations = await this.invitationRepository.find({
+      where: { campaignId },
+    });
+    return invitations.reduce(
+      (sum, invitation) => sum + Number(invitation.priceWithFee || 0),
+      0,
+    );
+  }
 }

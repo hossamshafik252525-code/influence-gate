@@ -6,3 +6,4 @@ export {
   CreateRevenueTransactionInput,
   CreateWithdrawalTransactionInput,
 } from './wallet-transaction.interface';
+export * from './advertiser';

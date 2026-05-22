@@ -1,0 +1,230 @@
+{
+  "info": {
+    "name": "Advertiser Wallet",
+    "_postman_id": "9b1d6a2e-7c4e-4f3a-9c2b-1a5f4e6d2b10",
+    "description": "Advertiser wallet endpoints: login, summary, paginated transactions with filters, charge (invoice upload), withdraw.\n\nBase URL is set via the `baseUrl` variable (default `http://localhost:3005/api`).\n\nThe Login request automatically saves `accessToken` to the collection variables — every other request uses it via Bearer auth.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{accessToken}}", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3005/api", "type": "string" },
+    { "key": "advertiserEmail", "value": "advertiser@example.com", "type": "string" },
+    { "key": "advertiserPassword", "value": "Password123!", "type": "string" },
+    { "key": "accessToken", "value": "", "type": "string" },
+    { "key": "campaignId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login (Advertiser)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/advertiser/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["advertiser", "auth", "login"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{advertiserEmail}}\",\n  \"password\": \"{{advertiserPassword}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "const token = res.accessToken || res.access_token || (res.data && (res.data.accessToken || res.data.access_token)) || res.token;",
+                  "if (token) {",
+                  "  pm.collectionVariables.set('accessToken', token);",
+                  "  console.log('Saved accessToken to collection variables.');",
+                  "} else {",
+                  "  console.warn('No access token found in login response. Inspect the response body and set {{accessToken}} manually.');",
+                  "}",
+                  "pm.test('Login succeeded', function () { pm.response.to.have.status(201); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Summary",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/advertiser/wallet/summary",
+          "host": ["{{baseUrl}}"],
+          "path": ["advertiser", "wallet", "summary"]
+        },
+        "description": "Returns `{ availableBalance, reservedBalance, totalPaid }`. Auto-creates the advertiser wallet on first call."
+      },
+      "response": []
+    },
+    {
+      "name": "Transactions — list (all)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/advertiser/wallet/transactions?page=1&limit=10",
+          "host": ["{{baseUrl}}"],
+          "path": ["advertiser", "wallet", "transactions"],
+          "query": [
+            { "key": "page", "value": "1" },
+            { "key": "limit", "value": "10" }
+          ]
+        },
+        "description": "Paginated list of advertiser transactions ordered by createdAt DESC, includes current `walletBalance`."
+      },
+      "response": []
+    },
+    {
+      "name": "Transactions — filter by type",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/advertiser/wallet/transactions?type=charge&page=1&limit=10",
+          "host": ["{{baseUrl}}"],
+          "path": ["advertiser", "wallet", "transactions"],
+          "query": [
+            { "key": "type", "value": "charge", "description": "charge | withdraw | reserve | pay_influencer | release_reserved" },
+            { "key": "page", "value": "1" },
+            { "key": "limit", "value": "10" }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Transactions — filter by status",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/advertiser/wallet/transactions?status=pending_review&page=1&limit=10",
+          "host": ["{{baseUrl}}"],
+          "path": ["advertiser", "wallet", "transactions"],
+          "query": [
+            { "key": "status", "value": "pending_review", "description": "pending_review | done | cancelled" },
+            { "key": "page", "value": "1" },
+            { "key": "limit", "value": "10" }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Transactions — filter by campaign",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/advertiser/wallet/transactions?campaignId={{campaignId}}&page=1&limit=10",
+          "host": ["{{baseUrl}}"],
+          "path": ["advertiser", "wallet", "transactions"],
+          "query": [
+            { "key": "campaignId", "value": "{{campaignId}}", "description": "UUID of the campaign" },
+            { "key": "page", "value": "1" },
+            { "key": "limit", "value": "10" }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Transactions — filter by date range",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/advertiser/wallet/transactions?startDate=2026-01-01&endDate=2026-12-31&page=1&limit=10",
+          "host": ["{{baseUrl}}"],
+          "path": ["advertiser", "wallet", "transactions"],
+          "query": [
+            { "key": "startDate", "value": "2026-01-01", "description": "ISO date (YYYY-MM-DD)" },
+            { "key": "endDate", "value": "2026-12-31", "description": "ISO date (YYYY-MM-DD)" },
+            { "key": "page", "value": "1" },
+            { "key": "limit", "value": "10" }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Charge wallet (request)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/advertiser/wallet/charge",
+          "host": ["{{baseUrl}}"],
+          "path": ["advertiser", "wallet", "charge"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"amount\": 500.00,\n  \"invoiceImageUrl\": \"https://res.cloudinary.com/demo/image/upload/v1700000000/invoices/sample.jpg\",\n  \"invoiceImagePublicId\": \"invoices/sample\",\n  \"description\": \"Bank transfer receipt\"\n}"
+        },
+        "description": "Creates a CHARGE transaction with status PENDING_REVIEW. `availableBalance` does NOT change yet — admin reviews the invoice and approves later.\n\n`invoiceImageUrl` and `invoiceImagePublicId` come from your file-upload service (e.g. Cloudinary)."
+      },
+      "response": []
+    },
+    {
+      "name": "Charge wallet — minimal (no description)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/advertiser/wallet/charge",
+          "host": ["{{baseUrl}}"],
+          "path": ["advertiser", "wallet", "charge"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"amount\": 1000,\n  \"invoiceImageUrl\": \"https://res.cloudinary.com/demo/image/upload/v1700000000/invoices/min.jpg\",\n  \"invoiceImagePublicId\": \"invoices/min\"\n}"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Withdraw (request)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/advertiser/wallet/withdraw",
+          "host": ["{{baseUrl}}"],
+          "path": ["advertiser", "wallet", "withdraw"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"amount\": 50.00\n}"
+        },
+        "description": "Creates a WITHDRAW transaction with status PENDING_REVIEW and immediately debits `availableBalance`. Throws 400 if `amount > availableBalance`. Reserved funds are never touched."
+      },
+      "response": []
+    }
+  ]
+}

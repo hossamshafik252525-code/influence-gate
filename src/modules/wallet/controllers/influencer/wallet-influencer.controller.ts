@@ -1,13 +1,13 @@
 import { Controller, Get, Post, Body, Query, UseGuards } from '@nestjs/common';
-import { WalletInfluencerService } from '../services/wallet-influencer.service';
-import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
-import { RolesStatusGuard } from '../../../common/guards/auth.guard';
-import { Roles } from '../../../common/decorators/roles.decorator';
-import { AuthUser } from '../../../common/decorators/auth-user.decorator';
-import { Role } from '../../../common/enums';
-import { User } from '../../users/entities/user.entity';
-import { WalletSummary, TransactionListWithBalance } from '../interfaces';
-import { WithdrawDto, TransactionFilterDto } from '../dto';
+import { WalletInfluencerService } from '../../services/influencer/wallet-influencer.service';
+import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
+import { RolesStatusGuard } from '../../../../common/guards/auth.guard';
+import { Roles } from '../../../../common/decorators/roles.decorator';
+import { AuthUser } from '../../../../common/decorators/auth-user.decorator';
+import { Role } from '../../../../common/enums';
+import { User } from '../../../users/entities/user.entity';
+import { WalletSummary, TransactionListWithBalance } from '../../interfaces';
+import { WithdrawDto, TransactionFilterDto } from '../../dto';
 
 @Controller('influencer/wallet')
 @UseGuards(JwtAuthGuard, RolesStatusGuard)

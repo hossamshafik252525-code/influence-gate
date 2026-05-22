@@ -16,7 +16,7 @@ import { SubmissionStatus } from '../enums';
 import { ReviewSubmissionDto } from '../dto/review-submission.dto';
 import { NotificationsService } from '../../../notifications/services/notifications.service';
 import { NotificationType } from '../../../notifications/enums';
-import { WalletTransactionService } from '../../../wallet/services/wallet-transaction.service';
+import { WalletTransactionService } from '../../../wallet/services/influencer/wallet-transaction.service';
 import { TransactionStatus } from '../../../wallet/enums';
 import { CampaignRecordService } from '../../services/campaign-record.service';
 

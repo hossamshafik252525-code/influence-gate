@@ -16,6 +16,7 @@ import { CampaignValidationService } from './services/campaign-validation.servic
 import { CampaignDraftService } from './services/campaign-draft.service';
 import { CampaignLaunchService } from './services/campaign-launch.service';
 import { CampaignCompletionService } from './services/campaign-completion.service';
+import { CampaignRepository } from './repositories';
 import { InfluencerModule } from '../influencer/influencer.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { CloudinaryModule } from '../cloudinary/cloudinary.module';
@@ -54,6 +55,7 @@ import { SubmissionsModule } from './submissions/submissions.module';
     InfluencerCampaignController,
   ],
   providers: [
+    CampaignRepository,
     CampaignCreationService,
     CampaignManagementService,
     CampaignReviewService,
@@ -65,6 +67,7 @@ import { SubmissionsModule } from './submissions/submissions.module';
     CampaignCompletionService,
   ],
   exports: [
+    CampaignRepository,
     CampaignCreationService,
     CampaignQueryService,
     CampaignLaunchService,

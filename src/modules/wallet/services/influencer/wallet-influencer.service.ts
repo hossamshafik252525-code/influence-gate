@@ -1,10 +1,10 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Wallet } from '../entities/wallet.entity';
-import { WalletTransaction } from '../entities/wallet-transaction.entity';
-import { WalletSummary, WalletTransactionListResult, TransactionListWithBalance } from '../interfaces';
-import { TransactionFilterDto, WithdrawDto } from '../dto';
+import { Wallet } from '../../entities/wallet.entity';
+import { WalletTransaction } from '../../entities/wallet-transaction.entity';
+import { WalletSummary, WalletTransactionListResult, TransactionListWithBalance } from '../../interfaces';
+import { TransactionFilterDto, WithdrawDto } from '../../dto';
 import { WalletTransactionService } from './wallet-transaction.service';
 
 @Injectable()

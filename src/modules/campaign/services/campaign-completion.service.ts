@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Campaign } from '../entities/campaign.entity';
 import { CampaignStatus, CampaignVisibility } from '../enums';
-import { WalletTransactionService } from '../../wallet/services/wallet-transaction.service';
+import { WalletTransactionService } from '../../wallet/services/influencer/wallet-transaction.service';
 import { TransactionStatus } from '../../wallet/enums';
 import { InvitationsDataService } from '../invitations/services/invitations-data.service';
 import { ApplicationsDataService } from '../applications/services/applications-data.service';

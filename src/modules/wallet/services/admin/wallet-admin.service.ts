@@ -1,11 +1,11 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { WalletTransaction } from '../entities/wallet-transaction.entity';
-import { Wallet } from '../entities/wallet.entity';
-import { TransactionType, TransactionStatus } from '../enums';
-import { WalletTransactionListResult } from '../interfaces';
-import { ReviewTransactionDto, TransactionFilterDto } from '../dto';
+import { WalletTransaction } from '../../entities/wallet-transaction.entity';
+import { Wallet } from '../../entities/wallet.entity';
+import { TransactionType, TransactionStatus } from '../../enums';
+import { WalletTransactionListResult } from '../../interfaces';
+import { ReviewTransactionDto, TransactionFilterDto } from '../../dto';
 
 @Injectable()
 export class WalletAdminService {

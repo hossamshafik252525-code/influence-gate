@@ -32,7 +32,13 @@ export class CampaignManagementService {
     advertiserId: string,
     dto: UpdateCampaignDatesDto,
   ): Promise<Campaign> {
-    const campaign = await this.findOwnedCampaignOrFail(campaignId, advertiserId);
+    const campaign = await this.campaignRepository.findOne({
+      where: { id: campaignId, advertiserId },
+    });
+
+    if (!campaign) {
+      throw new NotFoundException('الحملة غير موجودة');
+    }
 
     if (!UPDATABLE_STATUSES.includes(campaign.status)) {
       throw new BadRequestException('لا يمكن تعديل تواريخ الحملة في هذه الحالة');
@@ -77,7 +83,13 @@ export class CampaignManagementService {
     campaignId: string,
     advertiserId: string,
   ): Promise<Campaign> {
-    const campaign = await this.findOwnedCampaignOrFail(campaignId, advertiserId);
+    const campaign = await this.campaignRepository.findOne({
+      where: { id: campaignId, advertiserId },
+    });
+
+    if (!campaign) {
+      throw new NotFoundException('الحملة غير موجودة');
+    }
 
     if (campaign.campaignVisibility !== CampaignVisibility.PUBLIC) {
       throw new BadRequestException('هذه العملية متاحة للحملات العامة فقط');
@@ -108,18 +120,5 @@ export class CampaignManagementService {
     });
   }
 
-  private async findOwnedCampaignOrFail(
-    campaignId: string,
-    advertiserId: string,
-  ): Promise<Campaign> {
-    const campaign = await this.campaignRepository.findOne({
-      where: { id: campaignId, advertiserId },
-    });
 
-    if (!campaign) {
-      throw new NotFoundException('الحملة غير موجودة');
-    }
-
-    return campaign;
-  }
 }

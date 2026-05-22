@@ -78,7 +78,7 @@ export class AdvertiserCampaignController {
     @Param('id', ParseUUIDPipe) id: string,
     @AuthUser() user: User,
   ): Promise<AdvertiserCampaignDetail> {
-    const campaign = await this.campaignQueryService.getCampaignById(id, user.id);
+    const campaign = await this.campaignQueryService.findCampaignWithRelations(id, user.id);
     return AdvertiserCampaignMapper.toCampaignDetail(campaign);
   }
 
