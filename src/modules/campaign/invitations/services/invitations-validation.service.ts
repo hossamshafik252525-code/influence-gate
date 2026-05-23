@@ -9,12 +9,14 @@ import { CampaignInvitedInfluencer } from '../entities/campaign-invited-influenc
 import { Campaign } from '../../entities/campaign.entity';
 import { CampaignStatus, CampaignVisibility } from '../../enums';
 import { InvitationStatus } from '../enums';
+import { InvitationsDataService } from './invitations-data.service';
 
 @Injectable()
 export class InvitationsValidationService {
   constructor(
     @InjectRepository(CampaignInvitedInfluencer)
     private readonly invitationRepository: Repository<CampaignInvitedInfluencer>,
+    private readonly invitationsDataService: InvitationsDataService,
   ) {}
 
   async hasInvitationInCampaign(
@@ -65,6 +67,41 @@ export class InvitationsValidationService {
       if (now >= deadline) {
         throw new BadRequestException('انتهت فترة قبول الدعوات لهذه الحملة');
       }
+    }
+  }
+
+  assertCampaignAllowsAdvertiserInvite(campaign: Campaign): InvitationStatus {
+    if (campaign.campaignVisibility !== CampaignVisibility.PRIVATE) {
+      throw new BadRequestException('هذه الحملة ليست حملة خاصة');
+    }
+
+    switch (campaign.status) {
+      case CampaignStatus.PENDING_REVIEW:
+        return InvitationStatus.CREATED;
+      case CampaignStatus.SCHEDULED:
+        return InvitationStatus.PENDING;
+      case CampaignStatus.IMPLEMENTATION:
+        if (
+          campaign.applicationDeadlineDate &&
+          Date.now() >= new Date(campaign.applicationDeadlineDate).getTime()
+        ) {
+          throw new BadRequestException('انتهت فترة قبول الدعوات لهذه الحملة');
+        }
+        return InvitationStatus.PENDING;
+      default:
+        throw new BadRequestException('لا يمكن إضافة دعوة في هذه الحالة');
+    }
+  }
+
+  async ensureBudgetCoversNewInvitation(
+    campaign: Campaign,
+    priceWithFee: number,
+  ): Promise<void> {
+    const currentTotal = await this.invitationsDataService.sumAllInvitationsCost(
+      campaign.id,
+    );
+    if (currentTotal + priceWithFee > Number(campaign.budget || 0)) {
+      throw new BadRequestException('يجب زيادة ميزانية الحملة');
     }
   }
 }

@@ -26,29 +26,36 @@ export class InvitationsManagementService {
     await this.invitedInfluencerRepository.delete({ campaignId });
   }
 
-  async createInvitations(campaignId: string, influencerIds: string[]): Promise<void> {
+  async buildInvitationPriceSnapshot(
+    influencerId: string,
+  ): Promise<{ basePrice: number; priceWithFee: number }> {
+    const influencer = await this.usersService.findById(influencerId);
+    if (!influencer || influencer.role !== Role.INFLUENCER) {
+      throw new BadRequestException(` احدالمؤثرين غير موجود `);
+    }
+
+    const profile = await this.influencerProfileRepository.findOne({
+      where: { userId: influencerId },
+    });
+    if (!profile) {
+      throw new BadRequestException(`الملف الشخصي للمؤثر غير موجود: ${influencerId}`);
+    }
+
+    if (!profile.price) {
+      throw new BadRequestException(`المؤثر لم يحدد سعر الخدمة: ${influencerId}`);
+    }
+
     const feePercentage = await this.platformSettingsService.getPlatformFeePercentage();
     const feeMultiplier = 1 + feePercentage / 100;
+    const basePrice = Number(profile.price);
+    const priceWithFee = Math.round(basePrice * feeMultiplier * 100) / 100;
 
+    return { basePrice, priceWithFee };
+  }
+
+  async createInvitations(campaignId: string, influencerIds: string[]): Promise<void> {
     for (const influencerId of influencerIds) {
-      const influencer = await this.usersService.findById(influencerId);
-      if (!influencer || influencer.role !== Role.INFLUENCER) {
-        throw new BadRequestException(` احدالمؤثرين غير موجود `);
-      }
-
-      const profile = await this.influencerProfileRepository.findOne({
-        where: { userId: influencerId },
-      });
-      if (!profile) {
-        throw new BadRequestException(`الملف الشخصي للمؤثر غير موجود: ${influencerId}`);
-      }
-
-      if (!profile.price) {
-        throw new BadRequestException(`المؤثر لم يحدد سعر الخدمة: ${influencerId}`);
-      }
-
-      const basePrice = Number(profile.price);
-      const priceWithFee = Math.round(basePrice * feeMultiplier * 100) / 100;
+      const { basePrice, priceWithFee } = await this.buildInvitationPriceSnapshot(influencerId);
 
       await this.invitedInfluencerRepository.save(
         this.invitedInfluencerRepository.create({
@@ -60,6 +67,24 @@ export class InvitationsManagementService {
         }),
       );
     }
+  }
+
+  async createSingleInvitation(
+    campaignId: string,
+    influencerId: string,
+    status: InvitationStatus,
+  ): Promise<CampaignInvitedInfluencer> {
+    const { basePrice, priceWithFee } = await this.buildInvitationPriceSnapshot(influencerId);
+
+    return this.invitedInfluencerRepository.save(
+      this.invitedInfluencerRepository.create({
+        campaignId,
+        influencerId,
+        status,
+        basePrice,
+        priceWithFee,
+      }),
+    );
   }
 
   async activateInvitations(campaignId: string, campaignName: string): Promise<void> {
