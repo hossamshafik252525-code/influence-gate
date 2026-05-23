@@ -33,7 +33,8 @@
     "seed:reset-hossam-pending-invitations": "ts-node -r tsconfig-paths/register src/database/seeds/reset-hossam-pending-invitations.ts",
     "seed:hossam-mixed-campaigns": "ts-node -r tsconfig-paths/register src/database/seeds/seed-hossam-mixed-campaigns.ts",
     "seed:hossam-public-campaigns": "ts-node -r tsconfig-paths/register src/database/seeds/seed-hossam-public-campaigns.ts",
-    "seed:professional-campaigns": "ts-node -r tsconfig-paths/register src/database/seeds/seed-professional-campaigns.ts"
+    "seed:professional-campaigns": "ts-node -r tsconfig-paths/register src/database/seeds/seed-professional-campaigns.ts",
+    "seed:platform-options": "ts-node -r tsconfig-paths/register src/database/seeds/seed-platform-options.ts"
   },
   "dependencies": {
     "@nestjs/axios": "^4.0.1",
