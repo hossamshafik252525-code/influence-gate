@@ -172,6 +172,20 @@ export class AdvertiserWalletTransactionService {
     return this.transactionRepo.save(transaction);
   }
 
+  async getCampaignActualPaid(campaignId: string): Promise<number> {
+    const result: { total: string | null } = await this.transactionRepo
+      .createQueryBuilder('tx')
+      .select('COALESCE(SUM(tx.amount), 0)', 'total')
+      .where('tx.campaignId = :campaignId', { campaignId })
+      .andWhere('tx.type = :type', {
+        type: AdvertiserTransactionType.PAY_INFLUENCER,
+      })
+      .andWhere('tx.status = :status', { status: TransactionStatus.DONE })
+      .getRawOne();
+
+    return Number(result?.total ?? 0);
+  }
+
   async generatePayInfluencerTransaction(
     input: GeneratePayInfluencerTransactionInput,
   ): Promise<AdvertiserWalletTransaction> {

@@ -1,0 +1,153 @@
+{
+  "info": {
+    "name": "Advertiser Reports",
+    "_postman_id": "c4f12a8b-7e2d-4d68-9d1c-2bd4f7e5a901",
+    "description": "Advertiser campaign reports endpoint.\n\nA single endpoint `GET {{baseUrl}}/reports/advertiser` returns the authenticated advertiser's completed/discarded campaign reports plus aggregate statistics.\n\nAll filters are passed as query string params. If `page` and `limit` are both omitted, the endpoint returns ALL records for the advertiser. Otherwise, it paginates.\n\nThe Login request stores `accessToken` as a collection variable; the report request authenticates with `{{accessToken}}` via Bearer auth.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{accessToken}}", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3005/api", "type": "string" },
+    { "key": "advertiserEmail", "value": "advertiser@example.com", "type": "string" },
+    { "key": "advertiserPassword", "value": "Password123!", "type": "string" },
+    { "key": "accessToken", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login (Advertiser)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/advertiser/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["advertiser", "auth", "login"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{advertiserEmail}}\",\n  \"password\": \"{{advertiserPassword}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "const token = res.accessToken || res.access_token || (res.data && (res.data.accessToken || res.data.access_token)) || res.token;",
+                  "if (token) {",
+                  "  pm.collectionVariables.set('accessToken', token);",
+                  "  console.log('Saved accessToken to collection variables.');",
+                  "} else {",
+                  "  console.warn('No access token found in login response. Inspect the response body and set {{accessToken}} manually.');",
+                  "}",
+                  "pm.test('Login succeeded', function () { pm.response.to.have.status(201); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Get Advertiser Reports (all filters)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/reports/advertiser?page=1&limit=10&statuses=completed&statuses=discarded&categoryIds=00000000-0000-0000-0000-000000000000&platforms=instagram&platforms=tiktok&contentTypes=reel&contentTypes=story&actualPaidFrom=0&actualPaidTo=100000&search=summer",
+          "host": ["{{baseUrl}}"],
+          "path": ["reports", "advertiser"],
+          "query": [
+            {
+              "key": "page",
+              "value": "1",
+              "description": "Optional. Page number (>= 1). If omitted along with `limit`, the endpoint returns ALL records (no pagination).",
+              "disabled": false
+            },
+            {
+              "key": "limit",
+              "value": "10",
+              "description": "Optional. Page size (>= 1). If omitted along with `page`, the endpoint returns ALL records (no pagination).",
+              "disabled": false
+            },
+            {
+              "key": "statuses",
+              "value": "completed",
+              "description": "Optional, repeatable. Report status filter. Allowed values: `completed`, `discarded`. Repeat the key to pass multiple values, e.g. `statuses=completed&statuses=discarded`.",
+              "disabled": false
+            },
+            {
+              "key": "statuses",
+              "value": "discarded",
+              "description": "Second value for the `statuses` filter (repeat the key to pass an array).",
+              "disabled": false
+            },
+            {
+              "key": "categoryIds",
+              "value": "00000000-0000-0000-0000-000000000000",
+              "description": "Optional, repeatable. Filter by category UUID(s). Repeat the key for multiple categories — a report matches if it has at least one of the supplied categories.",
+              "disabled": false
+            },
+            {
+              "key": "platforms",
+              "value": "instagram",
+              "description": "Optional, repeatable. Target platform filter. Allowed values: `youtube`, `tiktok`, `facebook`, `instagram`, `x`. A report matches if its `includedPlatforms` intersects the supplied set.",
+              "disabled": false
+            },
+            {
+              "key": "platforms",
+              "value": "tiktok",
+              "description": "Second value for the `platforms` filter (repeat the key to pass an array).",
+              "disabled": false
+            },
+            {
+              "key": "contentTypes",
+              "value": "reel",
+              "description": "Optional, repeatable. Content type filter. Allowed values: `story`, `reel`, `post`, `youtube_video`, `all`. A report matches if its `contentTypes` intersects the supplied set.",
+              "disabled": false
+            },
+            {
+              "key": "contentTypes",
+              "value": "story",
+              "description": "Second value for the `contentTypes` filter (repeat the key to pass an array).",
+              "disabled": false
+            },
+            {
+              "key": "actualPaidFrom",
+              "value": "0",
+              "description": "Optional. Minimum actual paid amount (inclusive). Number, >= 0.",
+              "disabled": false
+            },
+            {
+              "key": "actualPaidTo",
+              "value": "100000",
+              "description": "Optional. Maximum actual paid amount (inclusive). Number, >= 0.",
+              "disabled": false
+            },
+            {
+              "key": "search",
+              "value": "summer",
+              "description": "Optional. Free-text search. Matches the campaign name (case-insensitive `LIKE`); if the value is purely numeric, also matches the campaign number exactly.",
+              "disabled": false
+            }
+          ]
+        },
+        "description": "Returns the authenticated advertiser's campaign reports.\n\nResponse shape:\n```\n{\n  data: [\n    {\n      id, campaignId, campaignNumber, campaignName,\n      status,                       // 'completed' | 'discarded'\n      campaignVisibility,           // 'public' | 'private' | null\n      categories: [{ id, name }],\n      includedPlatforms: string[] | null,\n      contentTypes: string[] | null,\n      acceptedSubmissionsInfluencersCount,\n      actualPaid,\n      startDate, endDate, applicationDeadlineDate,\n      submittedAt, approvedAt, createdAt\n    }\n  ],\n  statistics: {\n    totalPaid,                  // from advertiser wallet\n    completedCampaignsCount,\n    discardedCampaignsCount,\n    totalCampaignsCount\n  },\n  pagination: { total, page, limit }   // page/limit are null when no pagination was requested\n}\n```\n\nAll query parameters are optional and can be combined freely. To disable a parameter, toggle it off in Postman's Params tab (it will become `disabled: true`)."
+      },
+      "response": []
+    }
+  ]
+}

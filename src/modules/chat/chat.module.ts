@@ -8,12 +8,14 @@ import { ChatGateway } from './gateways/chat.gateway';
 import { AdvertiserChatController } from './controllers/advertiser/advertiser-chat.controller';
 import { AdminChatController } from './controllers/admin/admin-chat.controller';
 import { UsersModule } from '../users/users.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Chat, ChatMessage]),
     JwtModule.register({}),
     UsersModule,
+    NotificationsModule,
   ],
   controllers: [AdvertiserChatController, AdminChatController],
   providers: [ChatService, ChatGateway],

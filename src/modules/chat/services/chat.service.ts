@@ -13,6 +13,9 @@ import { SendMessageDto, GetMessagesQueryDto, GetChatsQueryDto } from '../dto';
 import { PaginatedResult } from '../../../common/interfaces';
 import { ChatGateway } from '../gateways/chat.gateway';
 import { ChatMessagePayload } from '../interfaces/chat-message-payload.interface';
+import { NotificationsService } from '../../notifications/services/notifications.service';
+import { NotificationType } from '../../notifications/enums';
+import { Role } from '../../../common/enums';
 
 @Injectable()
 export class ChatService {
@@ -23,6 +26,7 @@ export class ChatService {
     private readonly messageRepo: Repository<ChatMessage>,
     @Inject(forwardRef(() => ChatGateway))
     private readonly chatGateway: ChatGateway,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async getOrCreateAdvertiserChat(advertiserId: string): Promise<Chat> {
@@ -146,6 +150,26 @@ export class ChatService {
       createdAt: saved.createdAt,
     };
     this.chatGateway.broadcastMessage(payload);
+
+    const chat = await this.getChatById(chatId);
+
+    if (senderRole === ChatSenderRole.ADVERTISER) {
+      await this.notificationsService.notifyByRole(
+        Role.ADMIN,
+        'رسالة جديدة',
+        `${chat.advertiser.fullName}: ${dto.content}`,
+        NotificationType.NEW_CHAT_MESSAGE,
+        { chatId },
+      );
+    } else {
+      await this.notificationsService.notify(
+        chat.advertiserId,
+        'رسالة جديدة من الإدارة',
+        dto.content,
+        NotificationType.NEW_CHAT_MESSAGE,
+        { chatId },
+      );
+    }
 
     return saved;
   }

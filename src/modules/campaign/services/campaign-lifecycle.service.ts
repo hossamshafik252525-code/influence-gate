@@ -11,6 +11,7 @@ import { CampaignLaunchService } from './campaign-launch.service';
 import { CampaignCompletionService } from './campaign-completion.service';
 import { InvitationsDataService } from '../invitations/services/invitations-data.service';
 import { ApplicationsDataService } from '../applications/services/applications-data.service';
+import { CampaignReportGenerationService } from '../../reports/services/campaign-report-generation.service';
 
 @Injectable()
 export class CampaignLifecycleService {
@@ -22,6 +23,7 @@ export class CampaignLifecycleService {
     private readonly campaignCompletionService: CampaignCompletionService,
     private readonly invitationsDataService: InvitationsDataService,
     private readonly applicationsDataService: ApplicationsDataService,
+    private readonly campaignReportGenerationService: CampaignReportGenerationService,
   ) {}
 
   @Cron('0 0 * * *')
@@ -120,6 +122,15 @@ export class CampaignLifecycleService {
         NotificationType.CAMPAIGN_AUTO_DISCARDED,
         { campaignId: campaign.id },
       );
+
+      const updated = await this.campaignRepository.findOne({
+        where: { id: campaign.id },
+      });
+      if (updated) {
+        await this.campaignReportGenerationService.generateForDiscardedCampaign(
+          updated,
+        );
+      }
     }
   }
 

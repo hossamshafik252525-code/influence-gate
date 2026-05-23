@@ -22,6 +22,7 @@ import { UploadModule } from './modules/upload/upload.module';
 import { RatingModule } from './modules/rating/rating.module';
 import { ContactUsModule } from './modules/contact-us/contact-us.module';
 import { ChatModule } from './modules/chat/chat.module';
+import { ReportsModule } from './modules/reports/reports.module';
 
 @Module({
   imports: [
@@ -69,6 +70,7 @@ import { ChatModule } from './modules/chat/chat.module';
     RatingModule,
     ContactUsModule,
     ChatModule,
+    ReportsModule,
   ],
 })
 export class AppModule {}

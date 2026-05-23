@@ -28,6 +28,7 @@ import { WalletModule } from '../wallet/wallet.module';
 import { InvitationsModule } from './invitations/invitations.module';
 import { ApplicationsModule } from './applications/applications.module';
 import { SubmissionsModule } from './submissions/submissions.module';
+import { ReportsModule } from '../reports/reports.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { SubmissionsModule } from './submissions/submissions.module';
     UsersModule,
     PlatformSettingsModule,
     WalletModule,
+    ReportsModule,
   ],
   controllers: [
     AdvertiserCampaignController,

@@ -51,4 +51,9 @@ export class CampaignSubmissionDataService {
     });
     return submissions.map((s) => s.influencerId);
   }
+
+  async countAcceptedSubmissionInfluencers(campaignId: string): Promise<number> {
+    const ids = await this.getAcceptedInfluencerIds(campaignId);
+    return new Set(ids).size;
+  }
 }

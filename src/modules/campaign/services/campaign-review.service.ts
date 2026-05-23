@@ -9,6 +9,7 @@ import { NotificationType } from '../../notifications/enums';
 import { computePendingMinimumDeadline } from '../utils';
 import { CampaignLaunchService } from './campaign-launch.service';
 import { InvitationsManagementService } from '../invitations/services/invitations-management.service';
+import { CampaignReportGenerationService } from '../../reports/services/campaign-report-generation.service';
 
 @Injectable()
 export class CampaignReviewService {
@@ -18,6 +19,7 @@ export class CampaignReviewService {
     private readonly notificationsService: NotificationsService,
     private readonly campaignLaunchService: CampaignLaunchService,
     private readonly invitationsManagementService: InvitationsManagementService,
+    private readonly campaignReportGenerationService: CampaignReportGenerationService,
   ) {}
 
   async reviewCampaign(campaignId: string, dto: ReviewCampaignDto): Promise<Campaign> {
@@ -69,6 +71,14 @@ export class CampaignReviewService {
         NotificationType.CAMPAIGN_AUTO_DISCARDED,
         { campaignId: campaign.id },
       );
+      const updated = await this.campaignRepository.findOne({
+        where: { id: campaign.id },
+      });
+      if (updated) {
+        await this.campaignReportGenerationService.generateForDiscardedCampaign(
+          updated,
+        );
+      }
       return;
     }
 

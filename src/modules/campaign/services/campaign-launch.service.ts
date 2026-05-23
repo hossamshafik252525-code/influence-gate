@@ -13,6 +13,7 @@ import { NotificationsService } from '../../notifications/services/notifications
 import { NotificationType } from '../../notifications/enums';
 import { ApplicationStatus } from '../applications/enums';
 import { CampaignApplication } from '../applications/entities/campaign-application.entity';
+import { CampaignReportGenerationService } from '../../reports/services/campaign-report-generation.service';
 
 export type ApprovalDecision =
   | { kind: 'discarded' }
@@ -30,6 +31,7 @@ export class CampaignLaunchService {
     private readonly applicationRepository: Repository<CampaignApplication>,
     private readonly invitationsManagementService: InvitationsManagementService,
     private readonly notificationsService: NotificationsService,
+    private readonly campaignReportGenerationService: CampaignReportGenerationService,
   ) {}
 
   decideStatusOnApproval(campaign: Campaign, now: Date): ApprovalDecision {
@@ -79,6 +81,15 @@ export class CampaignLaunchService {
       NotificationType.CAMPAIGN_AUTO_DISCARDED,
       { campaignId: campaign.id },
     );
+
+    const updated = await this.campaignRepository.findOne({
+      where: { id: campaign.id },
+    });
+    if (updated) {
+      await this.campaignReportGenerationService.generateForDiscardedCampaign(
+        updated,
+      );
+    }
   }
 
   private async rejectPendingApplications(campaign: Campaign): Promise<void> {
