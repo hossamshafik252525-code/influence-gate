@@ -34,6 +34,15 @@ export class ChatService {
     return this.chatRepo.save(chat);
   }
 
+  async getAdvertiserChatWithMessages(
+    advertiserId: string,
+    query: GetMessagesQueryDto,
+  ): Promise<{ chat: Chat; messages: PaginatedResult<ChatMessage> }> {
+    const chat = await this.getOrCreateAdvertiserChat(advertiserId);
+    const messages = await this.getMessages(chat.id, query);
+    return { chat, messages };
+  }
+
   async getChatById(chatId: string): Promise<Chat> {
     const chat = await this.chatRepo.findOne({
       where: { id: chatId },

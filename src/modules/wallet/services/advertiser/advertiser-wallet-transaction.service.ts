@@ -31,6 +31,9 @@ export class AdvertiserWalletTransactionService {
 
     const qb = this.transactionRepo
       .createQueryBuilder('tx')
+      .leftJoinAndSelect('tx.campaign', 'campaign')
+      .leftJoinAndSelect('tx.influencer', 'influencer')
+      .leftJoinAndSelect('influencer.influencerProfile', 'influencerProfile')
       .where('tx.walletId = :walletId', { walletId: wallet.id });
 
     if (filter.status) {
@@ -191,7 +194,6 @@ export class AdvertiserWalletTransactionService {
       amount: input.amount,
       campaignId: input.campaignId,
       influencerId: input.influencerId,
-      submissionId: input.submissionId,
       description: input.description ?? null,
     });
 
@@ -206,9 +208,16 @@ export class AdvertiserWalletTransactionService {
       type: row.type,
       status: row.status,
       amount: Number(row.amount),
-      campaignId: row.campaignId,
-      influencerId: row.influencerId,
-      submissionId: row.submissionId,
+      campaign: row.campaign
+        ? { id: row.campaign.id, name: row.campaign.name ?? null }
+        : null,
+      influencer: row.influencer
+        ? {
+            id: row.influencer.id,
+            fullName: row.influencer.fullName,
+            profileImageUrl: row.influencer.influencerProfile?.profileImageUrl ?? null,
+          }
+        : null,
       invoiceImageUrl: row.invoiceImageUrl,
       invoiceImagePublicId: row.invoiceImagePublicId,
       description: row.description,

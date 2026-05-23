@@ -1,5 +1,7 @@
 export { AdvertiserWalletSummary } from './advertiser-wallet-summary.interface';
 export {
+  AdvertiserTransactionCampaignRef,
+  AdvertiserTransactionInfluencerRef,
   AdvertiserWalletTransactionItem,
   AdvertiserWalletTransactionListResult,
   AdvertiserTransactionListWithBalance,

@@ -2,14 +2,24 @@ import { AdvertiserTransactionType, TransactionStatus } from '../../enums';
 import { PaginatedResult } from '../../../../common/interfaces/paginated-result.interface';
 import { AdvertiserWalletSummary } from './advertiser-wallet-summary.interface';
 
+export interface AdvertiserTransactionCampaignRef {
+  id: string;
+  name: string | null;
+}
+
+export interface AdvertiserTransactionInfluencerRef {
+  id: string;
+  fullName: string;
+  profileImageUrl: string | null;
+}
+
 export interface AdvertiserWalletTransactionItem {
   id: string;
   type: AdvertiserTransactionType;
   status: TransactionStatus;
   amount: number;
-  campaignId: string | null;
-  influencerId: string | null;
-  submissionId: string | null;
+  campaign: AdvertiserTransactionCampaignRef | null;
+  influencer: AdvertiserTransactionInfluencerRef | null;
   invoiceImageUrl: string | null;
   invoiceImagePublicId: string | null;
   description: string | null;
@@ -64,6 +74,5 @@ export interface GeneratePayInfluencerTransactionInput {
   amount: number;
   campaignId: string;
   influencerId: string;
-  submissionId: string;
   description?: string;
 }

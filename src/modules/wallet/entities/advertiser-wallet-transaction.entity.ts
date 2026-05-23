@@ -10,7 +10,6 @@ import {
 import { AdvertiserWallet } from './advertiser-wallet.entity';
 import { User } from '../../users/entities/user.entity';
 import { Campaign } from '../../campaign/entities/campaign.entity';
-import { CampaignSubmission } from '../../campaign/submissions/entities/campaign-submission.entity';
 import { AdvertiserTransactionType, TransactionStatus } from '../enums';
 
 @Entity('advertiser_wallet_transactions')
@@ -47,13 +46,6 @@ export class AdvertiserWalletTransaction {
   @ManyToOne(() => User, { onDelete: 'SET NULL', nullable: true })
   @JoinColumn({ name: 'influencerId' })
   influencer: User | null;
-
-  @Column({ nullable: true })
-  submissionId: string | null;
-
-  @ManyToOne(() => CampaignSubmission, { onDelete: 'SET NULL', nullable: true })
-  @JoinColumn({ name: 'submissionId' })
-  submission: CampaignSubmission | null;
 
   @Column({ nullable: true })
   invoiceImageUrl: string | null;

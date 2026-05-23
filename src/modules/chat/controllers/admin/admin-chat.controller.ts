@@ -1,8 +1,6 @@
 import {
   Controller,
   Get,
-  Post,
-  Body,
   Param,
   Query,
   UseGuards,
@@ -11,15 +9,9 @@ import {
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import { RolesStatusGuard } from '../../../../common/guards/auth.guard';
 import { Roles } from '../../../../common/decorators/roles.decorator';
-import { AuthUser } from '../../../../common/decorators/auth-user.decorator';
 import { Role } from '../../../../common/enums';
-import { User } from '../../../users/entities/user.entity';
 import { ChatService } from '../../services/chat.service';
-import {
-  SendMessageDto,
-  GetMessagesQueryDto,
-  GetChatsQueryDto,
-} from '../../dto';
+import { GetMessagesQueryDto, GetChatsQueryDto } from '../../dto';
 import { Chat } from '../../entities/chat.entity';
 import { ChatMessage } from '../../entities/chat-message.entity';
 import { PaginatedResult } from '../../../../common/interfaces';
@@ -43,14 +35,5 @@ export class AdminChatController {
     @Query() query: GetMessagesQueryDto,
   ): Promise<PaginatedResult<ChatMessage>> {
     return this.chatService.getMessages(chatId, query);
-  }
-
-  @Post(':chatId/messages')
-  sendMessage(
-    @AuthUser() admin: User,
-    @Param('chatId', ParseUUIDPipe) chatId: string,
-    @Body() dto: SendMessageDto,
-  ): Promise<ChatMessage> {
-    return this.chatService.sendMessageAsAdmin(chatId, admin.id, dto);
   }
 }

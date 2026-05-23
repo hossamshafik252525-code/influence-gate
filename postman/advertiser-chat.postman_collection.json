@@ -1,0 +1,84 @@
+{
+  "info": {
+    "name": "Advertiser Chat",
+    "_postman_id": "b3c8a1d2-5e4f-4a1b-8c9d-2f7e3b1a6c01",
+    "description": "Advertiser chat — one chat per advertiser, used to contact admins for support.\n\n**Sending messages is done via Socket.IO ONLY** (see CHAT-SOCKET.md). The REST endpoints here are only for:\n1. Logging in (to get the JWT used by the socket).\n2. Loading the chat and its message history when opening the chat screen.\n\nBase URL: `baseUrl` variable (default `http://localhost:3005/api`).\nSocket URL: `ws://localhost:3005/chat`.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{accessToken}}", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3005/api", "type": "string" },
+    { "key": "advertiserEmail", "value": "advertiser@example.com", "type": "string" },
+    { "key": "advertiserPassword", "value": "Password123!", "type": "string" },
+    { "key": "accessToken", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login (Advertiser)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/advertiser/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["advertiser", "auth", "login"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{advertiserEmail}}\",\n  \"password\": \"{{advertiserPassword}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "const token = res.accessToken || res.access_token || (res.data && (res.data.accessToken || res.data.access_token)) || res.token;",
+                  "if (token) {",
+                  "  pm.collectionVariables.set('accessToken', token);",
+                  "  console.log('Saved accessToken to collection variables. Use this same token in the Socket.IO auth.token field.');",
+                  "} else {",
+                  "  console.warn('No access token found in login response. Inspect the response body and set {{accessToken}} manually.');",
+                  "}",
+                  "pm.test('Login succeeded', function () { pm.response.to.have.status(201); });"
+                ]
+              }
+            }
+          ],
+          "description": "Logs the advertiser in and saves the JWT to `{{accessToken}}`.\n\nUse this same token for the socket connection: `io('http://localhost:3005/chat', { auth: { token: '<accessToken>' } })`."
+        }
+      ]
+    },
+    {
+      "name": "Get my chat (with messages)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/advertiser/chat?page=1&limit=20",
+          "host": ["{{baseUrl}}"],
+          "path": ["advertiser", "chat"],
+          "query": [
+            { "key": "page", "value": "1" },
+            { "key": "limit", "value": "20" }
+          ]
+        },
+        "description": "Returns the advertiser's chat (creates it on first call) together with a paginated list of its messages.\n\nEach advertiser has exactly ONE chat with the shared admin pool.\n\n**Query params:**\n- `page` (default 1)\n- `limit` (default 10)\n\n**Response:**\n```\n{\n  chat: { id, advertiserId, lastMessageAt, createdAt, updatedAt },\n  messages: {\n    data: ChatMessage[],   // newest first\n    pagination: { total, page, limit }\n  }\n}\n```\n\n`ChatMessage` shape:\n```\n{\n  id, chatId, senderId,\n  senderRole: 'advertiser' | 'admin',\n  content,\n  attachmentUrl, attachmentPublicId,\n  createdAt\n}\n```\n\nUse this when the user opens the chat screen — render the messages, THEN open the socket to receive new ones in real time."
+      },
+      "response": []
+    }
+  ]
+}
