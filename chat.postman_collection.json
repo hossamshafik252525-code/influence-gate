@@ -1,0 +1,53 @@
+{
+  "info": {
+    "name": "Chat - WebSocket Send Messages",
+    "_postman_id": "chat-websocket-001",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "socket_url", "value": "http://localhost:3005", "type": "string" },
+    { "key": "admin_token", "value": "PASTE_ADMIN_JWT_HERE", "type": "string" },
+    { "key": "advertiser_token", "value": "PASTE_ADVERTISER_JWT_HERE", "type": "string" },
+    { "key": "chat_id", "value": "PASTE_CHAT_ID_HERE", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Advertiser - Send Message",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "method": "SOCKETIO",
+        "header": [],
+        "url": "{{socket_url}}/chat",
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": \"Hello admin!\"\n}"
+        },
+        "description": "1. Set advertiser_token variable\n2. In the Headers tab add: Authorization = Bearer {{advertiser_token}}\n3. Connect\n4. Listen on: message:new\n5. Emit event: message:send\n   Body: { \"content\": \"Hello admin!\" }"
+      }
+    },
+    {
+      "name": "Admin - Join Chat & Send Message",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "method": "SOCKETIO",
+        "header": [],
+        "url": "{{socket_url}}/chat",
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": \"Hello advertiser!\",\n  \"chatId\": \"{{chat_id}}\"\n}"
+        },
+        "description": "1. Set admin_token and chat_id variables\n2. In the Headers tab add: Authorization = Bearer {{admin_token}}\n3. Connect\n4. Listen on: message:new\n5. First emit event: chat:join\n   Body: { \"chatId\": \"{{chat_id}}\" }\n6. Then emit event: message:send\n   Body: { \"content\": \"Hello advertiser!\", \"chatId\": \"{{chat_id}}\" }"
+      }
+    }
+  ]
+}
