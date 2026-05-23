@@ -2,6 +2,7 @@ import {
   IsArray,
   IsEnum,
   IsInt,
+  IsISO8601,
   IsNumber,
   IsOptional,
   IsString,
@@ -64,4 +65,12 @@ export class GetAdvertiserReportsQueryDto {
   @IsOptional()
   @IsString({ message: 'كلمة البحث يجب أن تكون نصاً' })
   search?: string;
+
+  @IsOptional()
+  @IsISO8601({}, { message: 'تاريخ البداية يجب أن يكون بصيغة صحيحة' })
+  startDate?: string;
+
+  @IsOptional()
+  @IsISO8601({}, { message: 'تاريخ النهاية يجب أن يكون بصيغة صحيحة' })
+  endDate?: string;
 }

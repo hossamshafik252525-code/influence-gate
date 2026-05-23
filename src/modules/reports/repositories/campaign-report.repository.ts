@@ -132,15 +132,23 @@ export class CampaignReportRepository {
     }
 
     if (query.platforms?.length) {
-      qb.andWhere('report.includedPlatforms && :platforms::jsonb', {
-        platforms: JSON.stringify(query.platforms),
-      });
+      qb.andWhere(
+        `EXISTS (
+          SELECT 1 FROM jsonb_array_elements_text(report.includedPlatforms) AS pl_elem
+          WHERE pl_elem = ANY(:platforms)
+        )`,
+        { platforms: query.platforms },
+      );
     }
 
     if (query.contentTypes?.length) {
-      qb.andWhere('report.contentTypes && :contentTypes::jsonb', {
-        contentTypes: JSON.stringify(query.contentTypes),
-      });
+      qb.andWhere(
+        `EXISTS (
+          SELECT 1 FROM jsonb_array_elements_text(report.contentTypes) AS ct_elem
+          WHERE ct_elem = ANY(:contentTypes)
+        )`,
+        { contentTypes: query.contentTypes },
+      );
     }
 
     if (query.actualPaidFrom !== undefined) {
@@ -152,6 +160,18 @@ export class CampaignReportRepository {
     if (query.actualPaidTo !== undefined) {
       qb.andWhere('report.actualPaid <= :actualPaidTo', {
         actualPaidTo: query.actualPaidTo,
+      });
+    }
+
+    if (query.startDate) {
+      qb.andWhere('report.startDate >= :startDate', {
+        startDate: query.startDate,
+      });
+    }
+
+    if (query.endDate) {
+      qb.andWhere('report.startDate <= :endDate', {
+        endDate: query.endDate,
       });
     }
 
