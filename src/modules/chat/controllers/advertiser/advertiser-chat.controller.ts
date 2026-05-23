@@ -7,7 +7,6 @@ import { Role } from '../../../../common/enums';
 import { User } from '../../../users/entities/user.entity';
 import { ChatService } from '../../services/chat.service';
 import { GetMessagesQueryDto } from '../../dto';
-import { Chat } from '../../entities/chat.entity';
 import { ChatMessage } from '../../entities/chat-message.entity';
 import { PaginatedResult } from '../../../../common/interfaces';
 
@@ -18,10 +17,11 @@ export class AdvertiserChatController {
   constructor(private readonly chatService: ChatService) {}
 
   @Get()
-  getMyChat(
+  async getMyChat(
     @AuthUser() user: User,
     @Query() query: GetMessagesQueryDto,
-  ): Promise<{ chat: Chat; messages: PaginatedResult<ChatMessage> }> {
-    return this.chatService.getAdvertiserChatWithMessages(user.id, query);
+  ): Promise<PaginatedResult<ChatMessage>> {
+    const { messages } = await this.chatService.getAdvertiserChatWithMessages(user.id, query);
+    return messages;
   }
 }
