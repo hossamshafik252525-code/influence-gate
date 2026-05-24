@@ -23,7 +23,10 @@ export class InfluencerCardMapper {
       profileImageUrl: source.profile.profileImageUrl ?? null,
       totalFollowers: source.totalFollowers,
       type: this.resolveType(source.totalFollowers),
-      includedPlatforms: source.profile.includedPlatforms ?? [],
+      platforms: (source.profile.platforms ?? []).map((p) => ({
+        id: p.id,
+        name: p.name,
+      })),
       price: priceWithFee,
       rating: Number(source.profile.rating),
       ratingCount: source.profile.ratingCount,

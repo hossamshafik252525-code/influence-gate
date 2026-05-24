@@ -1,6 +1,11 @@
-import { ExpectedBudget, TargetPlatform } from '../../../common/enums';
+import { ExpectedBudget } from '../../../common/enums';
 
 export interface AdvertiserProfileContentTypeItem {
+  id: string;
+  name: string;
+}
+
+export interface AdvertiserProfilePlatformItem {
   id: string;
   name: string;
 }
@@ -16,7 +21,7 @@ export interface AdvertiserProfileData {
   logoUrl: string | null;
   expectedBudget: ExpectedBudget | null;
   contentTypes: AdvertiserProfileContentTypeItem[];
-  targetPlatforms: TargetPlatform[] | null;
+  platforms: AdvertiserProfilePlatformItem[];
   categories: { id: string; name: string }[];
   country: { id: string; name: string } | null;
 }

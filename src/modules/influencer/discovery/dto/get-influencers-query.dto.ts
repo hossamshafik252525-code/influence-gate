@@ -9,7 +9,7 @@ import {
 } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 import { PaginationQueryDto } from '../../../../common/dto/pagination-query.dto';
-import { InfluencerType, TargetPlatform } from '../../../../common/enums';
+import { InfluencerType } from '../../../../common/enums';
 
 export class GetInfluencersQueryDto extends PaginationQueryDto {
   @IsOptional()
@@ -29,8 +29,8 @@ export class GetInfluencersQueryDto extends PaginationQueryDto {
   @IsOptional()
   @Transform(({ value }) => (Array.isArray(value) ? value : [value]))
   @IsArray()
-  @IsEnum(TargetPlatform, { each: true })
-  platforms?: TargetPlatform[];
+  @IsUUID('4', { each: true, message: 'معرف المنصة غير صالح' })
+  platformIds?: string[];
 
   @IsOptional()
   @IsEnum(InfluencerType)

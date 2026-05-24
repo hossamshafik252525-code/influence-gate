@@ -4,7 +4,7 @@ import { Repository, SelectQueryBuilder } from 'typeorm';
 import { CampaignReport } from '../entities/campaign-report.entity';
 import { Category } from '../../categories/entities/category.entity';
 import { ContentType } from '../../content-types/entities/content-type.entity';
-import { TargetPlatform } from '../../../common/enums';
+import { Platform } from '../../platforms/entities/platform.entity';
 import { ReportStatus } from '../enums';
 import { GetAdvertiserReportsQueryDto } from '../dto';
 
@@ -16,7 +16,7 @@ export interface CreateCampaignReportInput {
   status: ReportStatus;
   campaignVisibility: CampaignReport['campaignVisibility'];
   categories: Category[];
-  includedPlatforms: TargetPlatform[] | null;
+  platforms: Platform[];
   contentTypes: ContentType[];
   acceptedSubmissionsInfluencersCount: number;
   actualPaid: number;
@@ -136,14 +136,18 @@ export class CampaignReportRepository {
       qb.setParameter('filterCategoryIds', query.categoryIds);
     }
 
-    if (query.platforms?.length) {
-      qb.andWhere(
-        `EXISTS (
-          SELECT 1 FROM jsonb_array_elements_text(report.includedPlatforms) AS pl_elem
-          WHERE pl_elem = ANY(:platforms)
-        )`,
-        { platforms: query.platforms },
-      );
+    if (query.platformIds?.length) {
+      qb.andWhere((subQb) => {
+        const sub = subQb
+          .subQuery()
+          .select('1')
+          .from('campaign_report_platforms', 'rp')
+          .where('rp."reportId" = report.id')
+          .andWhere('rp."platformId" IN (:...filterReportPlatformIds)')
+          .getQuery();
+        return `EXISTS ${sub}`;
+      });
+      qb.setParameter('filterReportPlatformIds', query.platformIds);
     }
 
     if (query.contentTypeIds?.length) {
@@ -211,18 +215,24 @@ export class CampaignReportRepository {
       .createQueryBuilder('report')
       .leftJoinAndSelect('report.categories', 'category')
       .leftJoinAndSelect('report.contentTypes', 'contentType')
+      .leftJoinAndSelect('report.platforms', 'platform')
       .where('report.id IN (:...ids)', { ids })
       .getMany();
     const byId = new Map(
       withRelations.map((r) => [
         r.id,
-        { categories: r.categories, contentTypes: r.contentTypes },
+        {
+          categories: r.categories,
+          contentTypes: r.contentTypes,
+          platforms: r.platforms,
+        },
       ]),
     );
     for (const report of reports) {
       const found = byId.get(report.id);
       report.categories = found?.categories ?? [];
       report.contentTypes = found?.contentTypes ?? [];
+      report.platforms = found?.platforms ?? [];
     }
     return reports;
   }

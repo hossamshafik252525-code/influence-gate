@@ -1,11 +1,14 @@
-import { Platform } from '../../../../common/enums';
 import { InfluencerCategoryItem } from './influencer-card.interface';
 
 export interface InfluencerPlatformNoHistory {
+  platformId: string;
+  platformName: string;
   followersCount: number;
 }
 
 export interface InfluencerPlatformWithHistory {
+  platformId: string;
+  platformName: string;
   followersCount: number;
   platformUsername: string | null;
   statistics: Record<string, unknown> | null;
@@ -15,10 +18,6 @@ export interface InfluencerPlatformWithHistory {
 export type InfluencerSocialPlatformItem =
   | InfluencerPlatformNoHistory
   | InfluencerPlatformWithHistory;
-
-export type InfluencerDetailSocialPlatforms = Partial<
-  Record<Platform, InfluencerSocialPlatformItem>
->;
 
 export interface InfluencerDetail {
   id: string;
@@ -31,5 +30,5 @@ export interface InfluencerDetail {
   ratingCount: number;
   completedCampaignsCount: number;
   categories: InfluencerCategoryItem[];
-  socialPlatforms: InfluencerDetailSocialPlatforms;
+  socialPlatforms: InfluencerSocialPlatformItem[];
 }

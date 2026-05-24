@@ -30,6 +30,7 @@ import { CloudinaryModule } from '../cloudinary/cloudinary.module';
 import { CategoriesModule } from '../categories/categories.module';
 import { ContentTypesModule } from '../content-types/content-types.module';
 import { ImplementationTypesModule } from '../implementation-types/implementation-types.module';
+import { PlatformsModule } from '../platforms/platforms.module';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { ImplementationTypesModule } from '../implementation-types/implementatio
     CategoriesModule,
     ContentTypesModule,
     ImplementationTypesModule,
+    PlatformsModule,
   ],
   controllers: [
     InfluencerAuthController,

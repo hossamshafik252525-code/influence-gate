@@ -11,6 +11,8 @@ import { CategoriesService } from '../../../categories/categories.service';
 import { CountriesService } from '../../../countries/countries.service';
 import { ContentTypesService } from '../../../content-types/content-types.service';
 import { ContentTypesValidationService } from '../../../content-types/content-types-validation.service';
+import { PlatformsService } from '../../../platforms/platforms.service';
+import { PlatformsValidationService } from '../../../platforms/platforms-validation.service';
 import {
   ConfirmAdvertiserProfileDto,
   UpdateAdvertiserProfileDto,
@@ -27,6 +29,8 @@ export class AdvertiserProfileManagementService {
     private readonly countriesService: CountriesService,
     private readonly contentTypesService: ContentTypesService,
     private readonly contentTypesValidationService: ContentTypesValidationService,
+    private readonly platformsService: PlatformsService,
+    private readonly platformsValidationService: PlatformsValidationService,
   ) {}
 
   async confirmProfile(
@@ -60,11 +64,22 @@ export class AdvertiserProfileManagementService {
       );
     }
 
+    let platforms: AdvertiserProfile['platforms'] = [];
+    if (dto.platformIds && dto.platformIds.length > 0) {
+      const valid = await this.platformsValidationService.allActiveExist(
+        dto.platformIds,
+      );
+      if (!valid) {
+        throw new BadRequestException('إحدى المنصات المحددة غير صالحة');
+      }
+      platforms = await this.platformsService.findByIds(dto.platformIds);
+    }
+
     profile.companyName = dto.companyName;
     profile.categories = categories;
     profile.companyWebsite = dto.companyWebsite ?? null;
     profile.contentTypes = contentTypes;
-    profile.targetPlatforms = dto.targetPlatforms ?? null;
+    profile.platforms = platforms;
     profile.expectedBudget = dto.expectedBudget ?? null;
 
     if (dto.logoUrl && dto.logoPublicId) {
@@ -80,7 +95,13 @@ export class AdvertiserProfileManagementService {
 
     return this.advertiserProfileRepository.findOne({
       where: { userId },
-      relations: ['user', 'user.country', 'categories', 'contentTypes'],
+      relations: [
+        'user',
+        'user.country',
+        'categories',
+        'contentTypes',
+        'platforms',
+      ],
     });
   }
 
@@ -130,14 +151,23 @@ export class AdvertiserProfileManagementService {
       });
     }
 
+    if (dto.platformIds !== undefined) {
+      const valid = await this.platformsValidationService.allActiveExist(
+        dto.platformIds,
+      );
+      if (!valid) {
+        throw new BadRequestException('إحدى المنصات المحددة غير صالحة');
+      }
+      const platforms = await this.platformsService.findByIds(dto.platformIds);
+      await this.advertiserProfileRepository.save({ ...profile, platforms });
+    }
+
     const profileUpdate: Partial<AdvertiserProfile> = {};
     if (dto.username !== undefined) profileUpdate.username = dto.username;
     if (dto.companyName !== undefined)
       profileUpdate.companyName = dto.companyName;
     if (dto.companyWebsite !== undefined)
       profileUpdate.companyWebsite = dto.companyWebsite;
-    if (dto.targetPlatforms !== undefined)
-      profileUpdate.targetPlatforms = dto.targetPlatforms;
     if (dto.expectedBudget !== undefined)
       profileUpdate.expectedBudget = dto.expectedBudget;
     if (dto.logoUrl !== undefined && dto.logoPublicId !== undefined) {

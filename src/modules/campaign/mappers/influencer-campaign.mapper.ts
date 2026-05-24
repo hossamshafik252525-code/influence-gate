@@ -37,7 +37,7 @@ export class InfluencerCampaignMapper {
       name: campaign.name,
       description: campaign.description,
       categories: (campaign.categories ?? []).map((c) => ({ id: c.id, name: c.name })),
-      includedPlatforms: campaign.includedPlatforms,
+      platforms: InfluencerCampaignMapper.mapPlatforms(campaign.platforms),
       contentTypes: InfluencerCampaignMapper.mapContentTypes(
         campaign.contentTypes,
       ),
@@ -87,7 +87,7 @@ export class InfluencerCampaignMapper {
         ),
         description: profile?.description,
         implementationPeriodDays: profile?.implementationPeriodDays,
-        includedPlatforms: profile?.includedPlatforms,
+        platforms: InfluencerCampaignMapper.mapPlatforms(profile?.platforms),
       };
     }
 
@@ -102,7 +102,7 @@ export class InfluencerCampaignMapper {
       description: campaign.description,
       status: resolveCampaignStatus(campaign.status),
       relevantDeadline: resolveCampaignDeadline(campaign),
-      includedPlatforms: campaign.includedPlatforms,
+      platforms: InfluencerCampaignMapper.mapPlatforms(campaign.platforms),
       contentTypes: InfluencerCampaignMapper.mapContentTypes(
         campaign.contentTypes,
       ),
@@ -117,6 +117,12 @@ export class InfluencerCampaignMapper {
 
   private static mapImplementationTypes(
     items: ImplementationType[] | undefined,
+  ): NamedRelationItem[] {
+    return (items ?? []).map((c) => ({ id: c.id, name: c.name }));
+  }
+
+  private static mapPlatforms(
+    items: { id: string; name: string }[] | undefined,
   ): NamedRelationItem[] {
     return (items ?? []).map((c) => ({ id: c.id, name: c.name }));
   }

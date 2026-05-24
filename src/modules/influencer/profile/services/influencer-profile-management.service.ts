@@ -14,6 +14,8 @@ import { ContentTypesService } from '../../../content-types/content-types.servic
 import { ContentTypesValidationService } from '../../../content-types/content-types-validation.service';
 import { ImplementationTypesService } from '../../../implementation-types/implementation-types.service';
 import { ImplementationTypesValidationService } from '../../../implementation-types/implementation-types-validation.service';
+import { PlatformsService } from '../../../platforms/platforms.service';
+import { PlatformsValidationService } from '../../../platforms/platforms-validation.service';
 import { UpdateInfluencerProfileDto } from '../dto';
 
 @Injectable()
@@ -29,6 +31,8 @@ export class InfluencerProfileManagementService {
     private readonly contentTypesValidationService: ContentTypesValidationService,
     private readonly implementationTypesService: ImplementationTypesService,
     private readonly implementationTypesValidationService: ImplementationTypesValidationService,
+    private readonly platformsService: PlatformsService,
+    private readonly platformsValidationService: PlatformsValidationService,
   ) {}
 
   async updateProfile(
@@ -69,8 +73,6 @@ export class InfluencerProfileManagementService {
     if (dto.price !== undefined) profileUpdate.price = dto.price;
     if (dto.implementationPeriodDays !== undefined)
       profileUpdate.implementationPeriodDays = dto.implementationPeriodDays;
-    if (dto.includedPlatforms !== undefined)
-      profileUpdate.includedPlatforms = dto.includedPlatforms;
     if (dto.previousWorkLink !== undefined)
       profileUpdate.previousWorkLink = dto.previousWorkLink;
 
@@ -114,6 +116,17 @@ export class InfluencerProfileManagementService {
         ...profile,
         implementationTypes,
       });
+    }
+
+    if (dto.platformIds) {
+      const valid = await this.platformsValidationService.allActiveExist(
+        dto.platformIds,
+      );
+      if (!valid) {
+        throw new BadRequestException('إحدى المنصات المحددة غير صالحة');
+      }
+      const platforms = await this.platformsService.findByIds(dto.platformIds);
+      await this.influencerProfileRepository.save({ ...profile, platforms });
     }
   }
 

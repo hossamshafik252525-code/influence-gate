@@ -1,4 +1,4 @@
-import { TargetPlatform, InfluencerType } from '../../../../common/enums';
+import { InfluencerType } from '../../../../common/enums';
 import { PaginatedResult } from '../../../../common/interfaces';
 import { User } from '../../../users/entities/user.entity';
 import { SocialPlatform } from '../../../social-linking/entities/social-platform.entity';
@@ -13,6 +13,11 @@ export interface InfluencerCountryItem {
   name: string;
 }
 
+export interface InfluencerPlatformItem {
+  id: string;
+  name: string;
+}
+
 export interface InfluencerCard {
   id: string;
   fullName: string;
@@ -20,7 +25,7 @@ export interface InfluencerCard {
   profileImageUrl: string | null;
   totalFollowers: number;
   type: InfluencerType;
-  includedPlatforms: TargetPlatform[];
+  platforms: InfluencerPlatformItem[];
   price: number;
   rating: number;
   ratingCount: number;

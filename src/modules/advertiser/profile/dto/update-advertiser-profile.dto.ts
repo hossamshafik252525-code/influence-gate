@@ -8,7 +8,7 @@ import {
   MinLength,
   MaxLength,
 } from 'class-validator';
-import { ExpectedBudget, TargetPlatform } from '../../../../common/enums';
+import { ExpectedBudget } from '../../../../common/enums';
 
 export class UpdateAdvertiserProfileDto {
   @IsOptional()
@@ -47,8 +47,8 @@ export class UpdateAdvertiserProfileDto {
 
   @IsOptional()
   @IsArray()
-  @IsEnum(TargetPlatform, { each: true })
-  targetPlatforms?: TargetPlatform[];
+  @IsUUID('4', { each: true, message: 'معرف المنصة غير صالح' })
+  platformIds?: string[];
 
   @IsOptional()
   @IsEnum(ExpectedBudget)

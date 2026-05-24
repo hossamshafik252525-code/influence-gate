@@ -6,7 +6,7 @@ import { SocialLinkingService } from '../../../social-linking/social-linking.ser
 
 export interface InfluencerMatchSignals {
   contentTypeIds: string[];
-  platforms: string[];
+  platformIds: string[];
   categoryIds: string[];
 }
 
@@ -33,6 +33,7 @@ export class InfluencerProfileQueryService {
         'categories',
         'contentTypes',
         'implementationTypes',
+        'platforms',
       ],
     });
 
@@ -60,17 +61,16 @@ export class InfluencerProfileQueryService {
   async loadInfluencerMatchSignals(userId: string): Promise<InfluencerMatchSignals> {
     const profile = await this.influencerProfileRepository.findOne({
       where: { userId },
-      relations: ['categories', 'contentTypes'],
+      relations: ['categories', 'contentTypes', 'platforms'],
     });
 
     const categories = profile?.categories ?? [];
     const contentTypes = profile?.contentTypes ?? [];
+    const platforms = profile?.platforms ?? [];
 
     return {
       contentTypeIds: [...new Set(contentTypes.map((ct) => ct.id))],
-      platforms: profile?.includedPlatforms
-        ? (profile.includedPlatforms as string[])
-        : [],
+      platformIds: [...new Set(platforms.map((p) => p.id))],
       categoryIds: [...new Set(categories.map((c) => c.id))],
     };
   }

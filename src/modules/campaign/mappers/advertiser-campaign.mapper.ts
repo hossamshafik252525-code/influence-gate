@@ -19,7 +19,7 @@ export class AdvertiserCampaignMapper {
       currentStep: campaign.currentStep,
       name: campaign.name ?? null,
       categories: (campaign.categories ?? []).map((c) => ({ id: c.id, name: c.name })),
-      includedPlatforms: campaign.includedPlatforms ?? null,
+      platforms: AdvertiserCampaignMapper.mapPlatforms(campaign.platforms),
       startDate: campaign.startDate ?? null,
       endDate: campaign.endDate ?? null,
       applicationDeadlineDate: campaign.applicationDeadlineDate ?? null,
@@ -38,7 +38,7 @@ export class AdvertiserCampaignMapper {
       name: campaign.name ?? null,
       description: campaign.description ?? null,
       categories: (campaign.categories ?? []).map((c) => ({ id: c.id, name: c.name })),
-      includedPlatforms: campaign.includedPlatforms ?? null,
+      platforms: AdvertiserCampaignMapper.mapPlatforms(campaign.platforms),
       implementationTypes: AdvertiserCampaignMapper.mapImplementationTypes(
         campaign.implementationTypes,
       ),
@@ -82,7 +82,7 @@ export class AdvertiserCampaignMapper {
       ),
       description: profile?.description,
       implementationPeriodDays: profile?.implementationPeriodDays,
-      includedPlatforms: profile?.includedPlatforms,
+      platforms: AdvertiserCampaignMapper.mapPlatforms(profile?.platforms),
     };
   }
 
@@ -94,6 +94,12 @@ export class AdvertiserCampaignMapper {
 
   private static mapImplementationTypes(
     items: ImplementationType[] | undefined,
+  ): NamedRelationItem[] {
+    return (items ?? []).map((c) => ({ id: c.id, name: c.name }));
+  }
+
+  private static mapPlatforms(
+    items: { id: string; name: string }[] | undefined,
   ): NamedRelationItem[] {
     return (items ?? []).map((c) => ({ id: c.id, name: c.name }));
   }

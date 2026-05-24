@@ -14,7 +14,10 @@ export class AdvertiserReportMapper {
         id: c.id,
         name: c.name,
       })),
-      includedPlatforms: report.includedPlatforms ?? null,
+      platforms: (report.platforms ?? []).map((p) => ({
+        id: p.id,
+        name: p.name,
+      })),
       contentTypes: (report.contentTypes ?? []).map((c) => ({
         id: c.id,
         name: c.name,

@@ -10,12 +10,10 @@ import {
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { CampaignSubmission } from '../../campaign/submissions/entities/campaign-submission.entity';
-import { TargetPlatform } from '../../../common/enums';
-
 export interface CampaignSnapshot {
   title: string;
   description: string | null;
-  includedPlatforms: TargetPlatform[];
+  includedPlatforms: string[];
 }
 
 @Entity('influencer_ratings')

@@ -6,11 +6,9 @@ import {
   MaxLength,
   MinLength,
   IsArray,
-  IsEnum,
   IsNumber,
   Min,
 } from 'class-validator';
-import { TargetPlatform } from '../../../../common/enums';
 
 export class UpdateInfluencerProfileDto {
   @IsOptional()
@@ -73,8 +71,8 @@ export class UpdateInfluencerProfileDto {
 
   @IsOptional()
   @IsArray()
-  @IsEnum(TargetPlatform, { each: true })
-  includedPlatforms?: TargetPlatform[];
+  @IsUUID('4', { each: true, message: 'معرف المنصة غير صالح' })
+  platformIds?: string[];
 
   @IsOptional()
   @IsUrl({}, { message: 'رابط العمل السابق غير صالح' })

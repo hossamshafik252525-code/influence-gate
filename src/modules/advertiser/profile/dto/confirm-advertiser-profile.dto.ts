@@ -8,7 +8,7 @@ import {
   IsUrl,
   ArrayMinSize,
 } from 'class-validator';
-import { TargetPlatform, ExpectedBudget } from '../../../../common/enums';
+import { ExpectedBudget } from '../../../../common/enums';
 
 export class ConfirmAdvertiserProfileDto {
   @IsNotEmpty({ message: 'اسم الشركة مطلوب' })
@@ -35,8 +35,8 @@ export class ConfirmAdvertiserProfileDto {
 
   @IsOptional()
   @IsArray()
-  @IsEnum(TargetPlatform, { each: true })
-  targetPlatforms?: TargetPlatform[];
+  @IsUUID('4', { each: true, message: 'معرف المنصة غير صالح' })
+  platformIds?: string[];
 
   @IsOptional()
   @IsEnum(ExpectedBudget)

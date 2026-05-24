@@ -16,6 +16,8 @@ import { ContentTypesService } from '../../content-types/content-types.service';
 import { ContentTypesValidationService } from '../../content-types/content-types-validation.service';
 import { ImplementationTypesService } from '../../implementation-types/implementation-types.service';
 import { ImplementationTypesValidationService } from '../../implementation-types/implementation-types-validation.service';
+import { PlatformsService } from '../../platforms/platforms.service';
+import { PlatformsValidationService } from '../../platforms/platforms-validation.service';
 import { CampaignQueryService } from './campaign-query.service';
 import { CampaignValidationService } from './campaign-validation.service';
 import { InvitationsManagementService } from '../invitations/services/invitations-management.service';
@@ -39,6 +41,8 @@ export class CampaignCreationService {
     private readonly contentTypesValidationService: ContentTypesValidationService,
     private readonly implementationTypesService: ImplementationTypesService,
     private readonly implementationTypesValidationService: ImplementationTypesValidationService,
+    private readonly platformsService: PlatformsService,
+    private readonly platformsValidationService: PlatformsValidationService,
     private readonly invitationsManagementService: InvitationsManagementService,
     private readonly invitationsDataService: InvitationsDataService,
     private readonly notificationsService: NotificationsService,
@@ -80,6 +84,14 @@ export class CampaignCreationService {
     const implementationTypes =
       await this.implementationTypesService.findByIds(dto.implementationTypeIds);
 
+    const platformsValid = await this.platformsValidationService.allActiveExist(
+      dto.platformIds,
+    );
+    if (!platformsValid) {
+      throw new BadRequestException('إحدى المنصات المحددة غير صالحة');
+    }
+    const platforms = await this.platformsService.findByIds(dto.platformIds);
+
     await this.countriesService.findOne(dto.countryId);
 
     const startDate = new Date(dto.startDate);
@@ -92,7 +104,7 @@ export class CampaignCreationService {
     campaign.description = dto.description;
     campaign.categories = categories;
     campaign.countryId = dto.countryId;
-    campaign.includedPlatforms = dto.includedPlatforms;
+    campaign.platforms = platforms;
     campaign.implementationTypes = implementationTypes;
     campaign.startDate = startDate;
     campaign.endDate = endDate;
@@ -206,6 +218,7 @@ export class CampaignCreationService {
         'categories',
         'contentTypes',
         'implementationTypes',
+        'platforms',
       ],
     });
 

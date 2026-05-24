@@ -1,4 +1,4 @@
-import { TargetPlatform, InfluencerType } from '../../../common/enums';
+import { InfluencerType } from '../../../common/enums';
 import { ResolvedCampaignStatus } from '../enums';
 import { ApplicationStatus } from '../applications/enums';
 import { SubmissionStatus } from '../submissions/enums';
@@ -28,7 +28,7 @@ export interface CampaignListItemBase {
   description: string;
   status: ResolvedCampaignStatus;
   relevantDeadline: Date | null;
-  includedPlatforms: TargetPlatform[];
+  platforms: NamedRelationItem[];
   contentTypes: NamedRelationItem[];
 }
 
@@ -56,7 +56,7 @@ export interface CampaignDetailResult {
   name: string;
   description: string;
   categories: NamedRelationItem[];
-  includedPlatforms: TargetPlatform[];
+  platforms: NamedRelationItem[];
   contentTypes: NamedRelationItem[];
   contentDescription: string;
   requirementsFile: string;
@@ -78,6 +78,6 @@ export interface CampaignDetailResult {
     contentTypes?: NamedRelationItem[];
     description?: string;
     implementationPeriodDays?: number;
-    includedPlatforms?: TargetPlatform[];
+    platforms?: NamedRelationItem[];
   };
 }

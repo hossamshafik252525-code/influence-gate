@@ -14,8 +14,8 @@ import { User } from '../../users/entities/user.entity';
 import { Campaign } from '../../campaign/entities/campaign.entity';
 import { Category } from '../../categories/entities/category.entity';
 import { CampaignVisibility } from '../../campaign/enums';
-import { TargetPlatform } from '../../../common/enums';
 import { ContentType } from '../../content-types/entities/content-type.entity';
+import { Platform } from '../../platforms/entities/platform.entity';
 import { ReportStatus } from '../enums';
 
 @Entity('campaign_reports')
@@ -60,8 +60,13 @@ export class CampaignReport {
   })
   categories: Category[];
 
-  @Column({ type: 'jsonb', nullable: true })
-  includedPlatforms: TargetPlatform[] | null;
+  @ManyToMany(() => Platform)
+  @JoinTable({
+    name: 'campaign_report_platforms',
+    joinColumn: { name: 'reportId', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'platformId', referencedColumnName: 'id' },
+  })
+  platforms: Platform[];
 
   @ManyToMany(() => ContentType)
   @JoinTable({

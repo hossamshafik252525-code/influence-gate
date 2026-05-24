@@ -19,7 +19,7 @@ import { GetAdvertiserMyCampaignsQueryDto } from '../dto';
 export interface CampaignCommonFilterInput {
   search?: string;
   categoryId?: string;
-  platform?: string;
+  platformIds?: string[];
   contentTypeIds?: string[];
   implementationTypeIds?: string[];
 }
@@ -104,6 +104,7 @@ export class CampaignRepository {
       .leftJoinAndSelect('campaign.categories', 'category')
       .leftJoinAndSelect('campaign.contentTypes', 'contentType')
       .leftJoinAndSelect('campaign.implementationTypes', 'implementationType')
+      .leftJoinAndSelect('campaign.platforms', 'platform')
       .where('campaign.id IN (:...ids)', { ids })
       .orderBy('campaign.createdAt', 'DESC')
       .getMany();
@@ -133,10 +134,18 @@ export class CampaignRepository {
       qb.setParameter('filterCategoryIds', query.categoryIds);
     }
 
-    if (query.platforms?.length) {
-      qb.andWhere('campaign.includedPlatforms && :platforms::jsonb', {
-        platforms: JSON.stringify(query.platforms),
+    if (query.platformIds?.length) {
+      qb.andWhere((subQb) => {
+        const sub = subQb
+          .subQuery()
+          .select('1')
+          .from('campaign_platforms', 'cp')
+          .where('cp."campaignId" = campaign.id')
+          .andWhere('cp."platformId" IN (:...filterPlatformIds)')
+          .getQuery();
+        return `EXISTS ${sub}`;
       });
+      qb.setParameter('filterPlatformIds', query.platformIds);
     }
 
     if (query.contentTypeIds?.length) {
@@ -186,10 +195,20 @@ export class CampaignRepository {
       qb.setParameter('filterCategoryId', query.categoryId);
     }
 
-    if (query.platform) {
-      qb.andWhere('campaign.includedPlatforms @> :platform', {
-        platform: JSON.stringify([query.platform]),
+    if (query.platformIds?.length) {
+      qb.andWhere((subQb) => {
+        const sub = subQb
+          .subQuery()
+          .select('1')
+          .from('campaign_platforms', 'cp_common')
+          .where('cp_common."campaignId" = campaign.id')
+          .andWhere(
+            'cp_common."platformId" IN (:...commonFilterPlatformIds)',
+          )
+          .getQuery();
+        return `EXISTS ${sub}`;
       });
+      qb.setParameter('commonFilterPlatformIds', query.platformIds);
     }
 
     if (query.contentTypeIds?.length) {
@@ -264,7 +283,7 @@ export class CampaignRepository {
   applyMatchOrdering(
     qb: SelectQueryBuilder<Campaign>,
     contentTypeIds: string[],
-    platforms: string[],
+    platformIds: string[],
     categoryIds: string[],
   ): void {
     const parts: string[] = [];
@@ -280,14 +299,15 @@ export class CampaignRepository {
       qb.setParameter('matchContentTypeIds', contentTypeIds);
     }
 
-    if (platforms.length) {
+    if (platformIds.length) {
       parts.push(
         `CASE WHEN EXISTS (
-          SELECT 1 FROM jsonb_array_elements_text(campaign.includedPlatforms) AS pl_elem
-          WHERE pl_elem = ANY(:matchPlatforms)
+          SELECT 1 FROM campaign_platforms cp_match
+          WHERE cp_match."campaignId" = campaign.id
+            AND cp_match."platformId" = ANY(:matchPlatformIds)
         ) THEN 1 ELSE 0 END`,
       );
-      qb.setParameter('matchPlatforms', platforms);
+      qb.setParameter('matchPlatformIds', platformIds);
     }
 
     if (categoryIds.length) {
@@ -310,6 +330,7 @@ export class CampaignRepository {
 
   applyInfluencerListFields(qb: SelectQueryBuilder<Campaign>): void {
     qb.leftJoinAndSelect('campaign.contentTypes', 'cTypeList');
+    qb.leftJoinAndSelect('campaign.platforms', 'platList');
     qb.select([
       'campaign.id',
       'campaign.campaignNumber',
@@ -320,10 +341,11 @@ export class CampaignRepository {
       'campaign.endDate',
       'campaign.applicationDeadlineDate',
       'campaign.pendingMinimumDeadline',
-      'campaign.includedPlatforms',
       'campaign.createdAt',
       'cTypeList.id',
       'cTypeList.name',
+      'platList.id',
+      'platList.name',
     ]);
   }
 

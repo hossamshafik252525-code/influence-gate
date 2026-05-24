@@ -1,5 +1,4 @@
 import { TransactionType, TransactionStatus } from '../enums';
-import { TargetPlatform } from '../../../common/enums';
 import { PaginatedResult } from '../../../common/interfaces/paginated-result.interface';
 
 export interface WalletTransactionItem {
@@ -9,7 +8,7 @@ export interface WalletTransactionItem {
   amount: number;
   campaignId: string | null;
   campaignName: string | null;
-  includedPlatforms: TargetPlatform[] | null;
+  includedPlatforms: string[] | null;
   description: string | null;
   adminNotes: string | null;
   createdAt: Date;
@@ -36,7 +35,7 @@ export interface CreateRevenueTransactionInput {
   amount: number;
   campaignId: string;
   campaignName: string;
-  includedPlatforms: TargetPlatform[];
+  includedPlatforms: string[];
   status: TransactionStatus;
 }
 

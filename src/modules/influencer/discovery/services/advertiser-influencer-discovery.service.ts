@@ -37,6 +37,7 @@ export class AdvertiserInfluencerDiscoveryService {
       .innerJoinAndSelect('user.influencerProfile', 'profile')
       .leftJoinAndSelect('user.country', 'country')
       .leftJoinAndSelect('profile.categories', 'category')
+      .leftJoinAndSelect('profile.platforms', 'platform')
       .where('user.role = :role', { role: Role.INFLUENCER })
       .andWhere('profile.price IS NOT NULL')
       .andWhere(
@@ -72,6 +73,7 @@ export class AdvertiserInfluencerDiscoveryService {
       .innerJoinAndSelect('user.influencerProfile', 'profile')
       .leftJoinAndSelect('user.country', 'country')
       .leftJoinAndSelect('profile.categories', 'category')
+      .leftJoinAndSelect('profile.platforms', 'platform')
       .where('user.id = :id', { id: influencerId })
       .andWhere('user.role = :role', { role: Role.INFLUENCER })
       .getOne();
@@ -89,6 +91,7 @@ export class AdvertiserInfluencerDiscoveryService {
 
     const socialPlatforms = await this.socialPlatformRepo.find({
       where: { influencerProfileId: user.influencerProfile.id },
+      relations: ['platformRef'],
     });
 
     return { user, socialPlatforms, feeMultiplier, hasHistory };
@@ -122,10 +125,14 @@ export class AdvertiserInfluencerDiscoveryService {
       );
     }
 
-    if (query.platforms && query.platforms.length > 0) {
-      qb.andWhere(`profile."includedPlatforms" ?| ARRAY[:...platforms]`, {
-        platforms: query.platforms,
-      });
+    if (query.platformIds && query.platformIds.length > 0) {
+      qb.andWhere(
+        `EXISTS (
+          SELECT 1 FROM influencer_profile_platforms ipp
+          WHERE ipp."influencerProfileId" = profile.id AND ipp."platformId" IN (:...platformIds)
+        )`,
+        { platformIds: query.platformIds },
+      );
     }
 
     if (query.type === InfluencerType.MICRO) {

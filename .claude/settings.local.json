@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rm \"d:\\\\work\\\\influence-gate\\\\src\\\\modules\\\\platform-settings\\\\entities\\\\active-platform.entity.ts\" \"d:\\\\work\\\\influence-gate\\\\src\\\\modules\\\\platform-settings\\\\platform-options.service.ts\")"
+    ],
+    "additionalDirectories": [
+      "d:\\work\\influence-gate\\src\\modules\\platform-settings\\entities"
+    ]
+  }
+}

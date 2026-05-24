@@ -26,7 +26,7 @@ export class CampaignValidationService {
   async assertCampaignExists(campaignId: string): Promise<Campaign> {
     const campaign = await this.campaignRepository.findOne({
       where: { id: campaignId },
-      relations: ['categories', 'contentTypes', 'implementationTypes'],
+      relations: ['categories', 'contentTypes', 'implementationTypes', 'platforms'],
     });
 
     if (!campaign) {
@@ -76,7 +76,8 @@ export class CampaignValidationService {
     }
 
     if (
-      !campaign.includedPlatforms ||
+      !campaign.platforms ||
+      campaign.platforms.length === 0 ||
       !campaign.implementationTypes ||
       campaign.implementationTypes.length === 0
     ) {

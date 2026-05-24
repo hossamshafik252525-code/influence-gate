@@ -9,6 +9,7 @@ import { InfluencerProfile } from '../influencer/entities/influencer-profile.ent
 import { MetaStrategy, MetaController, TikTokStrategy, TikTokController } from './strategies';
 import { InfluencerFollowerSyncService } from './services/influencer-follower-sync.service';
 import { InfluencerModule } from '../influencer/influencer.module';
+import { PlatformsModule } from '../platforms/platforms.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { InfluencerModule } from '../influencer/influencer.module';
     HttpModule,
     ScheduleModule.forRoot(),
     forwardRef(() => InfluencerModule),
+    PlatformsModule,
   ],
   controllers: [SocialLinkingController, MetaController, TikTokController],
   providers: [SocialLinkingService, MetaStrategy, TikTokStrategy, InfluencerFollowerSyncService],

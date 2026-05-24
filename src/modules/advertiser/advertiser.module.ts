@@ -14,6 +14,7 @@ import { MailModule } from '../mail/mail.module';
 import { CategoriesModule } from '../categories/categories.module';
 import { CountriesModule } from '../countries/countries.module';
 import { ContentTypesModule } from '../content-types/content-types.module';
+import { PlatformsModule } from '../platforms/platforms.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { ContentTypesModule } from '../content-types/content-types.module';
     CategoriesModule,
     CountriesModule,
     ContentTypesModule,
+    PlatformsModule,
   ],
   controllers: [AdvertiserAuthController, AdvertiserProfileController],
   providers: [

@@ -5,11 +5,9 @@ import {
   IsArray,
   ArrayMinSize,
   ArrayMaxSize,
-  IsEnum,
   IsDateString,
   MaxLength,
 } from 'class-validator';
-import { TargetPlatform } from '../../../common/enums';
 
 export class SaveCampaignInformationDto {
   @IsNotEmpty({ message: 'اسم الحملة مطلوب' })
@@ -33,8 +31,8 @@ export class SaveCampaignInformationDto {
 
   @IsArray({ message: 'المنصات يجب أن تكون قائمة' })
   @ArrayMinSize(1, { message: 'يجب اختيار منصة واحدة على الأقل' })
-  @IsEnum(TargetPlatform, { each: true, message: 'منصة غير صالحة' })
-  includedPlatforms: TargetPlatform[];
+  @IsUUID('4', { each: true, message: 'معرف المنصة غير صالح' })
+  platformIds: string[];
 
   @IsArray({ message: 'أنواع التنفيذ يجب أن تكون قائمة' })
   @ArrayMinSize(1, { message: 'يجب اختيار نوع تنفيذ واحد على الأقل' })

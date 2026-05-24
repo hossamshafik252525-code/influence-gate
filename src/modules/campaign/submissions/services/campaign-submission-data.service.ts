@@ -3,7 +3,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CampaignSubmission } from '../entities/campaign-submission.entity';
 import { SubmissionStatus } from '../enums';
-import { TargetPlatform } from '../../../../common/enums';
 
 export interface SubmissionForRating {
   submissionId: string;
@@ -12,7 +11,7 @@ export interface SubmissionForRating {
   campaign: {
     title: string;
     description: string | null;
-    includedPlatforms: TargetPlatform[];
+    platforms: string[];
   };
 }
 
@@ -26,7 +25,7 @@ export class CampaignSubmissionDataService {
   async getSubmissionForRating(submissionId: string): Promise<SubmissionForRating> {
     const submission = await this.submissionRepo.findOne({
       where: { id: submissionId },
-      relations: ['campaign'],
+      relations: ['campaign', 'campaign.platforms'],
     });
 
     if (!submission) {
@@ -40,7 +39,7 @@ export class CampaignSubmissionDataService {
       campaign: {
         title: submission.campaign.name,
         description: submission.campaign.description ?? null,
-        includedPlatforms: submission.campaign.includedPlatforms ?? [],
+        platforms: (submission.campaign.platforms ?? []).map((p) => p.name),
       },
     };
   }
@@ -53,7 +52,10 @@ export class CampaignSubmissionDataService {
   }
 
   async countAcceptedSubmissionInfluencers(campaignId: string): Promise<number> {
-    const ids = await this.getAcceptedInfluencerIds(campaignId);
-    return new Set(ids).size;
+    const ids = await this.submissionRepo.find({
+      where: { campaignId, status: SubmissionStatus.ACCEPTED },
+      select: ['influencerId'],
+    });
+    return new Set(ids.map((s) => s.influencerId)).size;
   }
 }

@@ -23,7 +23,13 @@ export class CampaignCompletionService {
   ) {}
 
   async markCompleted(campaign: Campaign): Promise<void> {
-    await this.generateCancelledTransactionsForUnacceptedInfluencers(campaign);
+    const withPlatforms = await this.campaignRepository.findOne({
+      where: { id: campaign.id },
+      relations: ['platforms'],
+    });
+    await this.generateCancelledTransactionsForUnacceptedInfluencers(
+      withPlatforms ?? campaign,
+    );
     await this.campaignRepository.update(campaign.id, {
       status: CampaignStatus.COMPLETED,
     });
@@ -70,7 +76,7 @@ export class CampaignCompletionService {
         amount,
         campaignId: campaign.id,
         campaignName: campaign.name,
-        includedPlatforms: campaign.includedPlatforms,
+        includedPlatforms: (campaign.platforms ?? []).map((p) => p.name),
         status: TransactionStatus.CANCELLED,
       });
     }

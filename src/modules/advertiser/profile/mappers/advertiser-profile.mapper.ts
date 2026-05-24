@@ -17,7 +17,10 @@ export class AdvertiserProfileMapper {
         id: c.id,
         name: c.name,
       })),
-      targetPlatforms: profile.targetPlatforms ?? null,
+      platforms: (profile.platforms ?? []).map((p) => ({
+        id: p.id,
+        name: p.name,
+      })),
       categories: (profile.categories ?? []).map((c) => ({ id: c.id, name: c.name })),
       country: profile.user.country
         ? { id: profile.user.country.id, name: profile.user.country.name }

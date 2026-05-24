@@ -10,7 +10,6 @@ import {
   Min,
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
-import { TargetPlatform } from '../../../common/enums';
 import { ReportStatus } from '../enums';
 
 export class GetAdvertiserReportsQueryDto {
@@ -34,9 +33,9 @@ export class GetAdvertiserReportsQueryDto {
 
   @IsOptional()
   @IsArray()
-  @IsEnum(TargetPlatform, { each: true, message: 'المنصة غير صالحة' })
+  @IsUUID('4', { each: true, message: 'معرف المنصة غير صالح' })
   @Transform(({ value }) => (Array.isArray(value) ? value : [value]))
-  platforms?: TargetPlatform[];
+  platformIds?: string[];
 
   @IsOptional()
   @IsArray()

@@ -8,7 +8,6 @@ import {
   Min,
 } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
-import { TargetPlatform } from '../../../common/enums';
 import { CampaignStatus } from '../enums';
 import { PaginationQueryDto } from '../../../common/dto';
 
@@ -21,9 +20,9 @@ export class GetAdvertiserMyCampaignsQueryDto extends PaginationQueryDto {
 
   @IsOptional()
   @IsArray()
-  @IsEnum(TargetPlatform, { each: true, message: 'المنصة غير صالحة' })
+  @IsUUID('4', { each: true, message: 'معرف المنصة غير صالح' })
   @Transform(({ value }) => (Array.isArray(value) ? value : [value]))
-  platforms?: TargetPlatform[];
+  platformIds?: string[];
 
   @IsOptional()
   @IsArray()

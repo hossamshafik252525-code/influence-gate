@@ -1,5 +1,4 @@
 import { CampaignVisibility } from '../../campaign/enums';
-import { TargetPlatform } from '../../../common/enums';
 import { ReportStatus } from '../enums';
 
 export interface AdvertiserReportCategoryItem {
@@ -12,6 +11,11 @@ export interface AdvertiserReportContentTypeItem {
   name: string;
 }
 
+export interface AdvertiserReportPlatformItem {
+  id: string;
+  name: string;
+}
+
 export interface AdvertiserReportListItem {
   id: string;
   campaignId: string;
@@ -20,7 +24,7 @@ export interface AdvertiserReportListItem {
   status: ReportStatus;
   campaignVisibility: CampaignVisibility | null;
   categories: AdvertiserReportCategoryItem[];
-  includedPlatforms: TargetPlatform[] | null;
+  platforms: AdvertiserReportPlatformItem[];
   contentTypes: AdvertiserReportContentTypeItem[];
   acceptedSubmissionsInfluencersCount: number;
   actualPaid: number;

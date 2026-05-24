@@ -99,10 +99,18 @@ export class InfluencerInvitationQueryService {
       qb.setParameter('filterCategoryId', query.categoryId);
     }
 
-    if (query.platform) {
-      qb.andWhere('campaign.includedPlatforms @> :platform', {
-        platform: JSON.stringify([query.platform]),
+    if (query.platformIds?.length) {
+      qb.andWhere((subQb) => {
+        const sub = subQb
+          .subQuery()
+          .select('1')
+          .from('campaign_platforms', 'cp_inv')
+          .where('cp_inv."campaignId" = campaign.id')
+          .andWhere('cp_inv."platformId" IN (:...invPlatformIds)')
+          .getQuery();
+        return `EXISTS ${sub}`;
       });
+      qb.setParameter('invPlatformIds', query.platformIds);
     }
 
     if (query.contentTypeIds?.length) {

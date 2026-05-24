@@ -16,9 +16,10 @@ import { Category } from '../../categories/entities/category.entity';
 import { Country } from '../../countries/entities/country.entity';
 import { CampaignInvitedInfluencer } from '../invitations/entities/campaign-invited-influencer.entity';
 import { CampaignApplication } from '../applications/entities/campaign-application.entity';
-import { InfluencerType, TargetPlatform } from '../../../common/enums';
+import { InfluencerType } from '../../../common/enums';
 import { ContentType } from '../../content-types/entities/content-type.entity';
 import { ImplementationType } from '../../implementation-types/entities/implementation-type.entity';
+import { Platform } from '../../platforms/entities/platform.entity';
 import { CampaignStatus, CampaignStep, CampaignVisibility } from '../enums';
 
 @Entity('campaigns')
@@ -58,8 +59,13 @@ export class Campaign {
   })
   categories: Category[];
 
-  @Column({ type: 'jsonb', nullable: true })
-  includedPlatforms: TargetPlatform[];
+  @ManyToMany(() => Platform)
+  @JoinTable({
+    name: 'campaign_platforms',
+    joinColumn: { name: 'campaignId', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'platformId', referencedColumnName: 'id' },
+  })
+  platforms: Platform[];
 
   @Column({ nullable: true })
   countryId: string;

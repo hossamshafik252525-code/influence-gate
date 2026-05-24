@@ -11,6 +11,7 @@ import { AdvertiserReportController } from './controllers/advertiser-report.cont
 import { SubmissionsModule } from '../campaign/submissions/submissions.module';
 import { WalletModule } from '../wallet/wallet.module';
 import { ContentTypesModule } from '../content-types/content-types.module';
+import { PlatformsModule } from '../platforms/platforms.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { ContentTypesModule } from '../content-types/content-types.module';
     SubmissionsModule,
     WalletModule,
     ContentTypesModule,
+    PlatformsModule,
   ],
   controllers: [AdvertiserReportController],
   providers: [

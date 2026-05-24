@@ -31,6 +31,7 @@ import { SubmissionsModule } from './submissions/submissions.module';
 import { ReportsModule } from '../reports/reports.module';
 import { ContentTypesModule } from '../content-types/content-types.module';
 import { ImplementationTypesModule } from '../implementation-types/implementation-types.module';
+import { PlatformsModule } from '../platforms/platforms.module';
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { ImplementationTypesModule } from '../implementation-types/implementatio
     ReportsModule,
     ContentTypesModule,
     ImplementationTypesModule,
+    PlatformsModule,
   ],
   controllers: [
     AdvertiserCampaignController,

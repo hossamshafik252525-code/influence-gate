@@ -73,7 +73,11 @@ export class RatingService {
       await manager.save(InfluencerRating, {
         submissionId: dto.submissionId,
         influencerId: submissionData.influencerId,
-        campaignSnapshot: submissionData.campaign,
+        campaignSnapshot: {
+          title: submissionData.campaign.title,
+          description: submissionData.campaign.description,
+          includedPlatforms: submissionData.campaign.platforms,
+        },
         commitment: dto.commitment,
         qualityOfWork: dto.qualityOfWork,
         communication: dto.communication,

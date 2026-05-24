@@ -87,11 +87,13 @@ export class CampaignQueryService {
           'categories',
           'contentTypes',
           'implementationTypes',
+          'platforms',
           'invitedInfluencers',
           'invitedInfluencers.influencer',
           'invitedInfluencers.influencer.influencerProfile',
           'invitedInfluencers.influencer.influencerProfile.contentTypes',
           'invitedInfluencers.influencer.influencerProfile.implementationTypes',
+          'invitedInfluencers.influencer.influencerProfile.platforms',
         ],
       },
     );
@@ -107,7 +109,7 @@ export class CampaignQueryService {
     userId: string,
     query: GetNewCampaignsQueryDto,
   ): Promise<PaginatedResult<Campaign>> {
-    const { contentTypeIds, platforms, categoryIds } =
+    const { contentTypeIds, platformIds, categoryIds } =
       await this.influencerProfileQueryService.loadInfluencerMatchSignals(
         userId,
       );
@@ -141,7 +143,7 @@ export class CampaignQueryService {
     this.campaignRepository.applyMatchOrdering(
       qb,
       contentTypeIds,
-      platforms,
+      platformIds,
       categoryIds,
     );
 

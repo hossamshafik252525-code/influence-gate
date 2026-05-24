@@ -11,7 +11,6 @@ export {
 export {
   InfluencerDetail,
   InfluencerSocialPlatformItem,
-  InfluencerDetailSocialPlatforms,
   InfluencerPlatformNoHistory,
   InfluencerPlatformWithHistory,
 } from './interfaces/influencer-detail.interface';

@@ -20,7 +20,7 @@ export interface InfluencerProfileData {
   description?: string | null;
   price?: number | null;
   implementationPeriodDays?: number | null;
-  includedPlatforms?: string[] | null;
+  platforms: InfluencerProfileNamedItem[];
   previousWorkLink?: string | null;
   joiningDate: Date;
   createdAt: Date;

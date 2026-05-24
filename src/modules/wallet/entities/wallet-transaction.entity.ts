@@ -9,7 +9,6 @@ import {
 } from 'typeorm';
 import { Wallet } from './wallet.entity';
 import { TransactionType, TransactionStatus } from '../enums';
-import { TargetPlatform } from '../../../common/enums';
 
 @Entity('wallet_transactions')
 export class WalletTransaction {
@@ -39,7 +38,7 @@ export class WalletTransaction {
   campaignName: string;
 
   @Column({ type: 'jsonb', nullable: true })
-  includedPlatforms: TargetPlatform[];
+  includedPlatforms: string[];
 
   @Column({ type: 'text', nullable: true })
   description: string;

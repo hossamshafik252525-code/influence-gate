@@ -25,6 +25,7 @@ import { ChatModule } from './modules/chat/chat.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { ContentTypesModule } from './modules/content-types/content-types.module';
 import { ImplementationTypesModule } from './modules/implementation-types/implementation-types.module';
+import { PlatformsModule } from './modules/platforms/platforms.module';
 
 @Module({
   imports: [
@@ -75,6 +76,7 @@ import { ImplementationTypesModule } from './modules/implementation-types/implem
     ReportsModule,
     ContentTypesModule,
     ImplementationTypesModule,
+    PlatformsModule,
   ],
 })
 export class AppModule {}

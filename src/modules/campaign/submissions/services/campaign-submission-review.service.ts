@@ -112,7 +112,10 @@ export class CampaignSubmissionReviewService {
   private async generateRevenueTransaction(
     submission: CampaignSubmission & { campaign: Campaign },
   ): Promise<void> {
-    const campaign = submission.campaign;
+    const campaign = await this.campaignRepo.findOne({
+      where: { id: submission.campaignId },
+      relations: ['platforms'],
+    }) ?? submission.campaign;
     let amount: number;
 
     if (campaign.campaignVisibility === CampaignVisibility.PUBLIC) {
@@ -132,7 +135,7 @@ export class CampaignSubmissionReviewService {
       amount,
       campaignId: campaign.id,
       campaignName: campaign.name,
-      includedPlatforms: campaign.includedPlatforms,
+      includedPlatforms: (campaign.platforms ?? []).map((p) => p.name),
       status: TransactionStatus.PENDING_REVIEW,
     });
   }

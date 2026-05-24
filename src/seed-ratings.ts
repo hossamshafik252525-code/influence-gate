@@ -7,7 +7,6 @@ import { CampaignSubmission } from './modules/campaign/submissions/entities/camp
 import { RatingService } from './modules/rating/services/rating.service';
 import { CampaignStatus, CampaignStep } from './modules/campaign/enums';
 import { SubmissionStatus } from './modules/campaign/submissions/enums';
-import { TargetPlatform } from './common/enums';
 import { Role } from './common/enums';
 
 async function bootstrap() {
@@ -40,7 +39,7 @@ async function bootstrap() {
       description: `This is mock campaign ${i} for testing rating response.`,
       status: CampaignStatus.IMPLEMENTATION,
       currentStep: CampaignStep.INFORMATION,
-      includedPlatforms: [TargetPlatform.INSTAGRAM, TargetPlatform.TIKTOK],
+      includedPlatforms: ['instagram', 'tiktok'],
     });
 
     // 2. Create Mock Submission

@@ -14,9 +14,9 @@ import {
 import { User } from '../../users/entities/user.entity';
 import { Category } from '../../categories/entities/category.entity';
 import { SocialPlatform } from '../../social-linking/entities/social-platform.entity';
-import { TargetPlatform } from '../../../common/enums';
 import { ContentType } from '../../content-types/entities/content-type.entity';
 import { ImplementationType } from '../../implementation-types/entities/implementation-type.entity';
+import { Platform } from '../../platforms/entities/platform.entity';
 
 @Entity('influencer_profiles')
 export class InfluencerProfile {
@@ -83,8 +83,13 @@ export class InfluencerProfile {
   @Column({ type: 'int', nullable: true })
   implementationPeriodDays: number;
 
-  @Column({ type: 'jsonb', nullable: true })
-  includedPlatforms: TargetPlatform[];
+  @ManyToMany(() => Platform)
+  @JoinTable({
+    name: 'influencer_profile_platforms',
+    joinColumn: { name: 'influencerProfileId', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'platformId', referencedColumnName: 'id' },
+  })
+  platforms: Platform[];
 
   @Column({ type: 'text', nullable: true })
   previousWorkLink: string;

@@ -2,7 +2,6 @@ import { User } from '../../../users/entities/user.entity';
 import { SocialPlatform } from '../../../social-linking/entities/social-platform.entity';
 import {
   InfluencerDetail,
-  InfluencerDetailSocialPlatforms,
   InfluencerSocialPlatformItem,
 } from '../interfaces/influencer-detail.interface';
 
@@ -37,15 +36,11 @@ export class InfluencerDetailMapper {
   private static toSocialPlatforms(
     platforms: SocialPlatform[] | null,
     hasHistory: boolean,
-  ): InfluencerDetailSocialPlatforms {
+  ): InfluencerSocialPlatformItem[] {
     if (!platforms || platforms.length === 0) {
-      return {};
+      return [];
     }
-    const result: InfluencerDetailSocialPlatforms = {};
-    for (const sp of platforms) {
-      result[sp.platform] = this.toPlatformEntry(sp, hasHistory);
-    }
-    return result;
+    return platforms.map((sp) => this.toPlatformEntry(sp, hasHistory));
   }
 
   private static toPlatformEntry(
@@ -53,10 +48,14 @@ export class InfluencerDetailMapper {
     hasHistory: boolean,
   ): InfluencerSocialPlatformItem {
     const followersCount = this.extractFollowersCount(sp);
+    const platformId = sp.platform?.id ?? sp.platformId ?? '';
+    const platformName = sp.platform?.name ?? '';
     if (!hasHistory) {
-      return { followersCount };
+      return { platformId, platformName, followersCount };
     }
     return {
+      platformId,
+      platformName,
       followersCount,
       platformUsername: sp.platformUsername ?? null,
       statistics: sp.statistics ?? null,
