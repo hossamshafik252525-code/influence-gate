@@ -13,7 +13,10 @@ export class AdvertiserProfileMapper {
       companyWebsite: profile.companyWebsite ?? null,
       logoUrl: profile.logoUrl ?? null,
       expectedBudget: profile.expectedBudget ?? null,
-      contentTypes: profile.contentTypes ?? null,
+      contentTypes: (profile.contentTypes ?? []).map((c) => ({
+        id: c.id,
+        name: c.name,
+      })),
       targetPlatforms: profile.targetPlatforms ?? null,
       categories: (profile.categories ?? []).map((c) => ({ id: c.id, name: c.name })),
       country: profile.user.country

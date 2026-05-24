@@ -79,7 +79,11 @@ export class RolesStatusGuard implements CanActivate {
     const rawProfile = await profileQueryService.getProfile(userId);
     const profile = InfluencerProfileMapper.toProfileData(rawProfile);
 
-    if (!profile.implementationType || !profile.price) {
+    if (
+      !profile.implementationTypes ||
+      profile.implementationTypes.length === 0 ||
+      !profile.price
+    ) {
       throw new ForbiddenException('يجب إكمال الملف الشخصي وإضافة تفاصيل الخدمة أولاً');
     }
   }

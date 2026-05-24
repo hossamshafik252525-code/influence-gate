@@ -20,8 +20,8 @@ export interface CampaignCommonFilterInput {
   search?: string;
   categoryId?: string;
   platform?: string;
-  contentType?: string;
-  implementationType?: string;
+  contentTypeIds?: string[];
+  implementationTypeIds?: string[];
 }
 
 export interface CampaignFindFilters {
@@ -102,6 +102,8 @@ export class CampaignRepository {
     return this.repo
       .createQueryBuilder('campaign')
       .leftJoinAndSelect('campaign.categories', 'category')
+      .leftJoinAndSelect('campaign.contentTypes', 'contentType')
+      .leftJoinAndSelect('campaign.implementationTypes', 'implementationType')
       .where('campaign.id IN (:...ids)', { ids })
       .orderBy('campaign.createdAt', 'DESC')
       .getMany();
@@ -137,10 +139,18 @@ export class CampaignRepository {
       });
     }
 
-    if (query.contentTypes?.length) {
-      qb.andWhere('campaign.contentTypes && :contentTypes::jsonb', {
-        contentTypes: JSON.stringify(query.contentTypes),
+    if (query.contentTypeIds?.length) {
+      qb.andWhere((subQb) => {
+        const sub = subQb
+          .subQuery()
+          .select('1')
+          .from('campaign_content_types', 'cct')
+          .where('cct."campaignId" = campaign.id')
+          .andWhere('cct."contentTypeId" IN (:...filterContentTypeIds)')
+          .getQuery();
+        return `EXISTS ${sub}`;
       });
+      qb.setParameter('filterContentTypeIds', query.contentTypeIds);
     }
 
     if (query.budgetFrom !== undefined) {
@@ -182,16 +192,39 @@ export class CampaignRepository {
       });
     }
 
-    if (query.contentType) {
-      qb.andWhere('campaign.contentTypes @> :contentType', {
-        contentType: JSON.stringify([query.contentType]),
+    if (query.contentTypeIds?.length) {
+      qb.andWhere((subQb) => {
+        const sub = subQb
+          .subQuery()
+          .select('1')
+          .from('campaign_content_types', 'cct_common')
+          .where('cct_common."campaignId" = campaign.id')
+          .andWhere(
+            'cct_common."contentTypeId" IN (:...commonFilterContentTypeIds)',
+          )
+          .getQuery();
+        return `EXISTS ${sub}`;
       });
+      qb.setParameter('commonFilterContentTypeIds', query.contentTypeIds);
     }
 
-    if (query.implementationType) {
-      qb.andWhere('campaign.implementationType = :implementationType', {
-        implementationType: query.implementationType,
+    if (query.implementationTypeIds?.length) {
+      qb.andWhere((subQb) => {
+        const sub = subQb
+          .subQuery()
+          .select('1')
+          .from('campaign_implementation_types', 'cit_common')
+          .where('cit_common."campaignId" = campaign.id')
+          .andWhere(
+            'cit_common."implementationTypeId" IN (:...commonFilterImplementationTypeIds)',
+          )
+          .getQuery();
+        return `EXISTS ${sub}`;
       });
+      qb.setParameter(
+        'commonFilterImplementationTypeIds',
+        query.implementationTypeIds,
+      );
     }
   }
 
@@ -230,20 +263,21 @@ export class CampaignRepository {
 
   applyMatchOrdering(
     qb: SelectQueryBuilder<Campaign>,
-    contentTypes: string[],
+    contentTypeIds: string[],
     platforms: string[],
     categoryIds: string[],
   ): void {
     const parts: string[] = [];
 
-    if (contentTypes.length) {
+    if (contentTypeIds.length) {
       parts.push(
         `CASE WHEN EXISTS (
-          SELECT 1 FROM jsonb_array_elements_text(campaign.contentTypes) AS ct_elem
-          WHERE ct_elem = ANY(:matchContentTypes)
+          SELECT 1 FROM campaign_content_types cct_match
+          WHERE cct_match."campaignId" = campaign.id
+            AND cct_match."contentTypeId" = ANY(:matchContentTypeIds)
         ) THEN 1 ELSE 0 END`,
       );
-      qb.setParameter('matchContentTypes', contentTypes);
+      qb.setParameter('matchContentTypeIds', contentTypeIds);
     }
 
     if (platforms.length) {
@@ -275,6 +309,7 @@ export class CampaignRepository {
   }
 
   applyInfluencerListFields(qb: SelectQueryBuilder<Campaign>): void {
+    qb.leftJoinAndSelect('campaign.contentTypes', 'cTypeList');
     qb.select([
       'campaign.id',
       'campaign.campaignNumber',
@@ -286,8 +321,9 @@ export class CampaignRepository {
       'campaign.applicationDeadlineDate',
       'campaign.pendingMinimumDeadline',
       'campaign.includedPlatforms',
-      'campaign.contentTypes',
       'campaign.createdAt',
+      'cTypeList.id',
+      'cTypeList.name',
     ]);
   }
 

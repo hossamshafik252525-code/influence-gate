@@ -16,8 +16,14 @@ export class InfluencerProfileMapper {
       profileImageUrl: profile.profileImageUrl ?? null,
       portfolioLink: profile.portfolioLink ?? null,
       categories: (profile.categories ?? []).map((c) => ({ id: c.id, name: c.name })),
-      implementationType: profile.implementationType ?? null,
-      contentType: profile.contentType ?? null,
+      implementationTypes: (profile.implementationTypes ?? []).map((it) => ({
+        id: it.id,
+        name: it.name,
+      })),
+      contentTypes: (profile.contentTypes ?? []).map((ct) => ({
+        id: ct.id,
+        name: ct.name,
+      })),
       description: profile.description ?? null,
       price: profile.price ? Number(profile.price) : null,
       implementationPeriodDays: profile.implementationPeriodDays ?? null,

@@ -105,16 +105,34 @@ export class InfluencerInvitationQueryService {
       });
     }
 
-    if (query.contentType) {
-      qb.andWhere('campaign.contentTypes @> :contentType', {
-        contentType: JSON.stringify([query.contentType]),
+    if (query.contentTypeIds?.length) {
+      qb.andWhere((subQb) => {
+        const sub = subQb
+          .subQuery()
+          .select('1')
+          .from('campaign_content_types', 'cct_inv')
+          .where('cct_inv."campaignId" = campaign.id')
+          .andWhere('cct_inv."contentTypeId" IN (:...invContentTypeIds)')
+          .getQuery();
+        return `EXISTS ${sub}`;
       });
+      qb.setParameter('invContentTypeIds', query.contentTypeIds);
     }
 
-    if (query.implementationType) {
-      qb.andWhere('campaign.implementationType = :implementationType', {
-        implementationType: query.implementationType,
+    if (query.implementationTypeIds?.length) {
+      qb.andWhere((subQb) => {
+        const sub = subQb
+          .subQuery()
+          .select('1')
+          .from('campaign_implementation_types', 'cit_inv')
+          .where('cit_inv."campaignId" = campaign.id')
+          .andWhere(
+            'cit_inv."implementationTypeId" IN (:...invImplementationTypeIds)',
+          )
+          .getQuery();
+        return `EXISTS ${sub}`;
       });
+      qb.setParameter('invImplementationTypeIds', query.implementationTypeIds);
     }
   }
 }

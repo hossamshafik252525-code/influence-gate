@@ -10,6 +10,10 @@ import { UsersService } from '../../../users/users.service';
 import { CountriesService } from '../../../countries/countries.service';
 import { CloudinaryService } from '../../../cloudinary/cloudinary.service';
 import { CategoriesService } from '../../../categories/categories.service';
+import { ContentTypesService } from '../../../content-types/content-types.service';
+import { ContentTypesValidationService } from '../../../content-types/content-types-validation.service';
+import { ImplementationTypesService } from '../../../implementation-types/implementation-types.service';
+import { ImplementationTypesValidationService } from '../../../implementation-types/implementation-types-validation.service';
 import { UpdateInfluencerProfileDto } from '../dto';
 
 @Injectable()
@@ -21,10 +25,19 @@ export class InfluencerProfileManagementService {
     private readonly countriesService: CountriesService,
     private readonly cloudinaryService: CloudinaryService,
     private readonly categoriesService: CategoriesService,
+    private readonly contentTypesService: ContentTypesService,
+    private readonly contentTypesValidationService: ContentTypesValidationService,
+    private readonly implementationTypesService: ImplementationTypesService,
+    private readonly implementationTypesValidationService: ImplementationTypesValidationService,
   ) {}
 
-  async updateProfile(userId: string, dto: UpdateInfluencerProfileDto): Promise<void> {
-    const profile = await this.influencerProfileRepository.findOne({ where: { userId } });
+  async updateProfile(
+    userId: string,
+    dto: UpdateInfluencerProfileDto,
+  ): Promise<void> {
+    const profile = await this.influencerProfileRepository.findOne({
+      where: { userId },
+    });
     if (!profile) {
       throw new NotFoundException('الملف الشخصي غير موجود');
     }
@@ -42,7 +55,8 @@ export class InfluencerProfileManagementService {
 
     const profileUpdate: Partial<InfluencerProfile> = {};
     if (dto.userName !== undefined) profileUpdate.userName = dto.userName;
-    if (dto.portfolioLink !== undefined) profileUpdate.portfolioLink = dto.portfolioLink;
+    if (dto.portfolioLink !== undefined)
+      profileUpdate.portfolioLink = dto.portfolioLink;
     if (dto.profileImageUrl && dto.profileImagePublicId) {
       if (profile.profileImagePublicId) {
         await this.cloudinaryService.deleteImage(profile.profileImagePublicId);
@@ -50,13 +64,15 @@ export class InfluencerProfileManagementService {
       profileUpdate.profileImageUrl = dto.profileImageUrl;
       profileUpdate.profileImagePublicId = dto.profileImagePublicId;
     }
-    if (dto.implementationType !== undefined) profileUpdate.implementationType = dto.implementationType;
-    if (dto.contentType !== undefined) profileUpdate.contentType = dto.contentType;
-    if (dto.description !== undefined) profileUpdate.description = dto.description;
+    if (dto.description !== undefined)
+      profileUpdate.description = dto.description;
     if (dto.price !== undefined) profileUpdate.price = dto.price;
-    if (dto.implementationPeriodDays !== undefined) profileUpdate.implementationPeriodDays = dto.implementationPeriodDays;
-    if (dto.includedPlatforms !== undefined) profileUpdate.includedPlatforms = dto.includedPlatforms;
-    if (dto.previousWorkLink !== undefined) profileUpdate.previousWorkLink = dto.previousWorkLink;
+    if (dto.implementationPeriodDays !== undefined)
+      profileUpdate.implementationPeriodDays = dto.implementationPeriodDays;
+    if (dto.includedPlatforms !== undefined)
+      profileUpdate.includedPlatforms = dto.includedPlatforms;
+    if (dto.previousWorkLink !== undefined)
+      profileUpdate.previousWorkLink = dto.previousWorkLink;
 
     if (Object.keys(profileUpdate).length > 0) {
       await this.influencerProfileRepository.update(profile.id, profileUpdate);
@@ -69,18 +85,57 @@ export class InfluencerProfileManagementService {
       }
       await this.influencerProfileRepository.save({ ...profile, categories });
     }
+
+    if (dto.contentTypeIds) {
+      const valid = await this.contentTypesValidationService.allActiveExist(
+        dto.contentTypeIds,
+      );
+      if (!valid) {
+        throw new BadRequestException('أحد أنواع المحتوى المحددة غير صالح');
+      }
+      const contentTypes = await this.contentTypesService.findByIds(
+        dto.contentTypeIds,
+      );
+      await this.influencerProfileRepository.save({ ...profile, contentTypes });
+    }
+
+    if (dto.implementationTypeIds) {
+      const valid = await this.implementationTypesValidationService.allActiveExist(
+        dto.implementationTypeIds,
+      );
+      if (!valid) {
+        throw new BadRequestException('أحد أنواع التنفيذ المحددة غير صالح');
+      }
+      const implementationTypes =
+        await this.implementationTypesService.findByIds(
+          dto.implementationTypeIds,
+        );
+      await this.influencerProfileRepository.save({
+        ...profile,
+        implementationTypes,
+      });
+    }
   }
 
   async incrementCompletedCampaigns(userId: string): Promise<void> {
-    await this.influencerProfileRepository.increment({ userId }, 'completedCampaignsCount', 1);
+    await this.influencerProfileRepository.increment(
+      { userId },
+      'completedCampaignsCount',
+      1,
+    );
   }
 
-  async updateTotalFollowers(profileId: string, totalFollowers: number): Promise<void> {
+  async updateTotalFollowers(
+    profileId: string,
+    totalFollowers: number,
+  ): Promise<void> {
     await this.influencerProfileRepository.update(profileId, { totalFollowers });
   }
 
   async deleteProfileImage(userId: string): Promise<void> {
-    const profile = await this.influencerProfileRepository.findOne({ where: { userId } });
+    const profile = await this.influencerProfileRepository.findOne({
+      where: { userId },
+    });
     if (!profile) {
       throw new NotFoundException('الملف الشخصي غير موجود');
     }

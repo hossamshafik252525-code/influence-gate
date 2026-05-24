@@ -14,7 +14,8 @@ import { User } from '../../users/entities/user.entity';
 import { Campaign } from '../../campaign/entities/campaign.entity';
 import { Category } from '../../categories/entities/category.entity';
 import { CampaignVisibility } from '../../campaign/enums';
-import { ContentTypeOffer, TargetPlatform } from '../../../common/enums';
+import { TargetPlatform } from '../../../common/enums';
+import { ContentType } from '../../content-types/entities/content-type.entity';
 import { ReportStatus } from '../enums';
 
 @Entity('campaign_reports')
@@ -62,8 +63,13 @@ export class CampaignReport {
   @Column({ type: 'jsonb', nullable: true })
   includedPlatforms: TargetPlatform[] | null;
 
-  @Column({ type: 'jsonb', nullable: true })
-  contentTypes: ContentTypeOffer[] | null;
+  @ManyToMany(() => ContentType)
+  @JoinTable({
+    name: 'campaign_report_content_types',
+    joinColumn: { name: 'reportId', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'contentTypeId', referencedColumnName: 'id' },
+  })
+  contentTypes: ContentType[];
 
   @Column({ type: 'int', default: 0 })
   acceptedSubmissionsInfluencersCount: number;

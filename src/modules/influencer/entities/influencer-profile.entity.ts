@@ -14,7 +14,9 @@ import {
 import { User } from '../../users/entities/user.entity';
 import { Category } from '../../categories/entities/category.entity';
 import { SocialPlatform } from '../../social-linking/entities/social-platform.entity';
-import { ImplementationType, ContentTypeOffer, TargetPlatform } from '../../../common/enums';
+import { TargetPlatform } from '../../../common/enums';
+import { ContentType } from '../../content-types/entities/content-type.entity';
+import { ImplementationType } from '../../implementation-types/entities/implementation-type.entity';
 
 @Entity('influencer_profiles')
 export class InfluencerProfile {
@@ -53,11 +55,24 @@ export class InfluencerProfile {
   @Column({ type: 'bigint', default: 0 })
   totalFollowers: number;
 
-  @Column({ type: 'enum', enum: ImplementationType, nullable: true })
-  implementationType: ImplementationType;
+  @ManyToMany(() => ContentType)
+  @JoinTable({
+    name: 'influencer_profile_content_types',
+    joinColumn: { name: 'influencerProfileId', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'contentTypeId', referencedColumnName: 'id' },
+  })
+  contentTypes: ContentType[];
 
-  @Column({ type: 'enum', enum: ContentTypeOffer, nullable: true })
-  contentType: ContentTypeOffer;
+  @ManyToMany(() => ImplementationType)
+  @JoinTable({
+    name: 'influencer_profile_implementation_types',
+    joinColumn: { name: 'influencerProfileId', referencedColumnName: 'id' },
+    inverseJoinColumn: {
+      name: 'implementationTypeId',
+      referencedColumnName: 'id',
+    },
+  })
+  implementationTypes: ImplementationType[];
 
   @Column({ type: 'text', nullable: true })
   description: string;

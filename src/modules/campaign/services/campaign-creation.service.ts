@@ -12,6 +12,10 @@ import {
 import { CategoriesService } from '../../categories/categories.service';
 import { CountriesService } from '../../countries/countries.service';
 import { CloudinaryService } from '../../cloudinary/cloudinary.service';
+import { ContentTypesService } from '../../content-types/content-types.service';
+import { ContentTypesValidationService } from '../../content-types/content-types-validation.service';
+import { ImplementationTypesService } from '../../implementation-types/implementation-types.service';
+import { ImplementationTypesValidationService } from '../../implementation-types/implementation-types-validation.service';
 import { CampaignQueryService } from './campaign-query.service';
 import { CampaignValidationService } from './campaign-validation.service';
 import { InvitationsManagementService } from '../invitations/services/invitations-management.service';
@@ -31,6 +35,10 @@ export class CampaignCreationService {
     private readonly categoriesService: CategoriesService,
     private readonly countriesService: CountriesService,
     private readonly cloudinaryService: CloudinaryService,
+    private readonly contentTypesService: ContentTypesService,
+    private readonly contentTypesValidationService: ContentTypesValidationService,
+    private readonly implementationTypesService: ImplementationTypesService,
+    private readonly implementationTypesValidationService: ImplementationTypesValidationService,
     private readonly invitationsManagementService: InvitationsManagementService,
     private readonly invitationsDataService: InvitationsDataService,
     private readonly notificationsService: NotificationsService,
@@ -62,6 +70,16 @@ export class CampaignCreationService {
       throw new BadRequestException('إحدى الفئات المحددة غير موجودة');
     }
 
+    const implementationTypesValid =
+      await this.implementationTypesValidationService.allActiveExist(
+        dto.implementationTypeIds,
+      );
+    if (!implementationTypesValid) {
+      throw new BadRequestException('أحد أنواع التنفيذ المحددة غير صالح');
+    }
+    const implementationTypes =
+      await this.implementationTypesService.findByIds(dto.implementationTypeIds);
+
     await this.countriesService.findOne(dto.countryId);
 
     const startDate = new Date(dto.startDate);
@@ -75,7 +93,7 @@ export class CampaignCreationService {
     campaign.categories = categories;
     campaign.countryId = dto.countryId;
     campaign.includedPlatforms = dto.includedPlatforms;
-    campaign.implementationType = dto.implementationType;
+    campaign.implementationTypes = implementationTypes;
     campaign.startDate = startDate;
     campaign.endDate = endDate;
     campaign.applicationDeadlineDate = applicationDeadlineDate;
@@ -92,21 +110,28 @@ export class CampaignCreationService {
   ): Promise<Campaign> {
     const campaign = await this.campaignQueryService.findDraftOrFail(campaignId, advertiserId);
 
-    const updateData: Partial<Campaign> = {
-      contentTypes: dto.contentTypes,
-      contentDescription: dto.contentDescription,
-      currentStep: CampaignStep.INFLUENCERS,
-    };
+    const contentTypesValid =
+      await this.contentTypesValidationService.allActiveExist(dto.contentTypeIds);
+    if (!contentTypesValid) {
+      throw new BadRequestException('أحد أنواع المحتوى المحددة غير صالح');
+    }
+    const contentTypes = await this.contentTypesService.findByIds(
+      dto.contentTypeIds,
+    );
+
+    campaign.contentTypes = contentTypes;
+    campaign.contentDescription = dto.contentDescription;
+    campaign.currentStep = CampaignStep.INFLUENCERS;
 
     if (dto.contentPdfUrl && dto.contentPdfPublicId) {
       if (campaign.contentPdfPublicId) {
         await this.cloudinaryService.deleteFile(campaign.contentPdfPublicId);
       }
-      updateData.contentPdfUrl = dto.contentPdfUrl;
-      updateData.contentPdfPublicId = dto.contentPdfPublicId;
+      campaign.contentPdfUrl = dto.contentPdfUrl;
+      campaign.contentPdfPublicId = dto.contentPdfPublicId;
     }
 
-    await this.campaignRepository.update(campaign.id, updateData);
+    await this.campaignRepository.save(campaign);
 
     return this.campaignQueryService.findCampaignWithRelations(campaign.id);
   }
@@ -176,7 +201,12 @@ export class CampaignCreationService {
   ): Promise<Campaign> {
     const campaign = await this.campaignRepository.findOne({
       where: { id: campaignId, advertiserId, status: CampaignStatus.DRAFT },
-      relations: ['invitedInfluencers', 'categories'],
+      relations: [
+        'invitedInfluencers',
+        'categories',
+        'contentTypes',
+        'implementationTypes',
+      ],
     });
 
     if (!campaign) {

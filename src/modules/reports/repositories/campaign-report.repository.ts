@@ -3,7 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
 import { CampaignReport } from '../entities/campaign-report.entity';
 import { Category } from '../../categories/entities/category.entity';
-import { ContentTypeOffer, TargetPlatform } from '../../../common/enums';
+import { ContentType } from '../../content-types/entities/content-type.entity';
+import { TargetPlatform } from '../../../common/enums';
 import { ReportStatus } from '../enums';
 import { GetAdvertiserReportsQueryDto } from '../dto';
 
@@ -16,7 +17,7 @@ export interface CreateCampaignReportInput {
   campaignVisibility: CampaignReport['campaignVisibility'];
   categories: Category[];
   includedPlatforms: TargetPlatform[] | null;
-  contentTypes: ContentTypeOffer[] | null;
+  contentTypes: ContentType[];
   acceptedSubmissionsInfluencersCount: number;
   actualPaid: number;
   startDate: Date | null;
@@ -45,7 +46,11 @@ export class CampaignReportRepository {
   }
 
   async create(input: CreateCampaignReportInput): Promise<CampaignReport> {
-    const entity = this.repo.create(input);
+    const { contentTypes, ...rest } = input;
+    const entity = this.repo.create({
+      ...rest,
+      contentTypes: contentTypes,
+    });
     return this.repo.save(entity);
   }
 
@@ -141,14 +146,18 @@ export class CampaignReportRepository {
       );
     }
 
-    if (query.contentTypes?.length) {
-      qb.andWhere(
-        `EXISTS (
-          SELECT 1 FROM jsonb_array_elements_text(report.contentTypes) AS ct_elem
-          WHERE ct_elem = ANY(:contentTypes)
-        )`,
-        { contentTypes: query.contentTypes },
-      );
+    if (query.contentTypeIds?.length) {
+      qb.andWhere((subQb) => {
+        const sub = subQb
+          .subQuery()
+          .select('1')
+          .from('campaign_report_content_types', 'rct')
+          .where('rct."reportId" = report.id')
+          .andWhere('rct."contentTypeId" IN (:...filterReportContentTypeIds)')
+          .getQuery();
+        return `EXISTS ${sub}`;
+      });
+      qb.setParameter('filterReportContentTypeIds', query.contentTypeIds);
     }
 
     if (query.actualPaidFrom !== undefined) {
@@ -198,14 +207,22 @@ export class CampaignReportRepository {
   ): Promise<CampaignReport[]> {
     if (reports.length === 0) return reports;
     const ids = reports.map((r) => r.id);
-    const withCats = await this.repo
+    const withRelations = await this.repo
       .createQueryBuilder('report')
       .leftJoinAndSelect('report.categories', 'category')
+      .leftJoinAndSelect('report.contentTypes', 'contentType')
       .where('report.id IN (:...ids)', { ids })
       .getMany();
-    const byId = new Map(withCats.map((r) => [r.id, r.categories]));
+    const byId = new Map(
+      withRelations.map((r) => [
+        r.id,
+        { categories: r.categories, contentTypes: r.contentTypes },
+      ]),
+    );
     for (const report of reports) {
-      report.categories = byId.get(report.id) ?? [];
+      const found = byId.get(report.id);
+      report.categories = found?.categories ?? [];
+      report.contentTypes = found?.contentTypes ?? [];
     }
     return reports;
   }

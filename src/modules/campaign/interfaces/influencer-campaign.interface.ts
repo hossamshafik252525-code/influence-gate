@@ -1,4 +1,4 @@
-import { TargetPlatform, ContentTypeOffer, ImplementationType, InfluencerType } from '../../../common/enums';
+import { TargetPlatform, InfluencerType } from '../../../common/enums';
 import { ResolvedCampaignStatus } from '../enums';
 import { ApplicationStatus } from '../applications/enums';
 import { SubmissionStatus } from '../submissions/enums';
@@ -8,6 +8,11 @@ import { Campaign } from '../entities/campaign.entity';
 import { CampaignApplication } from '../applications/entities/campaign-application.entity';
 import { CampaignInvitedInfluencer } from '../invitations/entities/campaign-invited-influencer.entity';
 import { CampaignSubmission } from '../submissions/entities/campaign-submission.entity';
+
+export interface NamedRelationItem {
+  id: string;
+  name: string;
+}
 
 export interface CampaignDetailRawResult {
   campaign: Campaign;
@@ -24,7 +29,7 @@ export interface CampaignListItemBase {
   status: ResolvedCampaignStatus;
   relevantDeadline: Date | null;
   includedPlatforms: TargetPlatform[];
-  contentTypes: ContentTypeOffer[];
+  contentTypes: NamedRelationItem[];
 }
 
 export type NewCampaignListItem = CampaignListItemBase;
@@ -50,12 +55,12 @@ export interface CampaignDetailResult {
   status: ResolvedCampaignStatus;
   name: string;
   description: string;
-  categories: { id: string; name: string }[];
+  categories: NamedRelationItem[];
   includedPlatforms: TargetPlatform[];
-  contentTypes: ContentTypeOffer[];
+  contentTypes: NamedRelationItem[];
   contentDescription: string;
   requirementsFile: string;
-  implementationType: ImplementationType;
+  implementationTypes: NamedRelationItem[];
   startDate: Date | null;
   endDate: Date | null;
   applicationDeadlineDate: Date | null;
@@ -69,8 +74,8 @@ export interface CampaignDetailResult {
     id: string;
     status: InvitationStatus;
     price: number;
-    implementationType?: ImplementationType;
-    contentType?: ContentTypeOffer;
+    implementationTypes?: NamedRelationItem[];
+    contentTypes?: NamedRelationItem[];
     description?: string;
     implementationPeriodDays?: number;
     includedPlatforms?: TargetPlatform[];

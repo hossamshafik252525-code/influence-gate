@@ -13,7 +13,7 @@ export class AdvertiserProfileQueryService {
   async getProfile(userId: string): Promise<AdvertiserProfile> {
     const profile = await this.advertiserProfileRepository.findOne({
       where: { userId },
-      relations: ['user', 'user.country', 'categories'],
+      relations: ['user', 'user.country', 'categories', 'contentTypes'],
     });
 
     if (!profile) {

@@ -36,7 +36,7 @@ export class CampaignReportGenerationService {
 
     const withCategories = await this.campaignRepository.findOne({
       where: { id: campaign.id },
-      relations: ['categories'],
+      relations: ['categories', 'contentTypes'],
     });
 
     if (!withCategories) return null;
@@ -60,7 +60,7 @@ export class CampaignReportGenerationService {
       campaignVisibility: withCategories.campaignVisibility ?? null,
       categories: withCategories.categories ?? [],
       includedPlatforms: withCategories.includedPlatforms ?? null,
-      contentTypes: withCategories.contentTypes ?? null,
+      contentTypes: withCategories.contentTypes ?? [],
       acceptedSubmissionsInfluencersCount,
       actualPaid,
       startDate: withCategories.startDate ?? null,

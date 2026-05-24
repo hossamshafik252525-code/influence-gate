@@ -10,12 +10,14 @@ import {
 import { AdvertiserReportController } from './controllers/advertiser-report.controller';
 import { SubmissionsModule } from '../campaign/submissions/submissions.module';
 import { WalletModule } from '../wallet/wallet.module';
+import { ContentTypesModule } from '../content-types/content-types.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([CampaignReport, Campaign]),
     SubmissionsModule,
     WalletModule,
+    ContentTypesModule,
   ],
   controllers: [AdvertiserReportController],
   providers: [

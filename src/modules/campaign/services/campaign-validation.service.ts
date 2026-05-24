@@ -26,7 +26,7 @@ export class CampaignValidationService {
   async assertCampaignExists(campaignId: string): Promise<Campaign> {
     const campaign = await this.campaignRepository.findOne({
       where: { id: campaignId },
-      relations: ['categories'],
+      relations: ['categories', 'contentTypes', 'implementationTypes'],
     });
 
     if (!campaign) {
@@ -75,7 +75,11 @@ export class CampaignValidationService {
       throw new BadRequestException('يجب إكمال معلومات الحملة');
     }
 
-    if (!campaign.includedPlatforms || !campaign.implementationType) {
+    if (
+      !campaign.includedPlatforms ||
+      !campaign.implementationTypes ||
+      campaign.implementationTypes.length === 0
+    ) {
       throw new BadRequestException('يجب إكمال معلومات الحملة');
     }
 
@@ -87,7 +91,11 @@ export class CampaignValidationService {
       throw new BadRequestException('يجب إكمال معلومات الحملة');
     }
 
-    if (!campaign.contentTypes || !campaign.contentDescription) {
+    if (
+      !campaign.contentTypes ||
+      campaign.contentTypes.length === 0 ||
+      !campaign.contentDescription
+    ) {
       throw new BadRequestException('يجب إكمال متطلبات المحتوى');
     }
 

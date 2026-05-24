@@ -23,6 +23,8 @@ import { RatingModule } from './modules/rating/rating.module';
 import { ContactUsModule } from './modules/contact-us/contact-us.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { ReportsModule } from './modules/reports/reports.module';
+import { ContentTypesModule } from './modules/content-types/content-types.module';
+import { ImplementationTypesModule } from './modules/implementation-types/implementation-types.module';
 
 @Module({
   imports: [
@@ -71,6 +73,8 @@ import { ReportsModule } from './modules/reports/reports.module';
     ContactUsModule,
     ChatModule,
     ReportsModule,
+    ContentTypesModule,
+    ImplementationTypesModule,
   ],
 })
 export class AppModule {}

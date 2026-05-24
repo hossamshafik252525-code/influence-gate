@@ -8,7 +8,7 @@ import {
   MinLength,
   MaxLength,
 } from 'class-validator';
-import { ContentType, ExpectedBudget, TargetPlatform } from '../../../../common/enums';
+import { ExpectedBudget, TargetPlatform } from '../../../../common/enums';
 
 export class UpdateAdvertiserProfileDto {
   @IsOptional()
@@ -42,8 +42,8 @@ export class UpdateAdvertiserProfileDto {
 
   @IsOptional()
   @IsArray()
-  @IsEnum(ContentType, { each: true })
-  contentTypes?: ContentType[];
+  @IsUUID('4', { each: true, message: 'معرف نوع المحتوى غير صالح' })
+  contentTypeIds?: string[];
 
   @IsOptional()
   @IsArray()

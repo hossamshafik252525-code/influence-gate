@@ -3,17 +3,16 @@ import {
   IsString,
   IsArray,
   ArrayMinSize,
-  IsEnum,
+  IsUUID,
   IsOptional,
   IsUrl,
 } from 'class-validator';
-import { ContentTypeOffer } from '../../../common/enums';
 
 export class SaveContentRequirementsDto {
   @IsArray({ message: 'أنواع المحتوى يجب أن تكون قائمة' })
   @ArrayMinSize(1, { message: 'يجب اختيار نوع محتوى واحد على الأقل' })
-  @IsEnum(ContentTypeOffer, { each: true, message: 'نوع محتوى غير صالح' })
-  contentTypes: ContentTypeOffer[];
+  @IsUUID('4', { each: true, message: 'معرف نوع المحتوى غير صالح' })
+  contentTypeIds: string[];
 
   @IsNotEmpty({ message: 'وصف المحتوى مطلوب' })
   @IsString({ message: 'وصف المحتوى يجب أن يكون نصاً' })

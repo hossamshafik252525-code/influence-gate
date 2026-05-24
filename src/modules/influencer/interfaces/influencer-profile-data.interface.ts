@@ -1,3 +1,8 @@
+export interface InfluencerProfileNamedItem {
+  id: string;
+  name: string;
+}
+
 export interface InfluencerProfileData {
   id: string;
   userId: string;
@@ -10,8 +15,8 @@ export interface InfluencerProfileData {
   profileImageUrl: string | null;
   portfolioLink: string | null;
   categories: { id: string; name: string }[];
-  implementationType?: string | null;
-  contentType?: string | null;
+  implementationTypes: InfluencerProfileNamedItem[];
+  contentTypes: InfluencerProfileNamedItem[];
   description?: string | null;
   price?: number | null;
   implementationPeriodDays?: number | null;

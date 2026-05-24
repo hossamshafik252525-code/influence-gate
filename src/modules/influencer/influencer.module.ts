@@ -28,6 +28,8 @@ import { NotificationsModule } from '../notifications/notifications.module';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
 import { CloudinaryModule } from '../cloudinary/cloudinary.module';
 import { CategoriesModule } from '../categories/categories.module';
+import { ContentTypesModule } from '../content-types/content-types.module';
+import { ImplementationTypesModule } from '../implementation-types/implementation-types.module';
 
 @Module({
   imports: [
@@ -49,6 +51,8 @@ import { CategoriesModule } from '../categories/categories.module';
     PlatformSettingsModule,
     CloudinaryModule,
     CategoriesModule,
+    ContentTypesModule,
+    ImplementationTypesModule,
   ],
   controllers: [
     InfluencerAuthController,

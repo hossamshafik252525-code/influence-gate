@@ -16,7 +16,9 @@ import { Category } from '../../categories/entities/category.entity';
 import { Country } from '../../countries/entities/country.entity';
 import { CampaignInvitedInfluencer } from '../invitations/entities/campaign-invited-influencer.entity';
 import { CampaignApplication } from '../applications/entities/campaign-application.entity';
-import { ImplementationType, ContentTypeOffer, InfluencerType, TargetPlatform } from '../../../common/enums';
+import { InfluencerType, TargetPlatform } from '../../../common/enums';
+import { ContentType } from '../../content-types/entities/content-type.entity';
+import { ImplementationType } from '../../implementation-types/entities/implementation-type.entity';
 import { CampaignStatus, CampaignStep, CampaignVisibility } from '../enums';
 
 @Entity('campaigns')
@@ -66,8 +68,16 @@ export class Campaign {
   @JoinColumn({ name: 'countryId' })
   country: Country;
 
-  @Column({ type: 'enum', enum: ImplementationType, nullable: true })
-  implementationType: ImplementationType;
+  @ManyToMany(() => ImplementationType)
+  @JoinTable({
+    name: 'campaign_implementation_types',
+    joinColumn: { name: 'campaignId', referencedColumnName: 'id' },
+    inverseJoinColumn: {
+      name: 'implementationTypeId',
+      referencedColumnName: 'id',
+    },
+  })
+  implementationTypes: ImplementationType[];
 
   @Column({ type: 'date', nullable: true })
   startDate: Date;
@@ -78,8 +88,13 @@ export class Campaign {
   @Column({ type: 'date', nullable: true })
   applicationDeadlineDate: Date;
 
-  @Column({ type: 'jsonb', nullable: true })
-  contentTypes: ContentTypeOffer[];
+  @ManyToMany(() => ContentType)
+  @JoinTable({
+    name: 'campaign_content_types',
+    joinColumn: { name: 'campaignId', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'contentTypeId', referencedColumnName: 'id' },
+  })
+  contentTypes: ContentType[];
 
   @Column({ type: 'text', nullable: true })
   contentDescription: string;

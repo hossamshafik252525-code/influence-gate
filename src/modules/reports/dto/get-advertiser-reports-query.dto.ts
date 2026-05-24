@@ -10,7 +10,7 @@ import {
   Min,
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
-import { ContentTypeOffer, TargetPlatform } from '../../../common/enums';
+import { TargetPlatform } from '../../../common/enums';
 import { ReportStatus } from '../enums';
 
 export class GetAdvertiserReportsQueryDto {
@@ -40,9 +40,9 @@ export class GetAdvertiserReportsQueryDto {
 
   @IsOptional()
   @IsArray()
-  @IsEnum(ContentTypeOffer, { each: true, message: 'نوع المحتوى غير صالح' })
+  @IsUUID('4', { each: true, message: 'معرف نوع المحتوى غير صالح' })
   @Transform(({ value }) => (Array.isArray(value) ? value : [value]))
-  contentTypes?: ContentTypeOffer[];
+  contentTypeIds?: string[];
 
   @IsOptional()
   @IsArray()

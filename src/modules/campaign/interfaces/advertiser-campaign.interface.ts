@@ -1,13 +1,19 @@
-import { ImplementationType, ContentTypeOffer, TargetPlatform, InfluencerType } from '../../../common/enums';
+import { TargetPlatform, InfluencerType } from '../../../common/enums';
 import { CampaignStatus, CampaignStep, CampaignVisibility } from '../enums';
 import { InvitationStatus } from '../invitations/enums';
+
+export interface NamedRelationItem {
+  id: string;
+  name: string;
+}
+
 export interface AdvertiserCampaignListItem {
   id: string;
   campaignNumber: number;
   status: CampaignStatus;
   currentStep: CampaignStep;
   name: string | null;
-  categories: { id: string; name: string }[];
+  categories: NamedRelationItem[];
   includedPlatforms: TargetPlatform[] | null;
   startDate: Date | null;
   endDate: Date | null;
@@ -24,8 +30,8 @@ export interface AdvertiserInvitedInfluencerItem {
   profileImageUrl: string | null;
   rating: number;
   completedCampaignsCount: number;
-  implementationType?: ImplementationType;
-  contentType?: ContentTypeOffer;
+  implementationTypes?: NamedRelationItem[];
+  contentTypes?: NamedRelationItem[];
   description?: string;
   implementationPeriodDays?: number;
   includedPlatforms?: TargetPlatform[];
@@ -38,14 +44,14 @@ export interface AdvertiserCampaignDetail {
   currentStep: CampaignStep;
   name: string | null;
   description: string | null;
-  categories: { id: string; name: string }[] | null;
+  categories: NamedRelationItem[] | null;
   includedPlatforms: TargetPlatform[] | null;
-  implementationType: ImplementationType | null;
+  implementationTypes: NamedRelationItem[];
   campaignVisibility: CampaignVisibility | null;
   startDate: Date | null;
   endDate: Date | null;
   applicationDeadlineDate: Date | null;
-  contentTypes: ContentTypeOffer[] | null;
+  contentTypes: NamedRelationItem[];
   contentDescription: string | null;
   contentPdfUrl: string | null;
   influencerType: InfluencerType | null;

@@ -5,7 +5,10 @@ import {
   AdvertiserCampaignListItem,
   AdvertiserCampaignDetail,
   AdvertiserInvitedInfluencerItem,
+  NamedRelationItem,
 } from '../interfaces/advertiser-campaign.interface';
+import { ContentType } from '../../content-types/entities/content-type.entity';
+import { ImplementationType } from '../../implementation-types/entities/implementation-type.entity';
 
 export class AdvertiserCampaignMapper {
   static toCampaignListItem(campaign: Campaign): AdvertiserCampaignListItem {
@@ -36,12 +39,16 @@ export class AdvertiserCampaignMapper {
       description: campaign.description ?? null,
       categories: (campaign.categories ?? []).map((c) => ({ id: c.id, name: c.name })),
       includedPlatforms: campaign.includedPlatforms ?? null,
-      implementationType: campaign.implementationType ?? null,
+      implementationTypes: AdvertiserCampaignMapper.mapImplementationTypes(
+        campaign.implementationTypes,
+      ),
       campaignVisibility: campaign.campaignVisibility ?? null,
       startDate: campaign.startDate ?? null,
       endDate: campaign.endDate ?? null,
       applicationDeadlineDate: campaign.applicationDeadlineDate ?? null,
-      contentTypes: campaign.contentTypes ?? null,
+      contentTypes: AdvertiserCampaignMapper.mapContentTypes(
+        campaign.contentTypes,
+      ),
       contentDescription: campaign.contentDescription ?? null,
       contentPdfUrl: campaign.contentPdfUrl ?? null,
       influencerType: campaign.influencerType ?? null,
@@ -67,11 +74,27 @@ export class AdvertiserCampaignMapper {
       profileImageUrl: profile?.profileImageUrl ?? null,
       rating: profile ? Number(profile.rating) : 0,
       completedCampaignsCount: profile?.completedCampaignsCount ?? 0,
-      implementationType: profile?.implementationType,
-      contentType: profile?.contentType,
+      implementationTypes: AdvertiserCampaignMapper.mapImplementationTypes(
+        profile?.implementationTypes,
+      ),
+      contentTypes: AdvertiserCampaignMapper.mapContentTypes(
+        profile?.contentTypes,
+      ),
       description: profile?.description,
       implementationPeriodDays: profile?.implementationPeriodDays,
       includedPlatforms: profile?.includedPlatforms,
     };
+  }
+
+  private static mapContentTypes(
+    items: ContentType[] | undefined,
+  ): NamedRelationItem[] {
+    return (items ?? []).map((c) => ({ id: c.id, name: c.name }));
+  }
+
+  private static mapImplementationTypes(
+    items: ImplementationType[] | undefined,
+  ): NamedRelationItem[] {
+    return (items ?? []).map((c) => ({ id: c.id, name: c.name }));
   }
 }

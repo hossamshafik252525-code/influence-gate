@@ -15,7 +15,10 @@ export class AdvertiserReportMapper {
         name: c.name,
       })),
       includedPlatforms: report.includedPlatforms ?? null,
-      contentTypes: report.contentTypes ?? null,
+      contentTypes: (report.contentTypes ?? []).map((c) => ({
+        id: c.id,
+        name: c.name,
+      })),
       acceptedSubmissionsInfluencersCount:
         report.acceptedSubmissionsInfluencersCount,
       actualPaid: Number(report.actualPaid),

@@ -29,6 +29,8 @@ import { InvitationsModule } from './invitations/invitations.module';
 import { ApplicationsModule } from './applications/applications.module';
 import { SubmissionsModule } from './submissions/submissions.module';
 import { ReportsModule } from '../reports/reports.module';
+import { ContentTypesModule } from '../content-types/content-types.module';
+import { ImplementationTypesModule } from '../implementation-types/implementation-types.module';
 
 @Module({
   imports: [
@@ -50,6 +52,8 @@ import { ReportsModule } from '../reports/reports.module';
     PlatformSettingsModule,
     WalletModule,
     ReportsModule,
+    ContentTypesModule,
+    ImplementationTypesModule,
   ],
   controllers: [
     AdvertiserCampaignController,

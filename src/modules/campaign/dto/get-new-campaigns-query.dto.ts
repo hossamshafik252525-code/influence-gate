@@ -4,10 +4,11 @@ import {
   IsUUID,
   IsNumber,
   IsString,
+  IsArray,
   Min,
 } from 'class-validator';
-import { Type } from 'class-transformer';
-import { TargetPlatform, ContentTypeOffer, ImplementationType } from '../../../common/enums';
+import { Type, Transform } from 'class-transformer';
+import { TargetPlatform } from '../../../common/enums';
 import { PaginationQueryDto } from '../../../common/dto';
 
 export class GetNewCampaignsQueryDto extends PaginationQueryDto {
@@ -24,12 +25,16 @@ export class GetNewCampaignsQueryDto extends PaginationQueryDto {
   platform?: TargetPlatform;
 
   @IsOptional()
-  @IsEnum(ContentTypeOffer, { message: 'نوع المحتوى غير صالح' })
-  contentType?: ContentTypeOffer;
+  @IsArray()
+  @IsUUID('4', { each: true, message: 'معرف نوع المحتوى غير صالح' })
+  @Transform(({ value }) => (Array.isArray(value) ? value : [value]))
+  contentTypeIds?: string[];
 
   @IsOptional()
-  @IsEnum(ImplementationType, { message: 'نوع التنفيذ غير صالح' })
-  implementationType?: ImplementationType;
+  @IsArray()
+  @IsUUID('4', { each: true, message: 'معرف نوع التنفيذ غير صالح' })
+  @Transform(({ value }) => (Array.isArray(value) ? value : [value]))
+  implementationTypeIds?: string[];
 
   @IsOptional()
   @Type(() => Number)

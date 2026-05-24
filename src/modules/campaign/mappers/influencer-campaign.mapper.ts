@@ -9,7 +9,10 @@ import {
   MyCampaignListItem,
   CampaignDetailResult,
   ApplicationSubmissionDetail,
+  NamedRelationItem,
 } from '../interfaces/influencer-campaign.interface';
+import { ContentType } from '../../content-types/entities/content-type.entity';
+import { ImplementationType } from '../../implementation-types/entities/implementation-type.entity';
 import { resolveCampaignDeadline, resolveCampaignStatus } from '../utils';
 
 export class InfluencerCampaignMapper {
@@ -35,10 +38,14 @@ export class InfluencerCampaignMapper {
       description: campaign.description,
       categories: (campaign.categories ?? []).map((c) => ({ id: c.id, name: c.name })),
       includedPlatforms: campaign.includedPlatforms,
-      contentTypes: campaign.contentTypes,
+      contentTypes: InfluencerCampaignMapper.mapContentTypes(
+        campaign.contentTypes,
+      ),
       contentDescription: campaign.contentDescription,
       requirementsFile: campaign.contentPdfUrl,
-      implementationType: campaign.implementationType,
+      implementationTypes: InfluencerCampaignMapper.mapImplementationTypes(
+        campaign.implementationTypes,
+      ),
       startDate: campaign.startDate ?? null,
       endDate: campaign.endDate ?? null,
       applicationDeadlineDate: campaign.applicationDeadlineDate ?? null,
@@ -72,8 +79,12 @@ export class InfluencerCampaignMapper {
         id: invitation.id,
         status: invitation.status,
         price: Number(invitation.priceWithFee),
-        implementationType: profile?.implementationType,
-        contentType: profile?.contentType,
+        implementationTypes: InfluencerCampaignMapper.mapImplementationTypes(
+          profile?.implementationTypes,
+        ),
+        contentTypes: InfluencerCampaignMapper.mapContentTypes(
+          profile?.contentTypes,
+        ),
         description: profile?.description,
         implementationPeriodDays: profile?.implementationPeriodDays,
         includedPlatforms: profile?.includedPlatforms,
@@ -92,8 +103,22 @@ export class InfluencerCampaignMapper {
       status: resolveCampaignStatus(campaign.status),
       relevantDeadline: resolveCampaignDeadline(campaign),
       includedPlatforms: campaign.includedPlatforms,
-      contentTypes: campaign.contentTypes,
+      contentTypes: InfluencerCampaignMapper.mapContentTypes(
+        campaign.contentTypes,
+      ),
     };
+  }
+
+  private static mapContentTypes(
+    items: ContentType[] | undefined,
+  ): NamedRelationItem[] {
+    return (items ?? []).map((c) => ({ id: c.id, name: c.name }));
+  }
+
+  private static mapImplementationTypes(
+    items: ImplementationType[] | undefined,
+  ): NamedRelationItem[] {
+    return (items ?? []).map((c) => ({ id: c.id, name: c.name }));
   }
 
   private static resolveOrderedServicesPrice(

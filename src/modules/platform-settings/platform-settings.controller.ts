@@ -7,7 +7,6 @@ import { RolesStatusGuard } from '../../common/guards/auth.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { Role } from '../../common/enums';
 import { Platform } from '../../common/enums/platform.enum';
-import { ContentTypeOffer } from '../../common/enums/content-type-offer.enum';
 
 @Controller('platform-settings')
 export class PlatformSettingsController {
@@ -19,11 +18,6 @@ export class PlatformSettingsController {
   @Get('platforms')
   async getActivePlatforms(): Promise<Platform[]> {
     return this.platformOptionsService.getActivePlatforms();
-  }
-
-  @Get('content-types')
-  async getActiveContentTypes(): Promise<ContentTypeOffer[]> {
-    return this.platformOptionsService.getActiveContentTypes();
   }
 
   @UseGuards(JwtAuthGuard, RolesStatusGuard)

@@ -8,7 +8,7 @@ import {
   Min,
 } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
-import { TargetPlatform, ContentTypeOffer } from '../../../common/enums';
+import { TargetPlatform } from '../../../common/enums';
 import { CampaignStatus } from '../enums';
 import { PaginationQueryDto } from '../../../common/dto';
 
@@ -27,9 +27,9 @@ export class GetAdvertiserMyCampaignsQueryDto extends PaginationQueryDto {
 
   @IsOptional()
   @IsArray()
-  @IsEnum(ContentTypeOffer, { each: true, message: 'نوع المحتوى غير صالح' })
+  @IsUUID('4', { each: true, message: 'معرف نوع المحتوى غير صالح' })
   @Transform(({ value }) => (Array.isArray(value) ? value : [value]))
-  contentTypes?: ContentTypeOffer[];
+  contentTypeIds?: string[];
 
   @IsOptional()
   @Type(() => Number)

@@ -11,7 +11,8 @@ import {
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Category } from '../../categories/entities/category.entity';
-import { ContentType, TargetPlatform, ExpectedBudget } from '../../../common/enums';
+import { TargetPlatform, ExpectedBudget } from '../../../common/enums';
+import { ContentType } from '../../content-types/entities/content-type.entity';
 
 @Entity('advertiser_profiles')
 export class AdvertiserProfile {
@@ -42,7 +43,12 @@ export class AdvertiserProfile {
   @Column({ nullable: true })
   companyWebsite: string;
 
-  @Column({ type: 'jsonb', nullable: true })
+  @ManyToMany(() => ContentType)
+  @JoinTable({
+    name: 'advertiser_profile_content_types',
+    joinColumn: { name: 'advertiserProfileId', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'contentTypeId', referencedColumnName: 'id' },
+  })
   contentTypes: ContentType[];
 
   @Column({ type: 'jsonb', nullable: true })

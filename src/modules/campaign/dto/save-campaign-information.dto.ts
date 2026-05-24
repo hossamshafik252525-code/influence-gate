@@ -9,7 +9,7 @@ import {
   IsDateString,
   MaxLength,
 } from 'class-validator';
-import { TargetPlatform, ImplementationType } from '../../../common/enums';
+import { TargetPlatform } from '../../../common/enums';
 
 export class SaveCampaignInformationDto {
   @IsNotEmpty({ message: 'اسم الحملة مطلوب' })
@@ -36,9 +36,10 @@ export class SaveCampaignInformationDto {
   @IsEnum(TargetPlatform, { each: true, message: 'منصة غير صالحة' })
   includedPlatforms: TargetPlatform[];
 
-  @IsNotEmpty({ message: 'نوع التنفيذ مطلوب' })
-  @IsEnum(ImplementationType, { message: 'نوع التنفيذ غير صالح' })
-  implementationType: ImplementationType;
+  @IsArray({ message: 'أنواع التنفيذ يجب أن تكون قائمة' })
+  @ArrayMinSize(1, { message: 'يجب اختيار نوع تنفيذ واحد على الأقل' })
+  @IsUUID('4', { each: true, message: 'معرف نوع التنفيذ غير صالح' })
+  implementationTypeIds: string[];
 
   @IsNotEmpty({ message: 'تاريخ بداية الحملة مطلوب' })
   @IsDateString({}, { message: 'تاريخ بداية الحملة غير صالح' })

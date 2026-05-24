@@ -1,5 +1,16 @@
-import { IsOptional, IsString, IsUUID, IsUrl, MaxLength, MinLength, IsArray, IsEnum, IsNumber, Min } from 'class-validator';
-import { ImplementationType, ContentTypeOffer, TargetPlatform } from '../../../../common/enums';
+import {
+  IsOptional,
+  IsString,
+  IsUUID,
+  IsUrl,
+  MaxLength,
+  MinLength,
+  IsArray,
+  IsEnum,
+  IsNumber,
+  Min,
+} from 'class-validator';
+import { TargetPlatform } from '../../../../common/enums';
 
 export class UpdateInfluencerProfileDto {
   @IsOptional()
@@ -37,12 +48,14 @@ export class UpdateInfluencerProfileDto {
   categoryIds?: string[];
 
   @IsOptional()
-  @IsEnum(ImplementationType)
-  implementationType?: ImplementationType;
+  @IsArray()
+  @IsUUID('4', { each: true, message: 'معرف نوع التنفيذ غير صالح' })
+  implementationTypeIds?: string[];
 
   @IsOptional()
-  @IsEnum(ContentTypeOffer)
-  contentType?: ContentTypeOffer;
+  @IsArray()
+  @IsUUID('4', { each: true, message: 'معرف نوع المحتوى غير صالح' })
+  contentTypeIds?: string[];
 
   @IsOptional()
   @IsString()
