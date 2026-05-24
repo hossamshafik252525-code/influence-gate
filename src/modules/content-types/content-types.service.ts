@@ -39,6 +39,7 @@ export class ContentTypesService implements IContentTypeService {
     return this.contentTypesRepo.find({
       where: { isActive: true },
       order: { createdAt: 'DESC' },
+      select:['name' , 'id']
     });
   }
 

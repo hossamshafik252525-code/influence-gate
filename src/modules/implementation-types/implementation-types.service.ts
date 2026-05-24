@@ -39,6 +39,7 @@ export class ImplementationTypesService implements IImplementationTypeService {
     return this.repo.find({
       where: { isActive: true },
       order: { createdAt: 'DESC' },
+      select:['name' , 'id']
     });
   }
 
