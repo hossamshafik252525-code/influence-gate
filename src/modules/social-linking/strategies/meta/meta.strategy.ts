@@ -6,9 +6,9 @@ import { Repository } from 'typeorm';
 import { firstValueFrom } from 'rxjs';
 import { SocialProviderStrategy } from '../../interfaces/social-provider.interface';
 import { SocialPlatform } from '../../entities/social-platform.entity';
+import { SocialPlatformName } from '../../enums';
 import { InfluencerProfile } from '../../../influencer/entities/influencer-profile.entity';
 import { InfluencerFollowerSyncService } from '../../services/influencer-follower-sync.service';
-import { PlatformsService } from '../../../platforms/platforms.service';
 import {
   MetaTokenResponse,
   MetaFacebookProfile,
@@ -33,7 +33,6 @@ export class MetaStrategy implements SocialProviderStrategy {
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
     private readonly followerSyncService: InfluencerFollowerSyncService,
-    private readonly platformsService: PlatformsService,
   ) {
     this.apiVersion = this.configService.get<string>('meta.graphApiVersion');
     this.graphUrl = `https://graph.facebook.com/${this.apiVersion}`;
@@ -72,7 +71,7 @@ export class MetaStrategy implements SocialProviderStrategy {
 
     await this.upsertPlatform(
       influencerProfileId,
-      'facebook',
+      SocialPlatformName.FACEBOOK,
       facebookProfile.id,
       facebookProfile.name,
       longLivedToken,
@@ -92,7 +91,7 @@ export class MetaStrategy implements SocialProviderStrategy {
 
       await this.upsertPlatform(
         influencerProfileId,
-        'instagram',
+        SocialPlatformName.INSTAGRAM,
         instagramAccount.igUserId,
         igProfile.username,
         longLivedToken,
@@ -109,7 +108,7 @@ export class MetaStrategy implements SocialProviderStrategy {
   }
 
   async refreshStats(record: SocialPlatform): Promise<Record<string, any>> {
-    if (record.platform?.name === 'instagram') {
+    if (record.platform === SocialPlatformName.INSTAGRAM) {
       return this.refreshInstagramStats(record);
     }
     return this.refreshFacebookStats(record);
@@ -284,7 +283,7 @@ export class MetaStrategy implements SocialProviderStrategy {
 
   private async upsertPlatform(
     influencerProfileId: string,
-    platform: string,
+    platform: SocialPlatformName,
     platformUserId: string,
     platformUsername: string | null,
     accessToken: string,
@@ -293,14 +292,8 @@ export class MetaStrategy implements SocialProviderStrategy {
     profileData: Record<string, any>,
     statistics: Record<string, any>,
   ): Promise<SocialPlatform> {
-    const platformRow = await this.platformsService.findByName(platform);
-    if (!platformRow) {
-      throw new NotFoundException('هذه المنصة غير مسجلة في النظام');
-    }
-    const platformId = platformRow.id;
-
     const existing = await this.socialPlatformRepo.findOne({
-      where: { influencerProfileId, platformId },
+      where: { influencerProfileId, platform },
     });
 
     if (existing) {
@@ -319,7 +312,7 @@ export class MetaStrategy implements SocialProviderStrategy {
 
     const record = this.socialPlatformRepo.create({
       influencerProfileId,
-      platformId,
+      platform,
       platformUserId,
       platformUsername,
       accessToken,

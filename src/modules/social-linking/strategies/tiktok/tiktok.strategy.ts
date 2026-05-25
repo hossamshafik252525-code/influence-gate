@@ -6,7 +6,7 @@ import { Repository } from 'typeorm';
 import { firstValueFrom } from 'rxjs';
 import { SocialProviderStrategy } from '../../interfaces/social-provider.interface';
 import { SocialPlatform } from '../../entities/social-platform.entity';
-import { PlatformsService } from '../../../platforms/platforms.service';
+import { SocialPlatformName } from '../../enums';
 import { InfluencerProfile } from '../../../influencer/entities/influencer-profile.entity';
 import { InfluencerFollowerSyncService } from '../../services/influencer-follower-sync.service';
 import {
@@ -39,7 +39,6 @@ export class TikTokStrategy implements SocialProviderStrategy {
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
     private readonly followerSyncService: InfluencerFollowerSyncService,
-    private readonly platformsService: PlatformsService,
   ) {
     this.clientKey = this.configService.get<string>('tiktok.clientKey');
     this.clientSecret = this.configService.get<string>('tiktok.clientSecret');
@@ -278,16 +277,8 @@ export class TikTokStrategy implements SocialProviderStrategy {
     profileData: Record<string, any>,
     statistics: Record<string, any>,
   ): Promise<SocialPlatform> {
-    const platformRow = await this.platformsService.findByName(
-      'tiktok',
-    );
-    if (!platformRow) {
-      throw new NotFoundException('منصة TikTok غير مسجلة في النظام');
-    }
-    const platformId = platformRow.id;
-
     const existing = await this.socialPlatformRepo.findOne({
-      where: { influencerProfileId, platformId },
+      where: { influencerProfileId, platform: SocialPlatformName.TIKTOK },
     });
 
     const platformData = {
@@ -296,7 +287,6 @@ export class TikTokStrategy implements SocialProviderStrategy {
       accessToken,
       pageAccessToken: refreshToken,
       tokenExpiresAt,
-      platformId,
       profileData: Object.assign({}, profileData, {
         refreshTokenExpiresAt: refreshTokenExpiresAt.toISOString(),
         grantedScopes,
@@ -312,6 +302,7 @@ export class TikTokStrategy implements SocialProviderStrategy {
 
     const record = this.socialPlatformRepo.create({
       influencerProfileId,
+      platform: SocialPlatformName.TIKTOK,
       ...platformData,
     });
 

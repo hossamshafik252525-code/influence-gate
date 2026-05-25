@@ -37,6 +37,7 @@
     "seed:platform-options": "ts-node -r tsconfig-paths/register src/database/seeds/seed-platform-options.ts",
     "seed:initial-data": "ts-node -r tsconfig-paths/register src/database/seeds/seed-initial-data.ts",
     "seed:advertiser-mock-reports": "ts-node -r tsconfig-paths/register src/database/seeds/seed-advertiser-mock-reports.ts",
+    "seed:advertiser-mock-reports-01113312766": "ts-node -r tsconfig-paths/register src/database/seeds/seed-advertiser-mock-reports-01113312766.ts",
     "migrate:enum-to-tables": "ts-node -r tsconfig-paths/register src/database/migrations/migrate-enum-to-tables.ts",
     "migrate:platforms-to-tables": "ts-node -r tsconfig-paths/register src/database/migrations/migrate-platforms-to-tables.ts",
     "db:clear": "ts-node -r tsconfig-paths/register src/clear-database.ts"

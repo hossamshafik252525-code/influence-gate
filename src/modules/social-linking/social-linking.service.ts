@@ -7,11 +7,9 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { SocialPlatform } from './entities/social-platform.entity';
+import { SocialPlatformName } from './enums';
 import { MetaStrategy, TikTokStrategy } from './strategies';
 import { SocialProviderStrategy } from './interfaces/social-provider.interface';
-
-const META_PLATFORMS: readonly string[] = ['facebook', 'instagram'];
-const TIKTOK_PLATFORM = 'tiktok';
 import { InfluencerProfile } from '../influencer/entities/influencer-profile.entity';
 import { InfluencerFollowerSyncService } from './services/influencer-follower-sync.service';
 
@@ -37,7 +35,16 @@ export class SocialLinkingService {
     const influencerProfileId = await this.resolveProfileId(userId);
     const platforms = await this.socialPlatformRepo.find({
       where: { influencerProfileId },
-      relations: ['platform'],
+      select: [
+        'id',
+        'platform',
+        'platformUserId',
+        'platformUsername',
+        'profileData',
+        'statistics',
+        'connectedAt',
+        'lastSyncedAt',
+      ],
     });
 
     return { platforms };
@@ -57,7 +64,7 @@ export class SocialLinkingService {
   async refreshPlatformStats(userId: string, socialPlatformId: string) {
     const influencerProfileId = await this.resolveProfileId(userId);
     const record = await this.findPlatformOrFail(influencerProfileId, socialPlatformId);
-    const strategy = this.resolveStrategy(record.platform?.name ?? '');
+    const strategy = this.resolveStrategy(record.platform);
 
     const refreshedToken = await strategy.refreshToken(record);
     record.accessToken = refreshedToken;
@@ -86,9 +93,7 @@ export class SocialLinkingService {
   async handleDailyStatsRefresh() {
     this.logger.log('Starting daily stats refresh for all linked platforms');
 
-    const allPlatforms = await this.socialPlatformRepo.find({
-      relations: ['platform'],
-    });
+    const allPlatforms = await this.socialPlatformRepo.find();
 
     for (const record of allPlatforms) {
       try {
@@ -96,7 +101,7 @@ export class SocialLinkingService {
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         this.logger.error(
-          `Failed to refresh stats for platform ${record.id} (${record.platform?.name ?? 'unknown'}): ${message}`,
+          `Failed to refresh stats for platform ${record.id} (${record.platform}): ${message}`,
         );
       }
     }
@@ -105,7 +110,7 @@ export class SocialLinkingService {
   }
 
   private async refreshSingleRecord(record: SocialPlatform): Promise<void> {
-    const strategy = this.resolveStrategy(record.platform?.name ?? '');
+    const strategy = this.resolveStrategy(record.platform);
 
     try {
       const refreshedToken = await strategy.refreshToken(record);
@@ -142,7 +147,6 @@ export class SocialLinkingService {
   ): Promise<SocialPlatform> {
     const record = await this.socialPlatformRepo.findOne({
       where: { id: socialPlatformId, influencerProfileId },
-      relations: ['platform'],
     });
 
     if (!record) {
@@ -152,12 +156,15 @@ export class SocialLinkingService {
     return record;
   }
 
-  private resolveStrategy(platformName: string): SocialProviderStrategy {
-    if (META_PLATFORMS.includes(platformName)) {
+  private resolveStrategy(platform: SocialPlatformName): SocialProviderStrategy {
+    if (
+      platform === SocialPlatformName.FACEBOOK ||
+      platform === SocialPlatformName.INSTAGRAM
+    ) {
       return this.metaStrategy;
     }
 
-    if (platformName === TIKTOK_PLATFORM) {
+    if (platform === SocialPlatformName.TIKTOK) {
       return this.tiktokStrategy;
     }
 

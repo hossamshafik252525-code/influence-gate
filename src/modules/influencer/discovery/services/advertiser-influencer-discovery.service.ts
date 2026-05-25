@@ -91,7 +91,6 @@ export class AdvertiserInfluencerDiscoveryService {
 
     const socialPlatforms = await this.socialPlatformRepo.find({
       where: { influencerProfileId: user.influencerProfile.id },
-      relations: ['platformRef'],
     });
 
     return { user, socialPlatforms, feeMultiplier, hasHistory };
