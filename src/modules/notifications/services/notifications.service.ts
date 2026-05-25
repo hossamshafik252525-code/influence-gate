@@ -1,12 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { FindOptionsWhere, In, Repository } from 'typeorm';
 import { Notification } from '../entities/notification.entity';
 import { FcmTokenService } from './fcm-token.service';
 import { FcmService } from './fcm.service';
 import { NotificationSettingsService } from './notification-settings.service';
 import { UsersService } from '../../users/users.service';
-import { NotificationType } from '../enums';
+import { NotificationFilter, NotificationType, getTypesForFilter } from '../enums';
 import { Role } from '../../../common/enums';
 import { PaginatedResult } from '../../../common/interfaces';
 import { GetNotificationsQueryDto } from '../dto';
@@ -75,8 +75,18 @@ export class NotificationsService {
     query: GetNotificationsQueryDto,
   ): Promise<PaginatedResult<Notification>> {
     const { page, limit, type } = query;
+    const where: FindOptionsWhere<Notification> = { recipientId: userId, isRead: false };
+
+    if (type && type !== NotificationFilter.ALL) {
+      const types = getTypesForFilter(type);
+      if (types.length === 0) {
+        return { data: [], pagination: { total: 0, page, limit } };
+      }
+      where.type = In(types) as unknown as NotificationType;
+    }
+
     const [data, total] = await this.notificationRepository.findAndCount({
-      where: { recipientId: userId, isRead: false, ...(type && { type }) },
+      where,
       order: { createdAt: 'DESC' },
       skip: (page - 1) * limit,
       take: limit,
