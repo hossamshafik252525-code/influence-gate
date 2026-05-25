@@ -78,6 +78,7 @@ export class InfluencerProfileManagementService {
 
     if (Object.keys(profileUpdate).length > 0) {
       await this.influencerProfileRepository.update(profile.id, profileUpdate);
+      Object.assign(profile, profileUpdate);
     }
 
     if (dto.categoryIds) {

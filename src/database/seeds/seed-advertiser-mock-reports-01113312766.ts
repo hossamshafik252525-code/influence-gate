@@ -12,7 +12,7 @@ import { ReportStatus } from '../../modules/reports/enums';
 import { Role, UserStatus } from '../../common/enums';
 
 // ─── Target Advertiser ────────────────────────────────────────────────────────
-const ADVERTISER_EMAIL = '01113312766ae@gmail.com';
+const ADVERTISER_EMAIL = 'mostafakaram345678@gmail.com';
 
 // ─── Mock Campaign Definitions ────────────────────────────────────────────────
 const MOCK_CAMPAIGNS = [
@@ -183,7 +183,7 @@ async function bootstrap() {
     advertiser = await userRepo.save(
       userRepo.create({
         email: ADVERTISER_EMAIL,
-        fullName: 'Advertiser 01113312766',
+        fullName: 'مصطفى كرم',
         password: '$2b$10$dummyhashforseeding1234567890ab', // placeholder hash
         role: Role.ADVERTISER,
         status: UserStatus.CONFIRMED,
