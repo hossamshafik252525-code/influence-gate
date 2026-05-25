@@ -1,8 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { CampaignInvitedInfluencer } from '../entities/campaign-invited-influencer.entity';
 import { InvitationStatus } from '../enums';
+
+const ACTIVE_INVITATION_STATUSES = [
+  InvitationStatus.CREATED,
+  InvitationStatus.PENDING,
+  InvitationStatus.ACCEPTED,
+];
 
 @Injectable()
 export class InvitationsDataService {
@@ -44,11 +50,17 @@ export class InvitationsDataService {
 
   async sumAllInvitationsCost(campaignId: string): Promise<number> {
     const invitations = await this.invitationRepository.find({
-      where: { campaignId },
+      where: { campaignId, status: In(ACTIVE_INVITATION_STATUSES) },
     });
     return invitations.reduce(
       (sum, invitation) => sum + Number(invitation.priceWithFee || 0),
       0,
     );
+  }
+
+  async countActiveInvitations(campaignId: string): Promise<number> {
+    return this.invitationRepository.count({
+      where: { campaignId, status: In(ACTIVE_INVITATION_STATUSES) },
+    });
   }
 }

@@ -10,6 +10,7 @@ import { computePendingMinimumDeadline } from '../utils';
 import { CampaignLaunchService } from './campaign-launch.service';
 import { InvitationsManagementService } from '../invitations/services/invitations-management.service';
 import { CampaignReportGenerationService } from '../../reports/services/campaign-report-generation.service';
+import { AdvertiserWalletTransactionService } from '../../wallet/services/advertiser/advertiser-wallet-transaction.service';
 
 @Injectable()
 export class CampaignReviewService {
@@ -20,6 +21,7 @@ export class CampaignReviewService {
     private readonly campaignLaunchService: CampaignLaunchService,
     private readonly invitationsManagementService: InvitationsManagementService,
     private readonly campaignReportGenerationService: CampaignReportGenerationService,
+    private readonly advertiserWalletTransactionService: AdvertiserWalletTransactionService,
   ) {}
 
   async reviewCampaign(campaignId: string, dto: ReviewCampaignDto): Promise<Campaign> {
@@ -81,6 +83,13 @@ export class CampaignReviewService {
       }
       return;
     }
+
+    await this.advertiserWalletTransactionService.generateReserveTransaction({
+      advertiserId: campaign.advertiserId,
+      amount: Number(campaign.budget),
+      campaignId: campaign.id,
+      description: 'حجز ميزانية الحملة',
+    });
 
     if (decision.kind === 'pending-minimum-public') {
       await this.campaignRepository.update(campaign.id, {

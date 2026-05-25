@@ -1,7 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Bash(rm \"d:\\\\work\\\\influence-gate\\\\src\\\\modules\\\\platform-settings\\\\entities\\\\active-platform.entity.ts\" \"d:\\\\work\\\\influence-gate\\\\src\\\\modules\\\\platform-settings\\\\platform-options.service.ts\")"
+      "Bash(rm \"d:\\\\work\\\\influence-gate\\\\src\\\\modules\\\\platform-settings\\\\entities\\\\active-platform.entity.ts\" \"d:\\\\work\\\\influence-gate\\\\src\\\\modules\\\\platform-settings\\\\platform-options.service.ts\")",
+      "Bash(Get-ChildItem -Path \"d:\\\\work\\\\influence-gate\\\\src\\\\modules\\\\campaign\" -Recurse -File)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(Sort-Object)",
+      "Bash(Get-ChildItem -Path \"d:\\\\work\\\\influence-gate\\\\src\\\\modules\\\\\" -Directory | Select-Object Name)"
     ],
     "additionalDirectories": [
       "d:\\work\\influence-gate\\src\\modules\\platform-settings\\entities"

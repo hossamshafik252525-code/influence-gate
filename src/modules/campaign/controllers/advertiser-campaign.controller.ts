@@ -28,6 +28,8 @@ import {
   SaveInfluencerRequirementsDto,
   SaveCampaignBudgetDto,
   UpdateCampaignDatesDto,
+  UpdateCampaignBudgetDto,
+  UpdateRequiredInfluencersDto,
   GetAdvertiserMyCampaignsQueryDto,
 } from '../dto';
 import { AdvertiserCampaignDetail } from '../interfaces/advertiser-campaign.interface';
@@ -138,6 +140,30 @@ export class AdvertiserCampaignController {
     @Body() dto: UpdateCampaignDatesDto,
   ): Promise<AdvertiserCampaignDetail> {
     const campaign = await this.campaignManagementService.updateDates(id, user.id, dto);
+    return AdvertiserCampaignMapper.toCampaignDetail(campaign);
+  }
+
+  @Patch(':id/budget')
+  async updateBudget(
+    @Param('id', ParseUUIDPipe) id: string,
+    @AuthUser() user: User,
+    @Body() dto: UpdateCampaignBudgetDto,
+  ): Promise<AdvertiserCampaignDetail> {
+    const campaign = await this.campaignManagementService.updateBudget(id, user.id, dto);
+    return AdvertiserCampaignMapper.toCampaignDetail(campaign);
+  }
+
+  @Patch(':id/required-influencers')
+  async updateRequiredInfluencers(
+    @Param('id', ParseUUIDPipe) id: string,
+    @AuthUser() user: User,
+    @Body() dto: UpdateRequiredInfluencersDto,
+  ): Promise<AdvertiserCampaignDetail> {
+    const campaign = await this.campaignManagementService.updateRequiredInfluencersCount(
+      id,
+      user.id,
+      dto,
+    );
     return AdvertiserCampaignMapper.toCampaignDetail(campaign);
   }
 
