@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { Campaign } from '../entities/campaign.entity';
 import { CampaignStatus, CampaignVisibility } from '../enums';
 import {
@@ -55,6 +55,7 @@ export class CampaignManagementService {
     private readonly invitationsDataService: InvitationsDataService,
     private readonly campaignLaunchService: CampaignLaunchService,
     private readonly advertiserWalletTransactionService: AdvertiserWalletTransactionService,
+    private readonly dataSource: DataSource,
   ) {}
 
   async updateDates(
@@ -142,12 +143,38 @@ export class CampaignManagementService {
     }
 
     if (newBudget < oldBudget) {
-      await this.releaseBudgetDelta(campaign, oldBudget - newBudget, newBudget);
-    } else {
-      await this.reserveBudgetDelta(campaign, newBudget - oldBudget);
+      const floor = await this.computeBudgetFloor(campaign);
+      if (newBudget < floor) {
+        throw new BadRequestException(
+          'لا يمكن تخفيض الميزانية لأقل من تكلفة المؤثرين الملتزم بهم',
+        );
+      }
     }
 
-    await this.campaignRepository.update(campaign.id, { budget: newBudget });
+    await this.dataSource.transaction(async (manager) => {
+      if (newBudget < oldBudget) {
+        await this.advertiserWalletTransactionService.generateReleaseTransaction(
+          {
+            advertiserId: campaign.advertiserId,
+            amount: oldBudget - newBudget,
+            campaignId: campaign.id,
+            description: 'تخفيض ميزانية الحملة',
+          },
+          manager,
+        );
+      } else {
+        await this.advertiserWalletTransactionService.generateReserveTransaction(
+          {
+            advertiserId: campaign.advertiserId,
+            amount: newBudget - oldBudget,
+            campaignId: campaign.id,
+            description: 'زيادة ميزانية الحملة',
+          },
+          manager,
+        );
+      }
+      await manager.update(Campaign, campaign.id, { budget: newBudget });
+    });
 
     return this.findWithDetailRelations(campaign.id);
   }
@@ -217,36 +244,4 @@ export class CampaignManagementService {
     return this.invitationsDataService.sumAllInvitationsCost(campaign.id);
   }
 
-  private async releaseBudgetDelta(
-    campaign: Campaign,
-    delta: number,
-    newBudget: number,
-  ): Promise<void> {
-    const floor = await this.computeBudgetFloor(campaign);
-
-    if (newBudget < floor) {
-      throw new BadRequestException(
-        'لا يمكن تخفيض الميزانية لأقل من تكلفة المؤثرين الملتزم بهم',
-      );
-    }
-
-    await this.advertiserWalletTransactionService.generateReleaseTransaction({
-      advertiserId: campaign.advertiserId,
-      amount: delta,
-      campaignId: campaign.id,
-      description: 'تخفيض ميزانية الحملة',
-    });
-  }
-
-  private async reserveBudgetDelta(
-    campaign: Campaign,
-    delta: number,
-  ): Promise<void> {
-    await this.advertiserWalletTransactionService.generateReserveTransaction({
-      advertiserId: campaign.advertiserId,
-      amount: delta,
-      campaignId: campaign.id,
-      description: 'زيادة ميزانية الحملة',
-    });
-  }
 }

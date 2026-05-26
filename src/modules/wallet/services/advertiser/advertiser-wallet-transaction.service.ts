@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { AdvertiserWalletTransaction } from '../../entities/advertiser-wallet-transaction.entity';
 import { AdvertiserTransactionType, TransactionStatus } from '../../enums';
 import {
@@ -118,6 +118,7 @@ export class AdvertiserWalletTransactionService {
 
   async generateReserveTransaction(
     input: GenerateReserveTransactionInput,
+    manager?: EntityManager,
   ): Promise<AdvertiserWalletTransaction> {
     const wallet = await this.advertiserWalletService.getOrCreateWallet(input.advertiserId);
 
@@ -129,9 +130,12 @@ export class AdvertiserWalletTransactionService {
       throw new BadRequestException('الرصيد المتاح لا يكفي ');
     }
 
-    await this.advertiserWalletService.moveAvailableToReserved(wallet, input.amount);
+    await this.advertiserWalletService.moveAvailableToReserved(wallet, input.amount, manager);
 
-    const transaction = this.transactionRepo.create({
+    const repo = manager
+      ? manager.getRepository(AdvertiserWalletTransaction)
+      : this.transactionRepo;
+    const transaction = repo.create({
       walletId: wallet.id,
       type: AdvertiserTransactionType.RESERVE,
       status: TransactionStatus.DONE,
@@ -141,11 +145,12 @@ export class AdvertiserWalletTransactionService {
       description: input.description ?? null,
     });
 
-    return this.transactionRepo.save(transaction);
+    return repo.save(transaction);
   }
 
   async generateReleaseTransaction(
     input: GenerateReleaseTransactionInput,
+    manager?: EntityManager,
   ): Promise<AdvertiserWalletTransaction> {
     const wallet = await this.advertiserWalletService.getOrCreateWallet(input.advertiserId);
 
@@ -157,9 +162,12 @@ export class AdvertiserWalletTransactionService {
       throw new BadRequestException('الرصيد المحجوز غير كافٍ للتحرير');
     }
 
-    await this.advertiserWalletService.moveReservedToAvailable(wallet, input.amount);
+    await this.advertiserWalletService.moveReservedToAvailable(wallet, input.amount, manager);
 
-    const transaction = this.transactionRepo.create({
+    const repo = manager
+      ? manager.getRepository(AdvertiserWalletTransaction)
+      : this.transactionRepo;
+    const transaction = repo.create({
       walletId: wallet.id,
       type: AdvertiserTransactionType.RELEASE_RESERVED,
       status: TransactionStatus.DONE,
@@ -169,7 +177,7 @@ export class AdvertiserWalletTransactionService {
       description: input.description ?? null,
     });
 
-    return this.transactionRepo.save(transaction);
+    return repo.save(transaction);
   }
 
   async getCampaignActualPaid(campaignId: string): Promise<number> {

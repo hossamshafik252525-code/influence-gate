@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { Campaign } from '../entities/campaign.entity';
 import { CampaignStatus, CampaignStep, CampaignVisibility } from '../enums';
 import {
@@ -26,6 +26,7 @@ import { NotificationsService } from '../../notifications/services/notifications
 import { NotificationType } from '../../notifications/enums';
 import { Role } from '../../../common/enums';
 import { validateInitialDateOrdering } from '../utils';
+import { AdvertiserWalletTransactionService } from '../../wallet/services/advertiser/advertiser-wallet-transaction.service';
 
 @Injectable()
 export class CampaignCreationService {
@@ -46,6 +47,8 @@ export class CampaignCreationService {
     private readonly invitationsManagementService: InvitationsManagementService,
     private readonly invitationsDataService: InvitationsDataService,
     private readonly notificationsService: NotificationsService,
+    private readonly advertiserWalletTransactionService: AdvertiserWalletTransactionService,
+    private readonly dataSource: DataSource,
   ) {}
 
   async createDraft(advertiserId: string): Promise<Campaign> {
@@ -228,9 +231,21 @@ export class CampaignCreationService {
 
     this.campaignValidationService.assertAllStepsCompleted(campaign);
 
-    await this.campaignRepository.update(campaign.id, {
-      status: CampaignStatus.PENDING_REVIEW,
-      submittedAt: new Date(),
+    await this.dataSource.transaction(async (manager) => {
+      await this.advertiserWalletTransactionService.generateReserveTransaction(
+        {
+          advertiserId,
+          amount: Number(campaign.budget),
+          campaignId: campaign.id,
+          description: 'حجز ميزانية الحملة',
+        },
+        manager,
+      );
+
+      await manager.update(Campaign, campaign.id, {
+        status: CampaignStatus.PENDING_REVIEW,
+        submittedAt: new Date(),
+      });
     });
 
     await this.notificationsService.notifyByRole(

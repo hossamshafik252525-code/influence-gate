@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { Campaign } from '../entities/campaign.entity';
 import { CampaignStatus, CampaignVisibility } from '../enums';
 import { ReviewCampaignDto } from '../dto';
@@ -22,6 +22,7 @@ export class CampaignReviewService {
     private readonly invitationsManagementService: InvitationsManagementService,
     private readonly campaignReportGenerationService: CampaignReportGenerationService,
     private readonly advertiserWalletTransactionService: AdvertiserWalletTransactionService,
+    private readonly dataSource: DataSource,
   ) {}
 
   async reviewCampaign(campaignId: string, dto: ReviewCampaignDto): Promise<Campaign> {
@@ -63,9 +64,21 @@ export class CampaignReviewService {
     const isPrivate = campaign.campaignVisibility === CampaignVisibility.PRIVATE;
 
     if (decision.kind === 'discarded') {
-      await this.campaignRepository.update(campaign.id, {
-        status: CampaignStatus.DISCARDED,
+      await this.dataSource.transaction(async (manager) => {
+        await manager.update(Campaign, campaign.id, {
+          status: CampaignStatus.DISCARDED,
+        });
+        await this.advertiserWalletTransactionService.generateReleaseTransaction(
+          {
+            advertiserId: campaign.advertiserId,
+            amount: Number(campaign.budget),
+            campaignId: campaign.id,
+            description: 'إلغاء الحملة - تحرير الميزانية',
+          },
+          manager,
+        );
       });
+
       await this.notificationsService.notify(
         campaign.advertiserId,
         'تم إلغاء حملتك',
@@ -83,13 +96,6 @@ export class CampaignReviewService {
       }
       return;
     }
-
-    await this.advertiserWalletTransactionService.generateReserveTransaction({
-      advertiserId: campaign.advertiserId,
-      amount: Number(campaign.budget),
-      campaignId: campaign.id,
-      description: 'حجز ميزانية الحملة',
-    });
 
     if (decision.kind === 'pending-minimum-public') {
       await this.campaignRepository.update(campaign.id, {
@@ -152,10 +158,21 @@ export class CampaignReviewService {
   }
 
   private async rejectCampaign(campaign: Campaign, rejectionReason: string): Promise<void> {
-    await this.campaignRepository.update(campaign.id, {
-      status: CampaignStatus.REJECTED,
-      rejectedAt: new Date(),
-      rejectionReason,
+    await this.dataSource.transaction(async (manager) => {
+      await manager.update(Campaign, campaign.id, {
+        status: CampaignStatus.REJECTED,
+        rejectedAt: new Date(),
+        rejectionReason,
+      });
+      await this.advertiserWalletTransactionService.generateReleaseTransaction(
+        {
+          advertiserId: campaign.advertiserId,
+          amount: Number(campaign.budget),
+          campaignId: campaign.id,
+          description: 'رفض الحملة - تحرير الميزانية',
+        },
+        manager,
+      );
     });
 
     await this.notificationsService.notify(
