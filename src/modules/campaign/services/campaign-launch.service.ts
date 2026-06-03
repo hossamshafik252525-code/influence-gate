@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Campaign } from '../entities/campaign.entity';
@@ -11,9 +11,15 @@ import {
 import { InvitationsManagementService } from '../invitations/services/invitations-management.service';
 import { NotificationsService } from '../../notifications/services/notifications.service';
 import { NotificationType } from '../../notifications/enums';
-import { ApplicationStatus } from '../applications/enums';
-import { CampaignApplication } from '../applications/entities/campaign-application.entity';
+import { ApplicationsValidationService } from '../applications/services/applications-validation.service';
+import { ApplicationsManagementService } from '../applications/services/applications-management.service';
 import { CampaignReportGenerationService } from '../../reports/services/campaign-report-generation.service';
+import { CampaignQueryService } from './campaign-query.service';
+
+const LAUNCHABLE_STATUSES = [
+  CampaignStatus.APPROVED,
+  CampaignStatus.PENDING_MINIMUM,
+];
 
 export type ApprovalDecision =
   | { kind: 'discarded' }
@@ -27,12 +33,38 @@ export class CampaignLaunchService {
   constructor(
     @InjectRepository(Campaign)
     private readonly campaignRepository: Repository<Campaign>,
-    @InjectRepository(CampaignApplication)
-    private readonly applicationRepository: Repository<CampaignApplication>,
     private readonly invitationsManagementService: InvitationsManagementService,
     private readonly notificationsService: NotificationsService,
     private readonly campaignReportGenerationService: CampaignReportGenerationService,
+    private readonly campaignQueryService: CampaignQueryService,
+    private readonly applicationsValidationService: ApplicationsValidationService,
+    private readonly applicationsManagementService: ApplicationsManagementService,
   ) {}
+
+  async launchOnDemand(
+    campaignId: string,
+    advertiserId: string,
+  ): Promise<Campaign> {
+    const campaign = await this.campaignQueryService.findCampaignWithRelations(
+      campaignId,
+      advertiserId,
+    );
+
+    if (!LAUNCHABLE_STATUSES.includes(campaign.status)) {
+      throw new BadRequestException('لا يمكن إطلاق الحملة في هذه الحالة');
+    }
+
+    await this.applicationsValidationService.ensureCampaignHasAcceptedApplication(
+      campaign.id,
+    );
+
+    await this.launchImplementation(campaign);
+
+    return this.campaignQueryService.findCampaignWithRelations(
+      campaignId,
+      advertiserId,
+    );
+  }
 
   decideStatusOnApproval(campaign: Campaign, now: Date): ApprovalDecision {
     const isPrivate = campaign.campaignVisibility === CampaignVisibility.PRIVATE;
@@ -59,7 +91,9 @@ export class CampaignLaunchService {
     });
 
     if (campaign.campaignVisibility === CampaignVisibility.PUBLIC) {
-      await this.rejectPendingApplications(campaign);
+      await this.applicationsManagementService.rejectPendingApplicationsForCampaign(
+        campaign,
+      );
     }
   }
 
@@ -88,39 +122,6 @@ export class CampaignLaunchService {
     if (updated) {
       await this.campaignReportGenerationService.generateForDiscardedCampaign(
         updated,
-      );
-    }
-  }
-
-  private async rejectPendingApplications(campaign: Campaign): Promise<void> {
-    const pendingApplications = await this.applicationRepository.find({
-      where: { campaignId: campaign.id, status: ApplicationStatus.PENDING },
-    });
-
-    for (const pending of pendingApplications) {
-      pending.status = ApplicationStatus.REJECTED;
-      await this.applicationRepository.save(pending);
-
-      await this.notificationsService.notify(
-        pending.influencerId,
-        'تم رفض طلبك',
-        `تم رفض طلبك للحملة ${campaign.name} لاكتمال العدد المطلوب`,
-        NotificationType.APPLICATION_REJECTED,
-        { campaignId: campaign.id, applicationId: pending.id },
-      );
-    }
-
-    const acceptedApplications = await this.applicationRepository.find({
-      where: { campaignId: campaign.id, status: ApplicationStatus.ACCEPTED },
-    });
-
-    for (const accepted of acceptedApplications) {
-      await this.notificationsService.notify(
-        accepted.influencerId,
-        'بدأت الحملة',
-        `بدأت فترة التنفيذ للحملة ${campaign.name}`,
-        NotificationType.CAMPAIGN_STARTED,
-        { campaignId: campaign.id },
       );
     }
   }

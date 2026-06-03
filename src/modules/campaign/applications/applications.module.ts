@@ -52,6 +52,7 @@ import { PlatformSettingsModule } from '../../platform-settings/platform-setting
   ],
   exports: [
     TypeOrmModule,
+    ApplicationsManagementService,
     AdvertiserApplicationQueryService,
     InfluencerApplicationQueryService,
     ApplicationsValidationService,

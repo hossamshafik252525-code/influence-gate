@@ -20,6 +20,7 @@ import { User } from '../../users/entities/user.entity';
 import { CampaignCreationService } from '../services/campaign-creation.service';
 import { CampaignDraftService } from '../services/campaign-draft.service';
 import { CampaignManagementService } from '../services/campaign-management.service';
+import { CampaignLaunchService } from '../services/campaign-launch.service';
 import { CampaignQueryService } from '../services/campaign-query.service';
 import { AdvertiserCampaignMapper } from '../mappers/advertiser-campaign.mapper';
 import {
@@ -43,6 +44,7 @@ export class AdvertiserCampaignController {
     private readonly campaignCreationService: CampaignCreationService,
     private readonly campaignDraftService: CampaignDraftService,
     private readonly campaignManagementService: CampaignManagementService,
+    private readonly campaignLaunchService: CampaignLaunchService,
     private readonly campaignQueryService: CampaignQueryService,
   ) {}
 
@@ -172,7 +174,7 @@ export class AdvertiserCampaignController {
     @Param('id', ParseUUIDPipe) id: string,
     @AuthUser() user: User,
   ): Promise<AdvertiserCampaignDetail> {
-    const campaign = await this.campaignManagementService.launchPublicOnDemand(id, user.id);
+    const campaign = await this.campaignLaunchService.launchOnDemand(id, user.id);
     return AdvertiserCampaignMapper.toCampaignDetail(campaign);
   }
 }

@@ -79,6 +79,7 @@ import { PlatformsModule } from '../platforms/platforms.module';
     CampaignCreationService,
     CampaignQueryService,
     CampaignLaunchService,
+    CampaignCompletionService,
     ApplicationsModule,
     SubmissionsModule,
     TypeOrmModule,

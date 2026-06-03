@@ -130,4 +130,37 @@ export class ApplicationsManagementService {
 
     return savedApplication;
   }
+
+  async rejectPendingApplicationsForCampaign(campaign: Campaign): Promise<void> {
+    const pendingApplications = await this.applicationRepo.find({
+      where: { campaignId: campaign.id, status: ApplicationStatus.PENDING },
+    });
+
+    for (const pending of pendingApplications) {
+      pending.status = ApplicationStatus.REJECTED;
+      await this.applicationRepo.save(pending);
+
+      await this.notificationsService.notify(
+        pending.influencerId,
+        'تم رفض طلبك',
+        `تم رفض طلبك للحملة ${campaign.name} لاكتمال العدد المطلوب`,
+        NotificationType.APPLICATION_REJECTED,
+        { campaignId: campaign.id, applicationId: pending.id },
+      );
+    }
+
+    const acceptedApplications = await this.applicationRepo.find({
+      where: { campaignId: campaign.id, status: ApplicationStatus.ACCEPTED },
+    });
+
+    for (const accepted of acceptedApplications) {
+      await this.notificationsService.notify(
+        accepted.influencerId,
+        'بدأت الحملة',
+        `بدأت فترة التنفيذ للحملة ${campaign.name}`,
+        NotificationType.CAMPAIGN_STARTED,
+        { campaignId: campaign.id },
+      );
+    }
+  }
 }

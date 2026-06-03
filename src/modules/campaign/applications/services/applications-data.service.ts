@@ -28,6 +28,17 @@ export class ApplicationsDataService {
     return application ? Number(application.priceWithFee) : 0;
   }
 
+  async getInfluencerNetPrice(
+    campaignId: string,
+    influencerId: string,
+  ): Promise<number> {
+    const application = await this.applicationRepository.findOne({
+      where: { campaignId, influencerId, status: ApplicationStatus.ACCEPTED },
+    });
+    if (!application) return 0;
+    return Number(application.offerPrice ?? application.basePrice);
+  }
+
   async countAcceptedApplications(campaignId: string): Promise<number> {
     return this.applicationRepository.count({
       where: { campaignId, status: ApplicationStatus.ACCEPTED },

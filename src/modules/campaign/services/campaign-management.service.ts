@@ -13,10 +13,8 @@ import {
   UpdateRequiredInfluencersDto,
 } from '../dto';
 import { isBeforeStart, validateUpdatedDateOrdering } from '../utils';
-import { ApplicationsValidationService } from '../applications/services/applications-validation.service';
 import { ApplicationsDataService } from '../applications/services/applications-data.service';
 import { InvitationsDataService } from '../invitations/services/invitations-data.service';
-import { CampaignLaunchService } from './campaign-launch.service';
 import { AdvertiserWalletTransactionService } from '../../wallet/services/advertiser/advertiser-wallet-transaction.service';
 
 const DATES_UPDATABLE_STATUSES = [
@@ -50,10 +48,8 @@ export class CampaignManagementService {
   constructor(
     @InjectRepository(Campaign)
     private readonly campaignRepository: Repository<Campaign>,
-    private readonly applicationsValidationService: ApplicationsValidationService,
     private readonly applicationsDataService: ApplicationsDataService,
     private readonly invitationsDataService: InvitationsDataService,
-    private readonly campaignLaunchService: CampaignLaunchService,
     private readonly advertiserWalletTransactionService: AdvertiserWalletTransactionService,
     private readonly dataSource: DataSource,
   ) {}
@@ -175,33 +171,6 @@ export class CampaignManagementService {
       }
       await manager.update(Campaign, campaign.id, { budget: newBudget });
     });
-
-    return this.findWithDetailRelations(campaign.id);
-  }
-
-  async launchPublicOnDemand(
-    campaignId: string,
-    advertiserId: string,
-  ): Promise<Campaign> {
-    const campaign = await this.findOwnedCampaignOrFail(campaignId, advertiserId);
-
-    if (campaign.campaignVisibility !== CampaignVisibility.PUBLIC) {
-      throw new BadRequestException('هذه العملية متاحة للحملات العامة فقط');
-    }
-
-    const launchableStatuses = [
-      CampaignStatus.APPROVED,
-      CampaignStatus.PENDING_MINIMUM,
-    ];
-    if (!launchableStatuses.includes(campaign.status)) {
-      throw new BadRequestException('لا يمكن إطلاق الحملة في هذه الحالة');
-    }
-
-    await this.applicationsValidationService.ensureCampaignHasAcceptedApplication(
-      campaign.id,
-    );
-
-    await this.campaignLaunchService.launchImplementation(campaign);
 
     return this.findWithDetailRelations(campaign.id);
   }

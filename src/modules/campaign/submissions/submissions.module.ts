@@ -16,6 +16,7 @@ import { WalletModule } from '../../wallet/wallet.module';
 import { ApplicationsModule } from '../applications/applications.module';
 import { CampaignRecordService } from '../services/campaign-record.service';
 import { InfluencerModule } from '../../influencer/influencer.module';
+import { CampaignModule } from '../campaign.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { InfluencerModule } from '../../influencer/influencer.module';
     WalletModule,
     forwardRef(() => ApplicationsModule),
     forwardRef(() => InfluencerModule),
+    forwardRef(() => CampaignModule),
   ],
   controllers: [InfluencerSubmissionController, AdvertiserSubmissionController],
   providers: [

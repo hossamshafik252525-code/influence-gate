@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { WalletTransaction } from '../../entities/wallet-transaction.entity';
 import { Wallet } from '../../entities/wallet.entity';
 import { TransactionType, TransactionStatus } from '../../enums';
@@ -18,16 +18,24 @@ export class WalletTransactionService {
     private readonly walletRepo: Repository<Wallet>,
   ) {}
 
-  async createRevenueTransaction(input: CreateRevenueTransactionInput): Promise<WalletTransaction> {
-    const wallet = await this.ensureWalletExists(input.influencerId);
+  async createRevenueTransaction(
+    input: CreateRevenueTransactionInput,
+    manager?: EntityManager,
+  ): Promise<WalletTransaction> {
+    const wallet = await this.ensureWalletExists(input.influencerId, manager);
+
+    const walletRepo = manager ? manager.getRepository(Wallet) : this.walletRepo;
+    const transactionRepo = manager
+      ? manager.getRepository(WalletTransaction)
+      : this.transactionRepo;
 
     if (input.status === TransactionStatus.PENDING_REVIEW) {
-      await this.walletRepo.update(wallet.id, {
+      await walletRepo.update(wallet.id, {
         pendingBalance: Number(wallet.pendingBalance) + input.amount,
       });
     }
 
-    const transaction = this.transactionRepo.create({
+    const transaction = transactionRepo.create({
       walletId: wallet.id,
       type: TransactionType.REVENUE,
       status: input.status,
@@ -37,7 +45,7 @@ export class WalletTransactionService {
       includedPlatforms: input.includedPlatforms,
     });
 
-    return this.transactionRepo.save(transaction);
+    return transactionRepo.save(transaction);
   }
 
   async createWithdrawalTransaction(input: CreateWithdrawalTransactionInput): Promise<WalletTransaction> {
@@ -62,11 +70,15 @@ export class WalletTransactionService {
     return this.transactionRepo.save(transaction);
   }
 
-  private async ensureWalletExists(userId: string): Promise<Wallet> {
-    const existing = await this.walletRepo.findOne({ where: { userId } });
+  private async ensureWalletExists(
+    userId: string,
+    manager?: EntityManager,
+  ): Promise<Wallet> {
+    const walletRepo = manager ? manager.getRepository(Wallet) : this.walletRepo;
+    const existing = await walletRepo.findOne({ where: { userId } });
     if (existing) return existing;
 
-    const wallet = this.walletRepo.create({ userId });
-    return this.walletRepo.save(wallet);
+    const wallet = walletRepo.create({ userId });
+    return walletRepo.save(wallet);
   }
 }

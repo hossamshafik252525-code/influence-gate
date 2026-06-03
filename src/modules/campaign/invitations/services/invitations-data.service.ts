@@ -35,6 +35,17 @@ export class InvitationsDataService {
     return Number(invitation.priceWithFee);
   }
 
+  async getInfluencerNetPrice(
+    campaignId: string,
+    influencerId: string,
+  ): Promise<number> {
+    const invitation = await this.invitationRepository.findOne({
+      where: { campaignId, influencerId, status: InvitationStatus.ACCEPTED },
+    });
+    if (!invitation) return 0;
+    return Number(invitation.basePrice);
+  }
+
   async hasAcceptedInvitation(campaignId: string): Promise<boolean> {
     const count = await this.invitationRepository.count({
       where: { campaignId, status: InvitationStatus.ACCEPTED },

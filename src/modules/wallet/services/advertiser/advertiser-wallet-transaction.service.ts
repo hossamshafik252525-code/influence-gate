@@ -196,6 +196,7 @@ export class AdvertiserWalletTransactionService {
 
   async generatePayInfluencerTransaction(
     input: GeneratePayInfluencerTransactionInput,
+    manager?: EntityManager,
   ): Promise<AdvertiserWalletTransaction> {
     const wallet = await this.advertiserWalletService.getOrCreateWallet(input.advertiserId);
 
@@ -207,9 +208,12 @@ export class AdvertiserWalletTransactionService {
       throw new BadRequestException('الرصيد المحجوز غير كافٍ لدفع المؤثر');
     }
 
-    await this.advertiserWalletService.moveReservedToPaid(wallet, input.amount);
+    await this.advertiserWalletService.moveReservedToPaid(wallet, input.amount, manager);
 
-    const transaction = this.transactionRepo.create({
+    const repo = manager
+      ? manager.getRepository(AdvertiserWalletTransaction)
+      : this.transactionRepo;
+    const transaction = repo.create({
       walletId: wallet.id,
       type: AdvertiserTransactionType.PAY_INFLUENCER,
       status: TransactionStatus.DONE,
@@ -219,7 +223,7 @@ export class AdvertiserWalletTransactionService {
       description: input.description ?? null,
     });
 
-    return this.transactionRepo.save(transaction);
+    return repo.save(transaction);
   }
 
   private toTransactionItem(

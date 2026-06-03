@@ -62,8 +62,13 @@ export class AdvertiserWalletService {
     });
   }
 
-  async moveReservedToPaid(wallet: AdvertiserWallet, amount: number): Promise<void> {
-    await this.walletRepo.update(wallet.id, {
+  async moveReservedToPaid(
+    wallet: AdvertiserWallet,
+    amount: number,
+    manager?: EntityManager,
+  ): Promise<void> {
+    const repo = manager ? manager.getRepository(AdvertiserWallet) : this.walletRepo;
+    await repo.update(wallet.id, {
       reservedBalance: Number(wallet.reservedBalance) - amount,
       totalPaid: Number(wallet.totalPaid) + amount,
     });
